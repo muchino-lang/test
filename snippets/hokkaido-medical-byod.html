@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北海道医療センター附属札幌看護学校 BYOD要件適合モデル</title>
+<style>
+  :root {
+    /* ティール/シアン系メインカラー */
+    --main-color: #00838f;
+    --main-dark: #005662;
+    --main-light: #4db6ac;
+    --main-bg: #e0f7fa;
+    /* ゴールド系アクセントカラー */
+    --accent-color: #c49000;
+    --accent-light: #ffd54f;
+    --accent-bg: #fff8e1;
+    /* ベース */
+    --text-color: #2c3e50;
+    --text-muted: #607d8b;
+    --bg-color: #f5f7fa;
+    --card-bg: #ffffff;
+    --border-color: #e0e6ed;
+    --font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    --radius: 14px;
+    --shadow-sm: 0 2px 8px rgba(0, 131, 143, 0.06);
+    --shadow-md: 0 4px 20px rgba(0, 131, 143, 0.10);
+    --shadow-lg: 0 8px 30px rgba(0, 131, 143, 0.14);
+    --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--bg-color);
+    font-family: var(--font-family);
+    color: var(--text-color);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============================
+     メインカード
+     ============================ */
+  .byod-section {
+    background: var(--card-bg);
+    padding: 48px 40px;
+    margin: 0 auto;
+    max-width: 820px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    border-top: 6px solid var(--main-color);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .byod-section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle at top right, rgba(0, 131, 143, 0.04), transparent 70%);
+    pointer-events: none;
+  }
+
+  .byod-container {
+    max-width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    position: relative;
+  }
+
+  /* ============================
+     ヘッダー
+     ============================ */
+  .byod-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 32px;
+    gap: 14px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 24px;
+  }
+
+  .byod-badge {
+    background: linear-gradient(135deg, var(--accent-color), #d4a517);
+    color: #fff;
+    font-size: 0.82rem;
+    padding: 6px 20px;
+    border-radius: 50px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    box-shadow: 0 2px 8px rgba(196, 144, 0, 0.3);
+  }
+
+  .byod-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--main-color);
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+  }
+
+  /* ============================
+     スペック表示エリア
+     ============================ */
+  .byod-my-spec {
+    background: var(--main-bg);
+    border: 1px solid rgba(0, 131, 143, 0.2);
+    border-radius: 10px;
+    padding: 16px 24px;
+    margin-bottom: 32px;
+    display: inline-block;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .byod-my-spec-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--main-color);
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .byod-my-spec-items {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-color);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .byod-separator {
+    color: #b0bec5;
+    font-weight: 300;
+  }
+
+  /* ============================
+     判定メッセージ
+     ============================ */
+  .byod-result-message {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    margin-bottom: 36px;
+  }
+
+  .byod-result-highlight {
+    color: var(--main-color);
+    font-weight: 800;
+    font-size: 1.2em;
+    background: linear-gradient(transparent 65%, rgba(77, 182, 172, 0.25) 65%);
+    padding: 0 2px;
+  }
+
+  /* ============================
+     メリット訴求セクション
+     ============================ */
+  .byod-merit-section {
+    margin: 44px 0;
+    text-align: left;
+  }
+
+  .byod-merit-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .byod-merit-header h3 {
+    display: inline-block;
+    font-size: 1.25rem;
+    color: var(--main-dark);
+    border-bottom: 3px solid var(--accent-color);
+    padding-bottom: 10px;
+    margin: 0;
+  }
+
+  .byod-merit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+  }
+
+  .byod-merit-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px 20px;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+    text-align: center;
+  }
+
+  .byod-merit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--main-light);
+  }
+
+  .byod-merit-icon {
+    font-size: 2.4rem;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .byod-merit-title {
+    font-weight: 700;
+    color: var(--main-color);
+    margin-bottom: 10px;
+    font-size: 1rem;
+    display: block;
+  }
+
+  .byod-merit-desc {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    text-align: left;
+  }
+
+  .byod-merit-desc strong {
+    color: var(--accent-color);
+    font-weight: 700;
+  }
+
+  /* ============================
+     学科バッジ
+     ============================ */
+  .byod-faculty-group {
+    margin-bottom: 32px;
+  }
+
+  .byod-faculty-label {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .byod-faculty-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .byod-faculty-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 24px;
+    border: 2px solid var(--main-color);
+    color: var(--main-color);
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1rem;
+    background-color: var(--card-bg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition), background var(--transition);
+  }
+
+  .byod-faculty-badge:hover {
+    transform: translateY(-2px);
+    background-color: var(--main-bg);
+  }
+
+  .byod-check-text {
+    margin-right: 6px;
+    font-weight: 800;
+    color: var(--accent-color);
+    font-size: 1.15em;
+  }
+
+  /* ============================
+     スペック詳細テーブル
+     ============================ */
+  .byod-specs-box {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    text-align: left;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .byod-specs-header {
+    background: linear-gradient(135deg, var(--main-color), var(--main-dark));
+    padding: 14px 22px;
+    font-weight: 700;
+    color: #fff;
+    font-size: 0.95rem;
+    letter-spacing: 0.03em;
+  }
+
+  .byod-spec-row {
+    display: flex;
+    border-bottom: 1px solid #f0f2f5;
+    align-items: stretch;
+    transition: background var(--transition);
+  }
+
+  .byod-spec-row:last-child {
+    border-bottom: none;
+  }
+
+  .byod-spec-row:hover {
+    background-color: rgba(0, 131, 143, 0.02);
+  }
+
+  .byod-spec-title {
+    width: 35%;
+    background-color: #f8fafb;
+    padding: 14px 18px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #f0f2f5;
+  }
+
+  .byod-check-icon {
+    color: #fff;
+    font-size: 0.7rem;
+    margin-right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-color);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .byod-spec-data {
+    width: 65%;
+    padding: 14px 18px;
+    font-size: 0.93rem;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ============================
+     インフォメーションボックス
+     ============================ */
+  .byod-info-box {
+    background-color: var(--accent-bg);
+    border: 1px solid rgba(196, 144, 0, 0.2);
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-align: left;
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+
+  .byod-info-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--main-color);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .byod-source-note {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: #90a4ae;
+    text-align: right;
+  }
+
+  /* ============================
+     アクションエリア
+     ============================ */
+  .byod-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 36px;
+    align-items: center;
+  }
+
+  .byod-modal-trigger-btn {
+    background-color: var(--card-bg);
+    color: var(--main-color);
+    border: 2px solid var(--main-color);
+    padding: 12px 28px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .byod-modal-trigger-btn:hover {
+    background-color: var(--main-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 131, 143, 0.2);
+  }
+
+  .byod-official-link {
+    display: block;
+    padding: 16px;
+    width: 100%;
+    background: linear-gradient(135deg, var(--main-color), var(--main-dark));
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.05rem;
+    border-radius: 10px;
+    transition: all var(--transition);
+    box-shadow: 0 4px 14px rgba(0, 131, 143, 0.25);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .byod-official-link::after {
+    content: "PDF";
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 0.65rem;
+    background: rgba(255,255,255,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .byod-official-link:hover {
+    background: linear-gradient(135deg, var(--main-dark), #003d44);
+    box-shadow: 0 6px 20px rgba(0, 131, 143, 0.35);
+    transform: translateY(-2px);
+  }
+
+  .byod-partner-note {
+    margin-top: 12px;
+    font-size: 0.72rem;
+    color: #90a4ae;
+    text-align: center;
+  }
+
+  /* ============================
+     モーダル
+     ============================ */
+  .byod-modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+  }
+
+  .byod-modal-container {
+    background-color: var(--card-bg);
+    margin: 5% auto;
+    padding: 0;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 520px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    animation: byodFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-top: 6px solid var(--main-color);
+  }
+
+  @keyframes byodFadeIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .byod-modal-close {
+    color: #b0bec5;
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;
+    line-height: 1;
+    transition: color var(--transition);
+  }
+
+  .byod-modal-close:hover {
+    color: var(--main-color);
+  }
+
+  .byod-contact-content {
+    padding: 36px 32px;
+  }
+
+  .byod-contact-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .byod-contact-header h3 {
+    color: var(--main-color);
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+  }
+
+  .byod-contact-wrapper {
+    display: flex;
+    justify-content: center;
+  }
+
+  .byod-contact-box {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    max-width: 440px;
+  }
+
+  .byod-contact-title {
+    margin: 0 0 10px 0;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .byod-contact-company {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text-color);
+    margin: 0 0 16px 0;
+    line-height: 1.4;
+  }
+
+  .byod-contact-hours {
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+
+  .byod-contact-alert {
+    color: var(--accent-color);
+    font-weight: 700;
+    font-size: 0.88em;
+    display: block;
+    margin-top: 6px;
+  }
+
+  .byod-contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: auto;
+    width: 100%;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .byod-contact-tel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 1.35rem;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, var(--main-color), var(--main-dark));
+    border-radius: 50px;
+    border: 2px solid var(--main-color);
+    transition: all var(--transition);
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 131, 143, 0.3);
+    width: 100%;
+  }
+
+  .byod-contact-tel:hover {
+    background: var(--card-bg);
+    color: var(--main-color);
+    transform: translateY(-2px);
+  }
+
+  .byod-contact-form {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--main-color);
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 10px 20px;
+    background: var(--card-bg);
+    border-radius: 50px;
+    border: 2px solid var(--main-color);
+    transition: all var(--transition);
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  .byod-contact-form:hover {
+    background: var(--main-bg);
+    transform: translateY(-2px);
+  }
+
+  /* ============================
+     レスポンシブ
+     ============================ */
+  @media (max-width: 600px) {
+    body { padding: 12px; }
+
+    .byod-section {
+      padding: 28px 20px;
+    }
+
+    .byod-header h2 {
+      font-size: 1.2rem;
+    }
+
+    .byod-my-spec-items {
+      font-size: 0.95rem;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .byod-separator {
+      display: none;
+    }
+
+    .byod-spec-row {
+      flex-direction: column;
+    }
+
+    .byod-spec-title {
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px dashed #e8ecef;
+      padding: 10px 16px;
+    }
+
+    .byod-spec-data {
+      width: 100%;
+      padding: 10px 16px;
+      display: block;
+    }
+
+    .byod-contact-tel {
+      font-size: 1.15rem;
+    }
+
+    .byod-merit-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="byod-section">
+  <div class="byod-container">
+
+    <div class="byod-header">
+      <span class="byod-badge">2026年度〜推奨仕様適合</span>
+      <h2>北海道医療センター附属札幌看護学校<br>BYOD適合チェック</h2>
+    </div>
+
+    <!-- スペック表示 -->
+    <div class="byod-my-spec">
+      <span class="byod-my-spec-label">このPCの仕様</span>
+      <div class="byod-my-spec-items">
+        <span>Windows 11</span>
+        <span class="byod-separator">|</span>
+        <span>Core i5</span>
+        <span class="byod-separator">|</span>
+        <span>メモリ 16GB</span>
+        <span class="byod-separator">|</span>
+        <span>SSD 500GB</span>
+      </div>
+    </div>
+
+    <!-- 判定メッセージ -->
+    <p class="byod-result-message">
+      このPCは、<span class="byod-result-highlight">北海道医療センター附属札幌看護学校の推奨スペックを満たしています。</span><br>
+      <small>学校公認モデルとして、3年間の学修を安心して行える構成です。</small>
+    </p>
+
+    <!-- メリット訴求 -->
+    <div class="byod-merit-section">
+      <div class="byod-merit-header">
+        <h3>価格だけじゃない！<img src="https://cdn.shopify.com/s/files/1/0786/0096/2304/files/R_PC_3c8ac46b-8616-44fc-8b0c-6e909bff83e3.png?v=1763477647" alt="R∞PC" style="height: 36px; vertical-align: -6px; margin: 0 2px;">が学校PCで選ばれる理由</h3>
+      </div>
+      <div class="byod-merit-grid">
+        <div class="byod-merit-card">
+          <span class="byod-merit-icon">✨</span>
+          <span class="byod-merit-title">堅牢な「法人モデル」</span>
+          <div class="byod-merit-desc">
+            一般的な家庭用PCより厳しい基準で作られた<strong>企業向け高品質モデル</strong>を厳選。耐久性が高く、毎日の通学・持ち運びも安心です。
+          </div>
+        </div>
+        <div class="byod-merit-card">
+          <span class="byod-merit-icon">🛡️</span>
+          <span class="byod-merit-title">安心の「4年保証」</span>
+          <div class="byod-merit-desc">
+            万が一の故障も、在学中しっかりカバー。中古品でも<strong>独自の長期保証</strong>が付くため、卒業まで安心感が違います。
+          </div>
+        </div>
+        <div class="byod-merit-card">
+          <span class="byod-merit-icon">💰</span>
+          <span class="byod-merit-title">浮いた予算で「自分投資」</span>
+          <div class="byod-merit-desc">
+            新品との差額で、<strong>タブレット端末や周辺機器</strong>を揃えたり、新生活の準備資金、資格試験対策などへ有効活用。PCコストを賢く抑えて、学生生活をより豊かに。
+            <br><small style="color:#b0bec5; font-size:0.75em; display:block; margin-top:8px;">(※リユース活用でSDGsにも貢献)</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 適合学科リスト -->
+    <div class="byod-faculty-group">
+      <div class="byod-faculty-label">全学科の要件に適合しています</div>
+      <div class="byod-faculty-list">
+        <span class="byod-faculty-badge"><span class="byod-check-text">✔</span> 看護学科</span>
+      </div>
+    </div>
+
+    <!-- スペック詳細テーブル -->
+    <div class="byod-specs-box">
+      <div class="byod-specs-header">学校推奨スペック詳細（2026年度）</div>
+
+      <div class="byod-spec-row">
+        <div class="byod-spec-title">
+          <span class="byod-check-icon">✔</span>形状・タイプ
+        </div>
+        <div class="byod-spec-data">
+          ノート型パソコン (カメラ・マイク内蔵)
+        </div>
+      </div>
+
+      <div class="byod-spec-row">
+        <div class="byod-spec-title">
+          <span class="byod-check-icon">✔</span>OS
+        </div>
+        <div class="byod-spec-data">
+          <div>
+            <strong>Windows 11</strong> (Home/Pro)
+            <br><small style="color:#90a4ae;">Windowsを推奨</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="byod-spec-row">
+        <div class="byod-spec-title">
+          <span class="byod-check-icon">✔</span>CPU
+        </div>
+        <div class="byod-spec-data">
+          <div>
+            Intel Core i5 以上 / Ryzen 5 以上
+            <br><small style="color:#90a4ae;">(i3/Ryzen 3 も可とされる場合あり)</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="byod-spec-row">
+        <div class="byod-spec-title">
+          <span class="byod-check-icon">✔</span>メモリ
+        </div>
+        <div class="byod-spec-data">
+          8GB 以上
+        </div>
+      </div>
+
+      <div class="byod-spec-row">
+        <div class="byod-spec-title">
+          <span class="byod-check-icon">✔</span>ストレージ
+        </div>
+        <div class="byod-spec-data">
+          SSD 256GB 以上
+        </div>
+      </div>
+
+      <div class="byod-spec-row">
+        <div class="byod-spec-title">
+          <span class="byod-check-icon">✔</span>画面サイズ
+        </div>
+        <div class="byod-spec-data">
+          12インチ以上推奨
+        </div>
+      </div>
+    </div>
+
+    <!-- Officeに関するお知らせ -->
+    <div class="byod-info-box">
+      <span class="byod-info-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        Microsoft Officeについて
+      </span>
+      学校よりMicrosoft 365（Word, Excel, PowerPoint等）が在学中無償提供されるため、個人での購入は原則不要です。
+      <span class="byod-source-note">（※詳細は入学案内をご確認ください）</span>
+    </div>
+
+    <!-- アクションボタン -->
+    <div class="byod-actions">
+      <a href="https://www.dcu.ac.jp/campuslife/shinnyusei/common/pdf/03_pc02.pdf" target="_blank" rel="noopener" class="byod-official-link">
+        北海道医療センター附属札幌看護学校 公式PC案内 (PDF)
+      </a>
+
+      <button class="byod-modal-trigger-btn" onclick="openContactModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        公認モデルに関するお問い合わせ
+      </button>
+
+      <div class="byod-partner-note">
+        ※本ページは学校公認パソコン販売窓口が運営しています。
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- モーダル -->
+<div id="contactModal" class="byod-modal-overlay">
+  <div class="byod-modal-container">
+    <span class="byod-modal-close" onclick="closeContactModal()">&times;</span>
+
+    <div class="byod-contact-content">
+      <div class="byod-contact-header">
+        <h3>お問い合わせ窓口</h3>
+      </div>
+
+      <div class="byod-contact-wrapper">
+        <div class="byod-contact-box">
+          <h4 class="byod-contact-title">【お問い合わせ窓口】</h4>
+          <p class="byod-contact-company">
+            <img src="https://cdn.shopify.com/s/files/1/0786/0096/2304/files/R_PC_3c8ac46b-8616-44fc-8b0c-6e909bff83e3.png?v=1763477647" alt="R∞PC" style="height: 24px; vertical-align: -4px;">サポートセンター
+            <br><small>（リングロー株式会社）</small>
+          </p>
+          <div class="byod-contact-hours">
+            （営業時間：月～金　10時 ~ 17時）<small>※祝日含</small><br>
+            <span class="byod-contact-alert">※「北海道医療センター附属札幌看護学校のパソコンの件」とお伝えください。</span>
+            <div style="font-size:0.78rem; color:#90a4ae; margin-top:10px; border-top:1px dashed #e0e6ed; padding-top:8px;">
+              〒171-0022<br>東京都豊島区南池袋3-3-8　THE CORNER池袋4階
+            </div>
+          </div>
+          <div class="byod-contact-info">
+            <a href="tel:0120956892" class="byod-contact-tel">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              0120-956-892
+            </a>
+            <a href="https://www.ringrow.co.jp/contact" target="_blank" rel="noopener" class="byod-contact-form">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              お問い合わせフォーム
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openContactModal() {
+    document.getElementById('contactModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeContactModal() {
+    document.getElementById('contactModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+  }
+
+  window.onclick = function(event) {
+    var modal = document.getElementById('contactModal');
+    if (event.target === modal) {
+      closeContactModal();
+    }
+  };
+</script>
+
+</body>
+</html>
