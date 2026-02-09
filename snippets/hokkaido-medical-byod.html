@@ -80,41 +80,6 @@
     line-height: 1.5;
   }
 
-  /* スペック表示 */
-  .byod-my-spec {
-    background: var(--main-bg);
-    border: 1px solid rgba(0, 131, 143, 0.2);
-    border-radius: 8px;
-    padding: 12px 20px;
-    margin-bottom: 20px;
-    display: inline-block;
-    width: 100%;
-    max-width: 520px;
-  }
-
-  .byod-my-spec-label {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--main-color);
-    font-weight: 700;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  .byod-my-spec-items {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-color);
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .byod-separator { color: #b0bec5; font-weight: 300; }
-
   /* 判定メッセージ */
   .byod-result-message {
     font-size: 1rem;
@@ -489,9 +454,7 @@
     body { padding: 10px; }
     .byod-section { padding: 20px 16px; }
     .byod-header h2 { font-size: 1.1rem; }
-    .byod-my-spec-items { font-size: 0.9rem; flex-direction: column; gap: 2px; }
-    .byod-separator { display: none; }
-    .byod-spec-row { flex-direction: column; }
+.byod-spec-row { flex-direction: column; }
     .byod-spec-title { width: 100%; border-right: none; border-bottom: 1px dashed #e8ecef; padding: 8px 14px; }
     .byod-spec-data { width: 100%; padding: 8px 14px; display: block; }
     .byod-merit-grid { grid-template-columns: 1fr; }
@@ -507,19 +470,6 @@
     <div class="byod-header">
       <span class="byod-badge">2026年度〜推奨仕様適合</span>
       <h2>北海道医療センター附属札幌看護学校<br>BYOD適合チェック</h2>
-    </div>
-
-    <div class="byod-my-spec">
-      <span class="byod-my-spec-label">このPCの仕様</span>
-      <div class="byod-my-spec-items">
-        <span>Windows 11</span>
-        <span class="byod-separator">|</span>
-        <span>Core i5</span>
-        <span class="byod-separator">|</span>
-        <span>メモリ 16GB</span>
-        <span class="byod-separator">|</span>
-        <span>SSD 500GB</span>
-      </div>
     </div>
 
     <p class="byod-result-message">
