@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>テレアポKPIトラッカー</title>
+<style>
+:root{
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb; --surface-2:#f2f2ee;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --good-text:#006300;
+  --accent:#2a78d6;
+  --radius:14px;
+  --font: system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232321;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --good-text:#0ca30c; --accent:#3987e5;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232321;
+  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --good-text:#0ca30c; --accent:#3987e5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--plane);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+h1,h2,h3{margin:0;line-height:1.3}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px 80px}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:40;background:var(--plane);border-bottom:1px solid var(--border)}
+.hd{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;white-space:nowrap}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--s1)}
+.hd .spacer{flex:1}
+.iconbtn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:13px}
+.iconbtn:hover{background:var(--surface-2)}
+
+/* level bar in header */
+.lvbox{display:flex;align-items:center;gap:10px;min-width:230px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 12px}
+.lvbadge{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:44px;height:38px;border-radius:9px;background:linear-gradient(160deg,var(--s1),var(--s3));color:#fff;font-weight:800;line-height:1}
+.lvbadge small{font-size:9px;font-weight:600;opacity:.9}
+.lvmeta{flex:1;min-width:110px}
+.lvmeta .t{font-size:12px;color:var(--ink-2);display:flex;justify-content:space-between;gap:8px}
+.xpbar{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:3px;border:1px solid var(--border)}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--s1),var(--s3));border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+
+/* ---------- tabs ---------- */
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding:8px 0 0;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:transparent;border:0;border-bottom:2px solid transparent;padding:9px 14px;cursor:pointer;color:var(--ink-2);font-weight:600;white-space:nowrap;border-radius:8px 8px 0 0}
+nav.tabs button:hover{background:var(--surface-2)}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.card + .card{margin-top:14px}
+.card h2{font-size:14px;letter-spacing:.02em;color:var(--ink-2);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h2 .spacer{flex:1}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+/* ---------- stat tiles ---------- */
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.tile .lbl{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px}
+.tile .val{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:2px}
+.tile .val small{font-size:14px;font-weight:600;color:var(--ink-2);margin-left:2px}
+.tile .sub{font-size:12px;color:var(--ink-2);margin-top:2px}
+.swatch{width:9px;height:9px;border-radius:3px;display:inline-block}
+.up{color:var(--good-text);font-weight:700}
+.down{color:var(--crit);font-weight:700}
+
+/* meter */
+.meter{height:9px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border);overflow:hidden;margin-top:8px}
+.meter i{display:block;height:100%;border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+
+/* ---------- forms ---------- */
+label.f{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:4px}
+input[type=text],input[type=number],input[type=date],select,textarea{
+  width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+textarea{min-height:70px;resize:vertical}
+.field{margin-bottom:12px}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:11px;padding:11px 18px;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.07)}
+.btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--border)}
+.btn.danger{background:var(--crit)}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* stepper */
+.stepper{display:flex;align-items:stretch;gap:8px}
+.stepper input{text-align:center;font-size:26px;font-weight:800;padding:6px}
+.stepper button{width:52px;border-radius:11px;border:1px solid var(--border);background:var(--surface-2);font-size:22px;font-weight:700;cursor:pointer;line-height:1}
+.stepper button:hover{background:var(--accent);color:#fff;border-color:transparent}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;border:1px solid var(--border);background:var(--surface-2);font-size:13px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:transparent}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:700;border:1px solid var(--border);background:var(--surface-2);color:var(--ink-2)}
+.pill.ok{color:var(--good-text);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.pill.ng{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 40%,transparent)}
+
+/* ---------- table ---------- */
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{background:var(--surface-2);font-size:12px;color:var(--ink-2);position:sticky;top:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+
+/* ---------- quests / badges ---------- */
+.quest{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
+.quest.done{background:color-mix(in srgb,var(--good) 12%,var(--surface));border-color:color-mix(in srgb,var(--good) 35%,transparent)}
+.quest .ic{font-size:20px;width:26px;text-align:center}
+.quest .tx{flex:1;min-width:0}
+.quest .tx b{display:block;font-size:13.5px}
+.quest .tx span{font-size:12px;color:var(--ink-2)}
+.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 6px;border:1px solid var(--border);border-radius:13px;background:var(--surface-2);text-align:center;opacity:.38;filter:grayscale(1)}
+.badge.on{opacity:1;filter:none;background:linear-gradient(160deg,color-mix(in srgb,var(--s4) 18%,var(--surface)),var(--surface));border-color:color-mix(in srgb,var(--s4) 45%,transparent)}
+.badge .e{font-size:26px;line-height:1}
+.badge b{font-size:12px}
+.badge span{font-size:10.5px;color:var(--ink-2);line-height:1.35}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+
+/* rank list */
+.rank{display:flex;align-items:center;gap:11px;padding:9px 4px;border-bottom:1px solid var(--grid)}
+.rank:last-child{border-bottom:0}
+.rank .pos{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--surface-2);border:1px solid var(--border)}
+.rank.p1 .pos{background:linear-gradient(160deg,#eda100,#eb6834);color:#fff;border-color:transparent}
+.rank .nm{flex:1;min-width:0;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis}
+.rank .sc{font-variant-numeric:tabular-nums;font-weight:700}
+
+/* chart */
+.chartbox{position:relative}
+svg.chart{display:block;width:100%;height:auto;overflow:visible}
+.tt{position:fixed;pointer-events:none;z-index:99;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 11px;font-size:12.5px;box-shadow:0 6px 24px rgba(0,0,0,.16);opacity:0;transition:opacity .12s;max-width:240px}
+.tt b{display:block;margin-bottom:3px;font-size:12px}
+.tt .r{display:flex;align-items:center;gap:6px;justify-content:space-between}
+.tt .r span:last-child{font-variant-numeric:tabular-nums;font-weight:700}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:8px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+
+/* summary text */
+pre.sum{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-word;font-family:var(--font);font-size:13.5px;line-height:1.75;margin:0}
+
+/* toast + confetti */
+#toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--ink);color:var(--plane);padding:11px 20px;border-radius:99px;font-weight:700;font-size:14px;opacity:0;transition:.25s;z-index:200;pointer-events:none}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.cf{position:fixed;top:-14px;width:9px;height:14px;z-index:150;pointer-events:none;border-radius:2px}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.9}}
+#levelup{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.55);z-index:180;padding:20px}
+#levelup.on{display:grid}
+#levelup .box{background:var(--surface);border-radius:20px;padding:28px 32px;text-align:center;max-width:340px;border:1px solid var(--border);animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+#levelup .box .e{font-size:52px}
+#levelup .box h3{font-size:22px;margin:6px 0}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.sec-title{font-size:13px;font-weight:700;color:var(--ink-2);margin:18px 0 8px}
+.empty{padding:26px;text-align:center;color:var(--muted);font-size:13.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd">
+    <div class="brand"><span class="dot"></span>テレアポ KPI トラッカー</div>
+    <div class="lvbox" id="lvbox"></div>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="themeBtn" title="テーマ切替">🌓</button>
+  </div>
+  <div class="wrap" style="padding-bottom:0">
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+</header>
+
+<main class="wrap" id="view"></main>
+
+<div class="tt" id="tt"></div>
+<div id="toast"></div>
+<div id="levelup"><div class="box"><div class="e">🎉</div><h3 id="luTitle"></h3><p id="luDesc" style="color:var(--ink-2);font-size:14px"></p><button class="btn" onclick="document.getElementById('levelup').classList.remove('on')">やった！</button></div></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   テレアポ KPI トラッカー  —  単一HTML / 外部依存なし / localStorage保存
+   ========================================================================= */
+
+const LS_KEY = 'teleapo_kpi_v1';
+const TODAY = () => new Date().toISOString().slice(0,10);
+
+/* ---------- 既定設定 ---------- */
+const DEFAULTS = {
+  settings:{
+    periodStart:'2026-07-01',
+    periodEnd:'2026-11-30',
+    apptGoal:50,          // 期間の目標アポ数
+    apptRateGoal:0.30,    // 目標アポ率（架電→アポ）
+    closeRate:0.20,       // 成約率
+    unitsPerDeal:40,      // 1校あたり平均販売台数
+    grossPerUnit:30000,   // 粗利単価
+    workWeekend:false     // 土日を営業日に含めるか
+  },
+  members:[
+    {id:'m_kondo',   name:'近藤',        slot:1, dailyCall:5, dailyAppt:1, active:true,  kind:'社内'},
+    {id:'m_second',  name:'メンバー2',   slot:2, dailyCall:5, dailyAppt:1, active:false, kind:'社内'},
+    {id:'m_partner', name:'パートナー営業', slot:3, dailyCall:0, dailyAppt:1, active:true,  kind:'パートナー'},
+    {id:'m_self',    name:'自分',        slot:4, dailyCall:0, dailyAppt:0, active:false, kind:'社内'}
+  ],
+  records:[],  // {id,date,memberId,calls,appts,detail,note}
+  meta:{maxLevelSeen:{}}
+};
+
+let S = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return structuredClone(DEFAULTS);
+    const p = JSON.parse(raw);
+    return {
+      settings:{...DEFAULTS.settings, ...(p.settings||{})},
+      members: (p.members&&p.members.length)? p.members : structuredClone(DEFAULTS.members),
+      records: p.records||[],
+      meta:{maxLevelSeen:{}, ...(p.meta||{})}
+    };
+  }catch(e){ console.warn(e); return structuredClone(DEFAULTS); }
+}
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+
+/* ---------- 汎用ユーティリティ ---------- */
+const WD = ['日','月','火','水','木','金','土'];
+const fmt = n => (Math.round(n*10)/10).toLocaleString('ja-JP');
+/* 1未満は小数2桁まで見せる（残ペースが「0」に潰れないように） */
+const fine = n => n>0 && n<1 ? n.toFixed(2) : fmt(n);
+const int = n => Math.round(n).toLocaleString('ja-JP');
+const pct = (a,b) => b>0 ? (a/b*100) : 0;
+const pctS = (a,b) => b>0 ? (a/b*100).toFixed(1)+'%' : '—';
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function d(dateStr){ const [y,m,dd]=dateStr.split('-').map(Number); return new Date(y,m-1,dd); }
+function jp(dateStr){ const t=d(dateStr); return `${t.getMonth()+1}/${t.getDate()}(${WD[t.getDay()]})`; }
+function jpFull(dateStr){ const t=d(dateStr); return `${t.getFullYear()}/${String(t.getMonth()+1).padStart(2,'0')}/${String(t.getDate()).padStart(2,'0')}(${WD[t.getDay()]})`; }
+function addDays(dateStr,n){ const t=d(dateStr); t.setDate(t.getDate()+n); return t.toISOString().slice(0,10); }
+function isWorkday(dateStr){ if(S.settings.workWeekend) return true; const w=d(dateStr).getDay(); return w!==0&&w!==6; }
+function man(yen){ return (yen/10000); }         // 円 → 万円
+function moneyS(yen){
+  if(yen>=100000000) return (yen/100000000).toFixed(2).replace(/\.?0+$/,'')+'億円';
+  return int(man(yen))+'万円';
+}
+function memberById(id){ return S.members.find(m=>m.id===id) || {id,name:'(削除済)',slot:4}; }
+function slotVar(slot){ return `var(--s${((slot-1)%4)+1})`; }
+function activeMembers(){ return S.members.filter(m=>m.active); }
+function uid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ---------- 収益モデル ---------- */
+// 1アポあたりの想定粗利 = 成約率 × 平均台数 × 粗利単価
+function grossPerAppt(){ const s=S.settings; return s.closeRate*s.unitsPerDeal*s.grossPerUnit; }
+function deals(appts){ return appts*S.settings.closeRate; }
+function gross(appts){ return appts*grossPerAppt(); }
+
+/* ---------- 集計 ---------- */
+function recs(filter={}){
+  return S.records.filter(r=>{
+    if(filter.memberId && r.memberId!==filter.memberId) return false;
+    if(filter.from && r.date < filter.from) return false;
+    if(filter.to   && r.date > filter.to  ) return false;
+    return true;
+  });
+}
+function agg(list){
+  const calls = list.reduce((a,r)=>a+(+r.calls||0),0);
+  const appts = list.reduce((a,r)=>a+(+r.appts||0),0);
+  return {calls, appts, rate:pct(appts,calls), deals:deals(appts), gross:gross(appts), days:new Set(list.map(r=>r.date)).size};
+}
+function byDate(list){
+  const m=new Map();
+  list.forEach(r=>{
+    const o=m.get(r.date)||{date:r.date,calls:0,appts:0};
+    o.calls+=+r.calls||0; o.appts+=+r.appts||0; m.set(r.date,o);
+  });
+  return [...m.values()].sort((a,b)=>a.date<b.date?-1:1);
+}
+function dateRangeArr(from,to){
+  const out=[]; let c=from; let guard=0;
+  while(c<=to && guard++<800){ out.push(c); c=addDays(c,1); }
+  return out;
+}
+/* 営業日ベースの連続稼働日数（土日は連続を切らさない） */
+function streak(memberId){
+  const set = new Set(recs({memberId}).filter(r=>(+r.calls||0)>0||(+r.appts||0)>0).map(r=>r.date));
+  let cur = TODAY(), n = 0, guard=0;
+  if(!set.has(cur)) cur = addDays(cur,-1);       // 当日未入力でも前日までの連続は生かす
+  while(guard++<400){
+    if(!isWorkday(cur)){ cur=addDays(cur,-1); continue; }
+    if(set.has(cur)){ n++; cur=addDays(cur,-1); } else break;
+  }
+  return n;
+}
+/* アポ獲得の連続日数（獲れた営業日の連鎖） */
+function apptStreak(memberId){
+  const set = new Set(recs({memberId}).filter(r=>(+r.appts||0)>0).map(r=>r.date));
+  let cur = TODAY(), n=0, guard=0;
+  if(!set.has(cur)) cur = addDays(cur,-1);
+  while(guard++<400){
+    if(!isWorkday(cur)){ cur=addDays(cur,-1); continue; }
+    if(set.has(cur)){ n++; cur=addDays(cur,-1); } else break;
+  }
+  return n;
+}
+
+/* ---------- XP / レベル ---------- */
+const XP_CALL = 10, XP_APPT = 250, XP_DAY_BONUS = 50, XP_QUEST = 100;
+function xpOf(memberId){
+  const list = recs(memberId?{memberId}:{});
+  let xp = 0;
+  const days = byDate(list);
+  days.forEach(day=>{
+    xp += day.calls*XP_CALL + day.appts*XP_APPT;
+    xp += XP_DAY_BONUS;                                   // 入力継続ボーナス
+    if(day.calls>0 && pct(day.appts,day.calls) >= S.settings.apptRateGoal*100) xp += XP_QUEST; // 目標アポ率達成
+  });
+  return Math.round(xp);
+}
+// レベルL到達に必要な累計XP: 400*L*(L+1)/2 相当のゆるやかな曲線
+function xpForLevel(L){ return Math.round(200*L*(L+1)); }
+function levelOf(xp){
+  let L=1; while(xp >= xpForLevel(L) && L<99) L++;
+  const cur = L>1? xpForLevel(L-1):0, next = xpForLevel(L);
+  return {level:L, cur, next, into:xp-cur, need:next-cur, ratio:(xp-cur)/(next-cur)};
+}
+const RANKS = [
+  [1,'ルーキー','🌱'],[4,'ブロンズ','🥉'],[8,'シルバー','🥈'],[12,'ゴールド','🥇'],
+  [17,'プラチナ','💎'],[23,'ダイヤモンド','👑'],[30,'レジェンド','🔥']
+];
+function rankOf(level){ let r=RANKS[0]; RANKS.forEach(x=>{ if(level>=x[0]) r=x; }); return {name:r[1], emoji:r[2]}; }
+
+/* ---------- 称号（バッジ） ---------- */
+const BADGES = [
+  {id:'first',  e:'🎊', n:'初アポ',        d:'アポ1件目を獲得',        f:(t)=>t.appts>=1},
+  {id:'call50', e:'📞', n:'コール50',      d:'累計架電50件',           f:(t)=>t.calls>=50},
+  {id:'call200',e:'☎️', n:'コール200',     d:'累計架電200件',          f:(t)=>t.calls>=200},
+  {id:'call500',e:'🎧', n:'コール500',     d:'累計架電500件',          f:(t)=>t.calls>=500},
+  {id:'ap10',   e:'🏅', n:'アポ10',        d:'累計アポ10件',           f:(t)=>t.appts>=10},
+  {id:'ap25',   e:'🏆', n:'アポ25',        d:'累計アポ25件',           f:(t)=>t.appts>=25},
+  {id:'ap50',   e:'👑', n:'アポ50',        d:'累計アポ50件',           f:(t)=>t.appts>=50},
+  {id:'rate30', e:'🎯', n:'アポ率30%',     d:'累計アポ率が目標以上（30件以上架電）', f:(t)=>t.calls>=30 && t.rate>=S.settings.apptRateGoal*100},
+  {id:'triple', e:'⚡', n:'1日3アポ',      d:'1日にアポ3件',           f:(t)=>t.bestDayAppt>=3},
+  {id:'penta',  e:'🚀', n:'1日5アポ',      d:'1日にアポ5件',           f:(t)=>t.bestDayAppt>=5},
+  {id:'st5',    e:'🔥', n:'5日連続',       d:'5営業日連続で稼働',      f:(t)=>t.bestStreak>=5},
+  {id:'st10',   e:'💪', n:'10日連続',      d:'10営業日連続で稼働',     f:(t)=>t.bestStreak>=10},
+  {id:'gross1', e:'💰', n:'粗利1000万',    d:'想定粗利1,000万円到達', f:(t)=>t.gross>=10000000},
+  {id:'goal',   e:'🎆', n:'目標達成',      d:'期間目標アポ数を達成',   f:(t)=>t.appts>=S.settings.apptGoal}
+];
+function badgeStats(memberId){
+  const list = recs(memberId?{memberId}:{});
+  const a = agg(list);
+  const days = byDate(list);
+  const bestDayAppt = days.reduce((m,x)=>Math.max(m,x.appts),0);
+  // 最長連続営業日
+  let bestStreak=0, run=0, prev=null;
+  const actDays = days.filter(x=>x.calls>0||x.appts>0).map(x=>x.date);
+  actDays.forEach(dt=>{
+    if(prev){
+      let step=addDays(prev,1), ok=false, g=0;
+      while(g++<10){ if(!isWorkday(step)){ step=addDays(step,1); continue; } ok=(step===dt); break; }
+      run = ok? run+1 : 1;
+    } else run=1;
+    prev=dt; bestStreak=Math.max(bestStreak,run);
+  });
+  return {...a, bestDayAppt, bestStreak};
+}
+
+/* =========================================================================
+   画面
+   ========================================================================= */
+const TABS = [
+  ['dash','📊 ダッシュボード'],
+  ['input','✍️ 実績入力'],
+  ['history','📒 履歴・出力'],
+  ['report','💬 レポート'],
+  ['settings','⚙️ 設定']
+];
+let tab = 'dash';
+let dashMember = 'all';       // 'all' or memberId
+let dashRange  = 30;          // 日数 or 'period'
+
+function render(){
+  document.getElementById('tabs').innerHTML = TABS.map(([k,l])=>
+    `<button role="tab" aria-selected="${k===tab}" onclick="go('${k}')">${l}</button>`).join('');
+  renderLevelBox();
+  const v = document.getElementById('view');
+  v.innerHTML = ({dash:viewDash, input:viewInput, history:viewHistory, report:viewReport, settings:viewSettings})[tab]();
+  if(tab==='dash') mountDash();
+  if(tab==='input') mountInput();
+  window.scrollTo({top:0});
+}
+function go(k){ tab=k; render(); }
+
+function renderLevelBox(){
+  const who = dashMember==='all' ? null : dashMember;
+  const xp = xpOf(who);
+  const L = levelOf(xp);
+  const r = rankOf(L.level);
+  const nm = who? memberById(who).name : 'チーム合計';
+  document.getElementById('lvbox').innerHTML = `
+    <div class="lvbadge"><small>Lv</small>${L.level}</div>
+    <div class="lvmeta">
+      <div class="t"><span>${r.emoji} ${esc(nm)}・${r.name}</span><span>${int(L.into)}/${int(L.need)}</span></div>
+      <div class="xpbar"><i style="width:${Math.min(100,L.ratio*100).toFixed(1)}%"></i></div>
+    </div>`;
+}
+
+/* ---------------- ダッシュボード ---------------- */
+function rangeBounds(){
+  if(dashRange==='period') return {from:S.settings.periodStart, to:S.settings.periodEnd};
+  if(dashRange==='month'){ const t=TODAY().slice(0,7); return {from:t+'-01', to:t+'-31'}; }
+  return {from:addDays(TODAY(),-(dashRange-1)), to:TODAY()};
+}
+function viewDash(){
+  const who = dashMember==='all'? null : dashMember;
+  const all = recs(who?{memberId:who}:{});                 // 期間全体（累計）
+  const A = agg(all);
+  const todayList = recs({...(who?{memberId:who}:{}), from:TODAY(), to:TODAY()});
+  const T = agg(todayList);
+  const goal = S.settings.apptGoal;
+  const remain = Math.max(0, goal - A.appts);
+  const rateGoal = S.settings.apptRateGoal*100;
+  const rateOK = A.rate>=rateGoal;
+
+  // 必要架電数（残アポを目標アポ率で獲るのに必要な架電）
+  const needCalls = Math.ceil(remain / (S.settings.apptRateGoal||0.3));
+  // 残営業日
+  const days = dateRangeArr(TODAY() > S.settings.periodStart ? TODAY() : S.settings.periodStart, S.settings.periodEnd).filter(isWorkday);
+  const remainDays = days.length;
+  const perDayAppt = remainDays>0 ? remain/remainDays : 0;
+  const perDayCall = remainDays>0 ? needCalls/remainDays : 0;
+
+  const memberChips = ['all',...S.members.filter(m=>m.active).map(m=>m.id)].map(id=>{
+    const nm = id==='all'?'👥 全員':memberById(id).name;
+    return `<button class="chip" aria-pressed="${dashMember===id}" onclick="dashMember='${id}';render()">${esc(nm)}</button>`;
+  }).join('');
+
+  const rangeChips = [[14,'直近14日'],[30,'直近30日'],['month','今月'],['period','期間全体']].map(([k,l])=>
+    `<button class="chip" aria-pressed="${String(dashRange)===String(k)}" onclick="dashRange=${typeof k==='number'?k:`'${k}'`};render()">${l}</button>`).join('');
+
+  return `
+  <div class="row" style="margin:16px 0 12px">${memberChips}</div>
+
+  <div class="grid g4">
+    ${tile('本日の架電', int(T.calls)+'<small>件</small>', dayTargetSub(who,'call',T.calls), 1)}
+    ${tile('本日のアポ', int(T.appts)+'<small>件</small>', dayTargetSub(who,'appt',T.appts), 3)}
+    ${tile('本日のアポ率', T.calls? T.rate.toFixed(1)+'<small>%</small>' : '—', T.calls? badgeRate(T.rate) : `<span style="color:var(--muted)">架電の入力待ち</span>`, 2)}
+    ${tile('本日の想定粗利', moneyS(T.gross), `成約 ${fmt(T.deals)}校 相当`, 4)}
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>🎯 目標アポ ${goal}件への進捗<span class="spacer"></span>
+      <span class="pill ${A.appts>=goal?'ok':''}">${int(A.appts)} / ${goal} 件</span></h2>
+    <div class="meter" style="height:14px"><i style="width:${Math.min(100,pct(A.appts,goal)).toFixed(1)}%;background:linear-gradient(90deg,var(--s1),var(--s3))"></i></div>
+    <div class="grid g4" style="margin-top:14px">
+      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">達成率</div><div style="font-size:22px;font-weight:800">${pct(A.appts,goal).toFixed(1)}%</div></div>
+      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">残り必要アポ</div><div style="font-size:22px;font-weight:800">${int(remain)}<small style="font-size:13px">件</small></div></div>
+      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">残り必要架電（@${(rateGoal).toFixed(0)}%）</div><div style="font-size:22px;font-weight:800">${int(needCalls)}<small style="font-size:13px">件</small></div></div>
+      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">残${remainDays}営業日のペース</div>
+        ${remain<=0
+          ? `<div style="font-size:22px;font-weight:800" class="up">🎉 目標達成</div><div class="sub" style="font-size:12px;color:var(--ink-2)">おめでとうございます</div>`
+          : `<div style="font-size:22px;font-weight:800">${fine(perDayCall)}<small style="font-size:13px">架電/日</small></div>
+             <div class="sub" style="font-size:12px;color:var(--ink-2)">アポ ${fine(perDayAppt)}件/日</div>`}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g4" style="margin-top:14px">
+    ${tile('累計 架電数', int(A.calls)+'<small>件</small>', `稼働 ${A.days}日`, 1)}
+    ${tile('累計 アポ数', int(A.appts)+'<small>件</small>', `1日平均 ${fmt(A.days? A.appts/A.days:0)}件`, 3)}
+    ${tile('累計 アポ率', A.calls? A.rate.toFixed(1)+'<small>%</small>':'—',
+        `目標 ${rateGoal.toFixed(0)}% <span class="${rateOK?'up':'down'}">${A.calls? (rateOK?'+':'')+ (A.rate-rateGoal).toFixed(1)+'pt':''}</span>`, 2)}
+    ${tile('累計 想定粗利', moneyS(A.gross), `想定成約 ${fmt(A.deals)}校 / 1アポ ${moneyS(grossPerAppt())}`, 4)}
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>🔥 本日のクエスト<span class="spacer"></span><span class="pill">${questDone(who)}/3 達成</span></h2>
+    <div class="grid g3" id="quests">${questsHTML(who)}</div>
+  </div>
+
+  <div class="row" style="margin:18px 0 10px">${rangeChips}</div>
+
+  <div class="grid g2">
+    <div class="card chartbox">
+      <h2>📈 日次の架電数・アポ数（件）</h2>
+      <div id="chartDaily"></div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>架電数</span><span><i style="background:var(--s3)"></i>アポ数</span></div>
+    </div>
+    <div class="card chartbox">
+      <h2>🎯 日次アポ率と目標ライン（%）</h2>
+      <div id="chartRate"></div>
+      <div class="legend"><span><i style="background:var(--s2)"></i>アポ率</span><span><i style="background:var(--axis)"></i>目標 ${rateGoal.toFixed(0)}%</span></div>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card chartbox">
+      <h2>📊 累計アポ数 vs 必要ペース</h2>
+      <div id="chartCum"></div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>累計アポ（実績）</span><span><i style="background:var(--axis)"></i>目標ペース</span></div>
+    </div>
+    <div class="card">
+      <h2>🏆 ランキング（累計アポ数）</h2>
+      <div id="rankList">${rankHTML()}</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>🎖 称号コレクション<span class="spacer"></span><span class="pill">${badgeCount(who)}/${BADGES.length}</span></h2>
+    <div class="badges">${badgesHTML(who)}</div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>🗓 月次サマリー（データ表）</h2>
+    ${monthTableHTML(who)}
+  </div>`;
+}
+function tile(lbl,val,sub,slot){
+  return `<div class="tile"><div class="lbl"><span class="swatch" style="background:${slotVar(slot)}"></span>${lbl}</div>
+    <div class="val">${val}</div><div class="sub">${sub}</div></div>`;
+}
+function badgeRate(r){
+  const g=S.settings.apptRateGoal*100;
+  return r>=g ? `<span class="up">目標達成 (+${(r-g).toFixed(1)}pt)</span>` : `<span class="down">目標まで ${(g-r).toFixed(1)}pt</span>`;
+}
+function dayTargetSub(who,kind,val){
+  const ms = who? [memberById(who)] : activeMembers();
+  const t = ms.reduce((a,m)=>a+(kind==='call'? (+m.dailyCall||0) : (+m.dailyAppt||0)),0);
+  if(!t) return '<span style="color:var(--muted)">日次目標なし</span>';
+  return val>=t ? `<span class="up">✅ 日次目標 ${t}件 達成</span>` : `日次目標 ${t}件（あと${t-val}件）`;
+}
+function todayQuests(who){
+  const list = recs({...(who?{memberId:who}:{}), from:TODAY(), to:TODAY()});
+  const T = agg(list);
+  const ms = who? [memberById(who)] : activeMembers();
+  const callT = ms.reduce((a,m)=>a+(+m.dailyCall||0),0) || 5;
+  const g = S.settings.apptRateGoal*100;
+  return [
+    {ic:'📞', t:`架電 ${callT}件`,  s:`本日 ${T.calls}件`,  done:T.calls>=callT, xp:100},
+    {ic:'🤝', t:'アポ 1件獲得',     s:`本日 ${T.appts}件`,  done:T.appts>=1,     xp:250},
+    {ic:'🎯', t:`アポ率 ${g.toFixed(0)}%以上`, s:T.calls? `本日 ${T.rate.toFixed(1)}%`:'架電の入力待ち', done:T.calls>0&&T.rate>=g, xp:100}
+  ];
+}
+function questsHTML(who){
+  return todayQuests(who).map(q=>`<div class="quest ${q.done?'done':''}">
+    <div class="ic">${q.done?'✅':q.ic}</div>
+    <div class="tx"><b>${q.t}</b><span>${q.s}</span></div>
+    <span class="pill">+${q.xp}XP</span></div>`).join('');
+}
+function questDone(who){ return todayQuests(who).filter(q=>q.done).length; }
+function badgesHTML(who){
+  const st = badgeStats(who);
+  return BADGES.map(b=>{ const on=b.f(st);
+    return `<div class="badge ${on?'on':''}" title="${esc(b.d)}"><div class="e">${b.e}</div><b>${b.n}</b><span>${esc(b.d)}</span></div>`;}).join('');
+}
+function badgeCount(who){ const st=badgeStats(who); return BADGES.filter(b=>b.f(st)).length; }
+function rankHTML(){
+  const rows = activeMembers().map(m=>{
+    const a = agg(recs({memberId:m.id}));
+    return {m, ...a, xp:xpOf(m.id), st:streak(m.id)};
+  }).sort((a,b)=> b.appts-a.appts || b.calls-a.calls);
+  if(!rows.length) return `<div class="empty">設定タブでメンバーを有効にしてください</div>`;
+  return rows.map((r,i)=>`<div class="rank ${i===0?'p1':''}">
+    <div class="pos">${i===0?'👑':i+1}</div>
+    <span class="swatch" style="background:${slotVar(r.m.slot)};width:11px;height:11px"></span>
+    <div class="nm">${esc(r.m.name)} <span style="font-weight:500;color:var(--muted);font-size:12px">Lv.${levelOf(r.xp).level}${r.st?` ・🔥${r.st}日連続`:''}</span></div>
+    <div class="sc">${int(r.appts)}<span style="font-size:11px;color:var(--muted)">件</span>
+      <span style="font-size:11.5px;color:var(--ink-2);font-weight:600;margin-left:6px">${pctS(r.appts,r.calls)}</span></div>
+  </div>`).join('');
+}
+function monthTableHTML(who){
+  const list = recs(who?{memberId:who}:{});
+  const m = new Map();
+  list.forEach(r=>{ const k=r.date.slice(0,7);
+    const o=m.get(k)||{k,calls:0,appts:0,days:new Set()};
+    o.calls+=+r.calls||0; o.appts+=+r.appts||0; o.days.add(r.date); m.set(k,o); });
+  const rows=[...m.values()].sort((a,b)=>a.k<b.k?-1:1);
+  if(!rows.length) return `<div class="empty">まだ実績がありません。「✍️ 実績入力」から登録してください。</div>`;
+  const tot = rows.reduce((a,r)=>({calls:a.calls+r.calls,appts:a.appts+r.appts,days:a.days+r.days.size}),{calls:0,appts:0,days:0});
+  return `<div class="tablewrap"><table>
+    <thead><tr><th>月</th><th class="num">稼働日</th><th class="num">架電数</th><th class="num">アポ数</th><th class="num">アポ率</th><th class="num">想定成約</th><th class="num">想定粗利</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${r.k.replace('-','年')}月</td><td class="num">${r.days.size}</td>
+      <td class="num">${int(r.calls)}</td><td class="num">${int(r.appts)}</td>
+      <td class="num">${pctS(r.appts,r.calls)}</td><td class="num">${fmt(deals(r.appts))}校</td><td class="num">${moneyS(gross(r.appts))}</td></tr>`).join('')}
+    <tr style="font-weight:800;background:var(--surface-2)"><td>合計</td><td class="num">${tot.days}</td><td class="num">${int(tot.calls)}</td>
+      <td class="num">${int(tot.appts)}</td><td class="num">${pctS(tot.appts,tot.calls)}</td>
+      <td class="num">${fmt(deals(tot.appts))}校</td><td class="num">${moneyS(gross(tot.appts))}</td></tr></tbody></table></div>`;
+}
+
+/* ---------------- チャート（自前SVG） ---------------- */
+const TT = document.getElementById('tt');
+function showTT(html,e){ TT.innerHTML=html; TT.style.opacity=1;
+  const x=Math.min(e.clientX+14, innerWidth-250), y=Math.max(10,e.clientY-14);
+  TT.style.left=x+'px'; TT.style.top=y+'px'; }
+function hideTT(){ TT.style.opacity=0; }
+
+function seriesForRange(){
+  const {from,to} = rangeBounds();
+  const who = dashMember==='all'? null : dashMember;
+  const list = recs({...(who?{memberId:who}:{}), from, to});
+  const map = new Map(byDate(list).map(x=>[x.date,x]));
+  let dates = dateRangeArr(from, to>TODAY()&&dashRange!=='period' ? TODAY() : to);
+  if(dates.length>70){ // 期間全体は営業日のみに間引き
+    dates = dates.filter(dt=>isWorkday(dt)||map.has(dt));
+  }
+  return dates.map(dt=>({date:dt, calls:map.get(dt)?.calls||0, appts:map.get(dt)?.appts||0, has:map.has(dt)}));
+}
+function mountDash(){
+  const data = seriesForRange();
+  drawDaily(document.getElementById('chartDaily'), data);
+  drawRate(document.getElementById('chartRate'), data);
+  drawCum(document.getElementById('chartCum'));
+}
+function axisTicks(max,n=4){
+  if(max<=0) return [0,1];
+  const raw = max/n, mag = Math.pow(10,Math.floor(Math.log10(raw)));
+  const step = [1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=raw) || mag*10;
+  const out=[]; for(let v=0; v<=max+step*0.01; v+=step) out.push(v);
+  if(out[out.length-1]<max) out.push(out[out.length-1]+step);
+  return out;
+}
+function drawDaily(host, data){
+  const W=560,H=230,ML=38,MR=8,MT=10,MB=30;
+  const iw=W-ML-MR, ih=H-MT-MB;
+  const max = Math.max(1, ...data.map(x=>Math.max(x.calls,x.appts)));
+  const ticks = axisTicks(max); const top = ticks[ticks.length-1];
+  const n=data.length||1, bw=iw/n, gw=Math.max(2,Math.min(16,(bw-4)/2));
+  const y=v=>MT+ih-(v/top)*ih;
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="日次の架電数とアポ数">`;
+  ticks.forEach(t=>{ s+=`<line x1="${ML}" x2="${W-MR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>
+    <text x="${ML-6}" y="${y(t)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${int(t)}</text>`; });
+  data.forEach((p,i)=>{
+    const cx=ML+bw*i+bw/2;
+    const bars=[[p.calls,'var(--s1)',-gw-1],[p.appts,'var(--s3)',1]];
+    bars.forEach(([v,c,off])=>{ if(v<=0) return;
+      const h=Math.max(2,(v/top)*ih);
+      s+=`<rect x="${(cx+off).toFixed(1)}" y="${(MT+ih-h).toFixed(1)}" width="${gw}" height="${h.toFixed(1)}" rx="4" fill="${c}"/>`; });
+    if(p.appts>0){ s+=`<text x="${cx+1+gw/2}" y="${(y(p.appts)-4).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--ink-2)">${p.appts}</text>`; }
+    if(n<=32 && (i%Math.ceil(n/12)===0)) s+=`<text x="${cx}" y="${H-10}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${jp(p.date).replace(/\(.\)/,'')}</text>`;
+    s+=`<rect x="${ML+bw*i}" y="${MT}" width="${bw}" height="${ih}" fill="transparent" data-i="${i}"/>`;
+  });
+  s+=`<line x1="${ML}" x2="${W-MR}" y1="${MT+ih}" y2="${MT+ih}" stroke="var(--axis)" stroke-width="1"/></svg>`;
+  host.innerHTML=s;
+  host.querySelectorAll('rect[data-i]').forEach(r=>{
+    r.addEventListener('mousemove',e=>{ const p=data[+r.dataset.i];
+      showTT(`<b>${jpFull(p.date)}</b>
+        <div class="r"><span>📞 架電</span><span>${p.calls} 件</span></div>
+        <div class="r"><span>🤝 アポ</span><span>${p.appts} 件</span></div>
+        <div class="r"><span>アポ率</span><span>${pctS(p.appts,p.calls)}</span></div>`,e); });
+    r.addEventListener('mouseleave',hideTT);
+  });
+}
+function drawRate(host,data){
+  const W=560,H=230,ML=38,MR=10,MT=10,MB=30;
+  const iw=W-ML-MR, ih=H-MT-MB;
+  const pts = data.filter(p=>p.calls>0).map(p=>({...p, rate:pct(p.appts,p.calls)}));
+  const goal = S.settings.apptRateGoal*100;
+  const top = Math.max(60, goal*1.6, ...pts.map(p=>p.rate))*1.05;
+  const y=v=>MT+ih-(v/top)*ih;
+  const n=data.length||1; const x=i=>ML+(n===1?iw/2:(iw*i/(n-1)));
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="日次アポ率">`;
+  axisTicks(top,4).forEach(t=>{ if(t>top) return;
+    s+=`<line x1="${ML}" x2="${W-MR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/>
+        <text x="${ML-6}" y="${y(t)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${t.toFixed(0)}%</text>`; });
+  s+=`<line x1="${ML}" x2="${W-MR}" y1="${y(goal)}" y2="${y(goal)}" stroke="var(--axis)" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="${W-MR}" y="${y(goal)-6}" text-anchor="end" font-size="10.5" font-weight="700" fill="var(--ink-2)">目標 ${goal.toFixed(0)}%</text>`;
+  if(pts.length){
+    const idx = new Map(data.map((p,i)=>[p.date,i]));
+    const path = pts.map((p,k)=>`${k?'L':'M'}${x(idx.get(p.date)).toFixed(1)},${y(p.rate).toFixed(1)}`).join(' ');
+    s+=`<path d="${path}" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p=>{ const cx=x(idx.get(p.date)), cy=y(p.rate);
+      s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"/>`; });
+    const last = pts[pts.length-1];
+    s+=`<text x="${(x(idx.get(last.date))-6).toFixed(1)}" y="${(y(last.rate)-10).toFixed(1)}" text-anchor="end" font-size="11" font-weight="800" fill="var(--ink)">${last.rate.toFixed(1)}%</text>`;
+  } else {
+    s+=`<text x="${W/2}" y="${MT+ih/2}" text-anchor="middle" font-size="12" fill="var(--muted)">架電実績がまだありません</text>`;
+  }
+  data.forEach((p,i)=>{ s+=`<rect x="${x(i)-iw/n/2}" y="${MT}" width="${iw/n}" height="${ih}" fill="transparent" data-i="${i}"/>`; });
+  s+=`<line x1="${ML}" x2="${W-MR}" y1="${MT+ih}" y2="${MT+ih}" stroke="var(--axis)"/></svg>`;
+  host.innerHTML=s;
+  host.querySelectorAll('rect[data-i]').forEach(r=>{
+    r.addEventListener('mousemove',e=>{ const p=data[+r.dataset.i];
+      showTT(`<b>${jpFull(p.date)}</b><div class="r"><span>アポ率</span><span>${pctS(p.appts,p.calls)}</span></div>
+              <div class="r"><span>架電/アポ</span><span>${p.calls} / ${p.appts}</span></div>`,e); });
+    r.addEventListener('mouseleave',hideTT);
+  });
+}
+function drawCum(host){
+  const who = dashMember==='all'? null : dashMember;
+  const s0=S.settings.periodStart, s1=S.settings.periodEnd;
+  const list = recs({...(who?{memberId:who}:{}), from:s0, to:s1});
+  const map = new Map(byDate(list).map(x=>[x.date,x]));
+  const days = dateRangeArr(s0,s1);
+  const wds = days.filter(isWorkday).length || 1;
+  const goal = S.settings.apptGoal;
+  let cum=0; const series = days.map((dt,i)=>{ cum += map.get(dt)?.appts||0;
+    return {date:dt, cum, pace: goal * (days.slice(0,i+1).filter(isWorkday).length / wds), future: dt>TODAY()}; });
+  const W=560,H=230,ML=34,MR=10,MT=12,MB=26, iw=W-ML-MR, ih=H-MT-MB;
+  const top = Math.max(goal, cum)*1.08 || 1;
+  const y=v=>MT+ih-(v/top)*ih, x=i=>ML+iw*i/Math.max(1,series.length-1);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="累計アポ数と目標ペース">`;
+  axisTicks(top,4).forEach(t=>{ if(t>top) return;
+    s+=`<line x1="${ML}" x2="${W-MR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/>
+        <text x="${ML-6}" y="${y(t)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${int(t)}</text>`; });
+  s+=`<path d="${series.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p.pace).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--axis)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  const real = series.filter(p=>!p.future);
+  if(real.length){
+    const dpath = real.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p.cum).toFixed(1)}`).join(' ');
+    s+=`<path d="${dpath} L${x(real.length-1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z" fill="var(--s1)" opacity="0.10"/>`;
+    s+=`<path d="${dpath}" fill="none" stroke="var(--s1)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    const last=real[real.length-1];
+    s+=`<circle cx="${x(real.length-1).toFixed(1)}" cy="${y(last.cum).toFixed(1)}" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+        <text x="${(x(real.length-1)+8).toFixed(1)}" y="${(y(last.cum)-8).toFixed(1)}" font-size="11.5" font-weight="800" fill="var(--ink)">${int(last.cum)}件</text>`;
+  }
+  // 月ラベル
+  let lastM='';
+  series.forEach((p,i)=>{ const mm=p.date.slice(0,7); if(mm!==lastM){ lastM=mm;
+    s+=`<text x="${x(i).toFixed(1)}" y="${H-8}" font-size="9.5" fill="var(--muted)" text-anchor="middle">${+mm.slice(5)}月</text>`; }});
+  s+=`<line x1="${ML}" x2="${W-MR}" y1="${MT+ih}" y2="${MT+ih}" stroke="var(--axis)"/>`;
+  series.forEach((p,i)=>{ if(i%3) return; s+=`<rect x="${(x(i)-3).toFixed(1)}" y="${MT}" width="6" height="${ih}" fill="transparent" data-i="${i}"/>`; });
+  s+=`</svg>`;
+  host.innerHTML=s;
+  host.querySelectorAll('rect[data-i]').forEach(r=>{
+    r.addEventListener('mousemove',e=>{ const p=series[+r.dataset.i];
+      showTT(`<b>${jpFull(p.date)}</b>
+        <div class="r"><span>累計アポ</span><span>${p.future?'—':int(p.cum)+' 件'}</span></div>
+        <div class="r"><span>目標ペース</span><span>${fmt(p.pace)} 件</span></div>
+        <div class="r"><span>差分</span><span>${p.future?'—':(p.cum-p.pace>=0?'+':'')+fmt(p.cum-p.pace)+' 件'}</span></div>`,e); });
+    r.addEventListener('mouseleave',hideTT);
+  });
+}
+
+/* ---------------- 実績入力 ---------------- */
+let inputDate = TODAY();
+let inputMember = null;
+function viewInput(){
+  const ms = activeMembers();
+  if(!inputMember || !ms.find(m=>m.id===inputMember)) inputMember = ms[0]?.id || '';
+  if(!ms.length) return `<div class="card" style="margin-top:16px"><div class="empty">⚙️ 設定タブでメンバーを有効にしてください。</div></div>`;
+  const ex = S.records.find(r=>r.date===inputDate && r.memberId===inputMember);
+  return `
+  <div class="card" style="margin-top:16px">
+    <h2>✍️ デイリー実績入力<span class="spacer"></span>
+      <span class="pill">${ex?'この日の記録を上書き更新':'新規登録'}</span></h2>
+
+    <div class="grid g2">
+      <div class="field"><label class="f">日付</label>
+        <input type="date" id="iDate" value="${inputDate}" onchange="inputDate=this.value;render()"></div>
+      <div class="field"><label class="f">担当者</label>
+        <select id="iMember" onchange="inputMember=this.value;render()">
+          ${ms.map(m=>`<option value="${m.id}" ${m.id===inputMember?'selected':''}>${esc(m.name)}（${esc(m.kind)}）</option>`).join('')}
+        </select></div>
+    </div>
+
+    <div class="row" style="margin-bottom:14px">
+      ${[[-1,'昨日'],[0,'今日']].map(([n,l])=>`<button class="chip" aria-pressed="${inputDate===addDays(TODAY(),n)}" onclick="inputDate='${addDays(TODAY(),n)}';render()">${l}</button>`).join('')}
+    </div>
+
+    <div class="grid g2">
+      <div class="field"><label class="f">📞 架電数</label>
+        <div class="stepper"><button type="button" onclick="step('iCalls',-1)">−</button>
+          <input type="number" id="iCalls" min="0" value="${ex?ex.calls:0}" oninput="liveCalc()">
+          <button type="button" onclick="step('iCalls',1)">＋</button></div>
+        <div class="row" style="margin-top:8px">${[5,10,20].map(n=>`<button class="chip" onclick="bump('iCalls',${n})">+${n}</button>`).join('')}</div>
+      </div>
+      <div class="field"><label class="f">🤝 アポ獲得数</label>
+        <div class="stepper"><button type="button" onclick="step('iAppts',-1)">−</button>
+          <input type="number" id="iAppts" min="0" value="${ex?ex.appts:0}" oninput="liveCalc()">
+          <button type="button" onclick="step('iAppts',1)">＋</button></div>
+      </div>
+    </div>
+
+    <div class="card" style="background:var(--surface-2);margin:4px 0 14px" id="liveCard"></div>
+
+    <div class="field"><label class="f">アポ先・場所（1行1件で入力するとレポートに載ります）</label>
+      <textarea id="iDetail" placeholder="例）大阪産業大学／京都◯◯高校 — 8/5 14:00 訪問">${esc(ex?.detail||'')}</textarea></div>
+    <div class="field"><label class="f">メモ・所感（任意）</label>
+      <input type="text" id="iNote" value="${esc(ex?.note||'')}" placeholder="例）担当不在が多い。午前より15時以降が繋がりやすい"></div>
+
+    <div class="row">
+      <button class="btn" onclick="saveRecord()">${ex?'💾 更新する':'💾 保存する'}</button>
+      ${ex?`<button class="btn sec" onclick="deleteRecord('${ex.id}')">削除</button>`:''}
+      <span class="hint">保存はこの端末のブラウザに残ります（履歴タブからバックアップ可）</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📅 直近7営業日の入力状況（${esc(memberById(inputMember).name)}）</h2>
+    ${recentGrid(inputMember)}
+  </div>`;
+}
+function mountInput(){ liveCalc(); }
+function step(id,n){ const el=document.getElementById(id); el.value=Math.max(0,(+el.value||0)+n); liveCalc(); }
+function bump(id,n){ step(id,n); }
+function liveCalc(){
+  const c=+document.getElementById('iCalls')?.value||0, a=+document.getElementById('iAppts')?.value||0;
+  const box=document.getElementById('liveCard'); if(!box) return;
+  const g=S.settings.apptRateGoal*100, r=pct(a,c);
+  const m=memberById(inputMember);
+  const xp=c*XP_CALL+a*XP_APPT+XP_DAY_BONUS+((c>0&&r>=g)?XP_QUEST:0);
+  box.innerHTML=`<div class="grid g4" style="gap:10px">
+    <div><div class="lbl" style="font-size:11.5px;color:var(--muted);font-weight:600">アポ率</div>
+      <div style="font-size:24px;font-weight:800">${c?r.toFixed(1)+'%':'—'}</div>
+      <div style="font-size:11.5px">${c? (r>=g?`<span class="up">目標クリア</span>`:`<span class="down">目標まで ${(g-r).toFixed(1)}pt</span>`):'<span style="color:var(--muted)">—</span>'}</div></div>
+    <div><div class="lbl" style="font-size:11.5px;color:var(--muted);font-weight:600">想定成約</div>
+      <div style="font-size:24px;font-weight:800">${fmt(deals(a))}<small style="font-size:12px">校</small></div>
+      <div style="font-size:11.5px;color:var(--ink-2)">成約率 ${(S.settings.closeRate*100).toFixed(0)}%</div></div>
+    <div><div class="lbl" style="font-size:11.5px;color:var(--muted);font-weight:600">想定粗利</div>
+      <div style="font-size:24px;font-weight:800">${moneyS(gross(a))}</div>
+      <div style="font-size:11.5px;color:var(--ink-2)">1アポ ${moneyS(grossPerAppt())}</div></div>
+    <div><div class="lbl" style="font-size:11.5px;color:var(--muted);font-weight:600">獲得XP</div>
+      <div style="font-size:24px;font-weight:800">+${int(xp)}</div>
+      <div style="font-size:11.5px;color:var(--ink-2)">${esc(m.name)} の経験値</div></div>
+  </div>`;
+}
+function recentGrid(mid){
+  let dts=[], c=TODAY(), g=0;
+  while(dts.length<7 && g++<30){ if(isWorkday(c)) dts.push(c); c=addDays(c,-1); }
+  dts.reverse();
+  return `<div class="row">${dts.map(dt=>{
+    const r=S.records.find(x=>x.date===dt&&x.memberId===mid);
+    const ok=r&&((+r.calls||0)>0||(+r.appts||0)>0);
+    return `<button class="chip" style="flex-direction:column;padding:8px 12px;line-height:1.35;${ok?'background:color-mix(in srgb,var(--good) 16%,var(--surface));border-color:color-mix(in srgb,var(--good) 40%,transparent)':''}"
+      onclick="inputDate='${dt}';render()">
+      <span style="font-size:11px;color:var(--muted)">${jp(dt)}</span>
+      <b style="font-size:13px">${ok?`${r.calls}/${r.appts}`:'未入力'}</b></button>`;}).join('')}</div>
+  <div class="hint">表示は「架電数/アポ数」。クリックでその日の入力に切り替わります。</div>`;
+}
+function saveRecord(){
+  const calls=+document.getElementById('iCalls').value||0;
+  const appts=+document.getElementById('iAppts').value||0;
+  const detail=document.getElementById('iDetail').value.trim();
+  const note=document.getElementById('iNote').value.trim();
+  if(appts>calls && calls>0 && !confirm('アポ数が架電数を上回っています。このまま保存しますか？')) return;
+
+  const beforeXp = xpOf(inputMember), beforeLv = levelOf(beforeXp).level;
+  const ex = S.records.find(r=>r.date===inputDate && r.memberId===inputMember);
+  if(ex){ Object.assign(ex,{calls,appts,detail,note,updatedAt:Date.now()}); }
+  else { S.records.push({id:uid(),date:inputDate,memberId:inputMember,calls,appts,detail,note,createdAt:Date.now()}); }
+  save();
+
+  const afterLv = levelOf(xpOf(inputMember)).level;
+  if(appts>0) confetti();
+  toast(appts>0? `🎉 アポ${appts}件を記録！ +${int(appts*XP_APPT+calls*XP_CALL)}XP` : `💾 ${jp(inputDate)} の実績を保存しました`);
+  if(afterLv>beforeLv){
+    const r=rankOf(afterLv);
+    document.getElementById('luTitle').textContent=`Lv.${afterLv} にレベルアップ！`;
+    document.getElementById('luDesc').textContent=`${memberById(inputMember).name} ・ ${r.emoji} ${r.name}`;
+    document.getElementById('levelup').classList.add('on');
+  }
+  render();
+}
+function deleteRecord(id){
+  if(!confirm('この日の記録を削除しますか？')) return;
+  S.records=S.records.filter(r=>r.id!==id); save(); toast('🗑 削除しました'); render();
+}
+
+/* ---------------- 履歴・出力 ---------------- */
+let hFilterMember='all', hFilterMonth='all';
+function viewHistory(){
+  let list=[...S.records].sort((a,b)=> a.date<b.date?1:-1);
+  if(hFilterMember!=='all') list=list.filter(r=>r.memberId===hFilterMember);
+  if(hFilterMonth!=='all') list=list.filter(r=>r.date.startsWith(hFilterMonth));
+  const months=[...new Set(S.records.map(r=>r.date.slice(0,7)))].sort().reverse();
+  const A=agg(list);
+  return `
+  <div class="card" style="margin-top:16px">
+    <h2>📤 データ出力・バックアップ</h2>
+    <div class="row">
+      <button class="btn" onclick="exportXLSX()">📊 Excel（.xlsx）で出力</button>
+      <button class="btn sec" onclick="exportCSV()">📄 CSV で出力</button>
+      <button class="btn sec" onclick="exportJSON()">💾 バックアップ（JSON）</button>
+      <label class="btn sec" style="cursor:pointer;margin:0">📥 JSON読込<input type="file" accept="application/json" style="display:none" onchange="importJSON(this)"></label>
+    </div>
+    <div class="hint">Excel出力には「明細」「日次集計」「メンバー別」「月次」の4シートが入ります。JSONはメンバー間でデータを統合するときに使います（同じ日付・同じ担当者は新しい方で上書き）。</div>
+  </div>
+
+  <div class="card">
+    <h2>📒 入力履歴<span class="spacer"></span>
+      <span class="pill">${list.length}件 / 架電${int(A.calls)} ・ アポ${int(A.appts)} ・ ${pctS(A.appts,A.calls)}</span></h2>
+    <div class="row" style="margin-bottom:12px">
+      <select style="width:auto" onchange="hFilterMember=this.value;render()">
+        <option value="all">全担当者</option>
+        ${S.members.map(m=>`<option value="${m.id}" ${hFilterMember===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}
+      </select>
+      <select style="width:auto" onchange="hFilterMonth=this.value;render()">
+        <option value="all">全期間</option>
+        ${months.map(m=>`<option value="${m}" ${hFilterMonth===m?'selected':''}>${m.replace('-','年')}月</option>`).join('')}
+      </select>
+    </div>
+    ${list.length? `<div class="tablewrap"><table>
+      <thead><tr><th>日付</th><th>担当</th><th class="num">架電</th><th class="num">アポ</th><th class="num">アポ率</th><th class="num">想定粗利</th><th>アポ先・場所</th><th>メモ</th><th></th></tr></thead>
+      <tbody>${list.map(r=>{const m=memberById(r.memberId);return `<tr>
+        <td>${jpFull(r.date)}</td>
+        <td><span class="swatch" style="background:${slotVar(m.slot)}"></span> ${esc(m.name)}</td>
+        <td class="num">${int(r.calls)}</td><td class="num">${int(r.appts)}</td>
+        <td class="num">${pctS(r.appts,r.calls)}</td><td class="num">${moneyS(gross(r.appts))}</td>
+        <td style="white-space:normal;min-width:180px">${esc(r.detail||'')}</td>
+        <td style="white-space:normal;min-width:150px;color:var(--ink-2)">${esc(r.note||'')}</td>
+        <td><button class="btn sec sm" onclick="editRec('${r.id}')">編集</button></td></tr>`;}).join('')}
+      </tbody></table></div>` : `<div class="empty">まだ実績がありません。</div>`}
+  </div>`;
+}
+function editRec(id){ const r=S.records.find(x=>x.id===id); if(!r) return;
+  inputDate=r.date; inputMember=r.memberId; go('input'); }
+
+/* ---------------- レポート ---------------- */
+let repMember='all', repMode='today';
+function viewReport(){
+  const modes=[['today','本日サマリー'],['week','今週サマリー'],['total','累計サマリー'],['month','月次サマリー']];
+  const txt = buildSummary(repMode, repMember==='all'?null:repMember);
+  return `
+  <div class="card" style="margin-top:16px">
+    <h2>💬 チャット報告用サマリー<span class="spacer"></span>
+      <button class="btn sm" onclick="copySummary()">📋 コピーする</button></h2>
+    <div class="row" style="margin-bottom:10px">
+      ${modes.map(([k,l])=>`<button class="chip" aria-pressed="${repMode===k}" onclick="repMode='${k}';render()">${l}</button>`).join('')}
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <button class="chip" aria-pressed="${repMember==='all'}" onclick="repMember='all';render()">👥 全員</button>
+      ${activeMembers().map(m=>`<button class="chip" aria-pressed="${repMember===m.id}" onclick="repMember='${m.id}';render()">${esc(m.name)}</button>`).join('')}
+    </div>
+    <pre class="sum" id="sumText">${esc(txt)}</pre>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" onclick="copySummary()">📋 このままコピー</button>
+      <span class="hint">Slack / LINE / Teams にそのまま貼り付けられます。</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🧮 収益シミュレーション（現在の設定）</h2>
+    <div class="grid g4">
+      ${tile('1アポの想定粗利', moneyS(grossPerAppt()), `成約${(S.settings.closeRate*100).toFixed(0)}% × ${S.settings.unitsPerDeal}台 × ${int(S.settings.grossPerUnit)}円`,1)}
+      ${tile('目標達成時の粗利', moneyS(gross(S.settings.apptGoal)), `アポ${S.settings.apptGoal}件 → 成約${fmt(deals(S.settings.apptGoal))}校`,3)}
+      ${tile('現時点の想定粗利', moneyS(agg(recs(repMember==='all'?{}:{memberId:repMember})).gross), '実績アポ数ベース',2)}
+      ${tile('1架電あたり期待値', moneyS(grossPerAppt()*S.settings.apptRateGoal), `アポ率${(S.settings.apptRateGoal*100).toFixed(0)}%換算`,4)}
+    </div>
+  </div>`;
+}
+function weekStart(){ const t=d(TODAY()); const w=(t.getDay()+6)%7; return addDays(TODAY(),-w); }
+function buildSummary(mode, who){
+  const line='━━━━━━━━━━━━━━';
+  const s=S.settings, rateGoal=(s.apptRateGoal*100).toFixed(0);
+  const scope = who? [memberById(who)] : activeMembers();
+  let from, to, title;
+  if(mode==='today'){ from=to=TODAY(); title=`📞 テレアポ日報　${jpFull(TODAY())}`; }
+  else if(mode==='week'){ from=weekStart(); to=TODAY(); title=`📞 テレアポ 週次報告　${jp(from)}〜${jp(to)}`; }
+  else if(mode==='month'){ from=TODAY().slice(0,7)+'-01'; to=TODAY(); title=`📞 テレアポ 月次報告　${TODAY().slice(0,7).replace('-','年')}月`; }
+  else { from=s.periodStart; to=TODAY(); title=`📞 テレアポ 累計報告　${from.replace(/-/g,'/')}〜${to.replace(/-/g,'/')}`; }
+
+  const per = scope.map(m=>({m, ...agg(recs({memberId:m.id, from, to}))}));
+  const tot = per.reduce((a,x)=>({calls:a.calls+x.calls, appts:a.appts+x.appts}),{calls:0,appts:0});
+  const totRate = pct(tot.appts,tot.calls);
+
+  let out = title+'\n'+line+'\n';
+  per.forEach(p=>{
+    const dayT=(+p.m.dailyCall||0);
+    out += `【${p.m.name}】\n`;
+    out += `　📞 架電 ${int(p.calls)}件 ／ 🤝 アポ ${int(p.appts)}件\n`;
+    out += `　🎯 アポ率 ${pctS(p.appts,p.calls)}（目標${rateGoal}%）${p.calls? (p.rate>=+rateGoal?' ✅達成':' ⚠未達'):''}\n`;
+    if(mode==='today' && dayT) out += `　📋 日次目標 ${dayT}件 → ${p.calls>=dayT?'達成 ✅':`あと${dayT-p.calls}件`}\n`;
+    const st=streak(p.m.id); if(st>1) out += `　🔥 ${st}営業日連続で稼働中\n`;
+    const det = recs({memberId:p.m.id, from, to}).map(r=>r.detail).filter(Boolean).join(' / ');
+    if(det) out += `　📍 ${det}\n`;
+  });
+  if(per.length>1){
+    out += line+'\n【チーム合計】\n';
+    out += `　📞 架電 ${int(tot.calls)}件 ／ 🤝 アポ ${int(tot.appts)}件（${pctS(tot.appts,tot.calls)}）\n`;
+  }
+
+  // 累計パート
+  const A = agg(recs(who?{memberId:who}:{}));
+  const remain = Math.max(0, s.apptGoal - A.appts);
+  out += line+'\n';
+  out += `📊 累計（${s.periodStart.replace(/-/g,'/')}〜）\n`;
+  out += `　架電 ${int(A.calls)}件 ／ アポ ${int(A.appts)}件（アポ率 ${pctS(A.appts,A.calls)}）\n`;
+  out += `　🎯 目標 ${s.apptGoal}件に対し ${pct(A.appts,s.apptGoal).toFixed(1)}%・残り ${int(remain)}件\n`;
+  out += `　💰 想定粗利 ${moneyS(A.gross)}（成約${(s.closeRate*100).toFixed(0)}%×${s.unitsPerDeal}台×${int(s.grossPerUnit)}円）\n`;
+  if(remain>0) out += `　📈 残アポ${int(remain)}件に必要な架電 約${int(Math.ceil(remain/s.apptRateGoal))}件\n`;
+  const xp=xpOf(who), L=levelOf(xp), r=rankOf(L.level);
+  out += `　${r.emoji} Lv.${L.level} ${r.name}（${int(xp)}XP）\n`;
+  const nb = BADGES.filter(b=>b.f(badgeStats(who)));
+  if(nb.length) out += `　🎖 称号 ${nb.length}/${BADGES.length}：${nb.slice(-3).map(b=>b.e+b.n).join(' ')}\n`;
+  return out;
+}
+function copySummary(){
+  const t=document.getElementById('sumText').textContent;
+  navigator.clipboard?.writeText(t).then(()=>toast('📋 コピーしました！チャットに貼り付けてください'))
+    .catch(()=>{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove(); toast('📋 コピーしました'); });
+}
+
+/* ---------------- 設定 ---------------- */
+function viewSettings(){
+  const s=S.settings;
+  return `
+  <div class="card" style="margin-top:16px">
+    <h2>👥 メンバー設定</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>使用</th><th>氏名</th><th>区分</th><th class="num">日次 架電目標</th><th class="num">日次 アポ目標</th><th>色</th><th></th></tr></thead>
+      <tbody>${S.members.map((m,i)=>`<tr>
+        <td><input type="checkbox" ${m.active?'checked':''} onchange="S.members[${i}].active=this.checked;save();render()" style="width:auto"></td>
+        <td><input type="text" value="${esc(m.name)}" onchange="S.members[${i}].name=this.value;save();render()" style="min-width:140px"></td>
+        <td><select onchange="S.members[${i}].kind=this.value;save()" style="min-width:110px">
+          ${['社内','パートナー','自分'].map(k=>`<option ${m.kind===k?'selected':''}>${k}</option>`).join('')}</select></td>
+        <td class="num"><input type="number" min="0" value="${m.dailyCall}" onchange="S.members[${i}].dailyCall=+this.value;save();render()" style="width:80px"></td>
+        <td class="num"><input type="number" min="0" value="${m.dailyAppt}" onchange="S.members[${i}].dailyAppt=+this.value;save();render()" style="width:80px"></td>
+        <td><select onchange="S.members[${i}].slot=+this.value;save();render()" style="width:70px">${[1,2,3,4].map(n=>`<option value="${n}" ${m.slot===n?'selected':''}>${n}</option>`).join('')}</select>
+            <span class="swatch" style="background:${slotVar(m.slot)};width:14px;height:14px;vertical-align:-2px;margin-left:5px"></span></td>
+        <td>${S.records.some(r=>r.memberId===m.id)?'<span class="hint">実績あり</span>':`<button class="btn sec sm" onclick="removeMember(${i})">削除</button>`}</td>
+      </tr>`).join('')}</tbody></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn sec sm" onclick="addMember()">＋ メンバーを追加</button></div>
+  </div>
+
+  <div class="card">
+    <h2>🎯 KPI・目標設定</h2>
+    <div class="grid g3">
+      <div class="field"><label class="f">期間 開始日</label><input type="date" value="${s.periodStart}" onchange="S.settings.periodStart=this.value;save();render()"></div>
+      <div class="field"><label class="f">期間 終了日</label><input type="date" value="${s.periodEnd}" onchange="S.settings.periodEnd=this.value;save();render()"></div>
+      <div class="field"><label class="f">期間の目標アポ数（件）</label><input type="number" min="1" value="${s.apptGoal}" onchange="S.settings.apptGoal=+this.value;save();render()"></div>
+      <div class="field"><label class="f">目標アポ率（%）</label><input type="number" min="1" max="100" step="1" value="${(s.apptRateGoal*100).toFixed(0)}" onchange="S.settings.apptRateGoal=(+this.value)/100;save();render()"></div>
+      <div class="field"><label class="f">土日も営業日に含める</label>
+        <select onchange="S.settings.workWeekend=(this.value==='1');save();render()">
+          <option value="0" ${!s.workWeekend?'selected':''}>含めない（平日のみ）</option>
+          <option value="1" ${s.workWeekend?'selected':''}>含める</option></select></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💰 収益モデル設定</h2>
+    <div class="grid g3">
+      <div class="field"><label class="f">成約率（%）</label><input type="number" min="1" max="100" value="${(s.closeRate*100).toFixed(0)}" onchange="S.settings.closeRate=(+this.value)/100;save();render()"></div>
+      <div class="field"><label class="f">1校あたり平均販売台数</label><input type="number" min="1" value="${s.unitsPerDeal}" onchange="S.settings.unitsPerDeal=+this.value;save();render()"></div>
+      <div class="field"><label class="f">1台あたり粗利単価（円）</label><input type="number" min="0" step="1000" value="${s.grossPerUnit}" onchange="S.settings.grossPerUnit=+this.value;save();render()"></div>
+    </div>
+    <div class="card" style="background:var(--surface-2)">
+      <div style="font-size:13.5px;line-height:1.9">
+        <b>計算式</b><br>
+        アポ率 ＝ アポ数 ÷ 架電数<br>
+        想定成約数 ＝ アポ数 × ${(s.closeRate*100).toFixed(0)}%<br>
+        想定粗利 ＝ 想定成約数 × ${s.unitsPerDeal}台 × ${int(s.grossPerUnit)}円
+        ＝ <b>1アポあたり ${moneyS(grossPerAppt())}</b><br>
+        目標アポ ${s.apptGoal}件 達成時 → 想定粗利 <b>${moneyS(gross(s.apptGoal))}</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🗄 データ管理</h2>
+    <div class="row">
+      <button class="btn sec" onclick="exportJSON()">💾 バックアップを保存</button>
+      <label class="btn sec" style="cursor:pointer;margin:0">📥 バックアップを読込<input type="file" accept="application/json" style="display:none" onchange="importJSON(this)"></label>
+      <button class="btn danger" onclick="resetAll()">全データ削除</button>
+    </div>
+    <div class="hint">データはこの端末のブラウザ（localStorage）に保存されます。担当者ごとに別端末で入力する場合は、各自がJSONを書き出し、管理者側で読み込むと統合できます。</div>
+  </div>`;
+}
+function addMember(){
+  S.members.push({id:'m_'+Date.now().toString(36), name:'新規メンバー', slot:(S.members.length%4)+1, dailyCall:5, dailyAppt:1, active:true, kind:'社内'});
+  save(); render();
+}
+function removeMember(i){ if(!confirm(`${S.members[i].name} を削除しますか？`)) return; S.members.splice(i,1); save(); render(); }
+function resetAll(){
+  if(!confirm('すべての実績・設定を削除します。よろしいですか？')) return;
+  if(!confirm('本当に削除しますか？この操作は取り消せません。')) return;
+  localStorage.removeItem(LS_KEY); S=structuredClone(DEFAULTS); render(); toast('初期化しました');
+}
+
+/* =========================================================================
+   出力（CSV / JSON / XLSX）
+   ========================================================================= */
+function dl(blob,name){
+  const u=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+function stamp(){ return new Date().toISOString().slice(0,10).replace(/-/g,''); }
+
+function tableDetail(){
+  const rows=[['日付','曜日','担当者','区分','架電数','アポ数','アポ率(%)','想定成約数','想定粗利(円)','アポ先・場所','メモ']];
+  [...S.records].sort((a,b)=>a.date<b.date?-1:1).forEach(r=>{
+    const m=memberById(r.memberId);
+    rows.push([r.date, WD[d(r.date).getDay()], m.name, m.kind||'', +r.calls||0, +r.appts||0,
+      +(pct(r.appts,r.calls).toFixed(1)), +deals(r.appts).toFixed(2), Math.round(gross(r.appts)), r.detail||'', r.note||'']);
+  });
+  return rows;
+}
+function tableDaily(){
+  const rows=[['日付','曜日','架電数','アポ数','アポ率(%)','累計アポ数','想定粗利(円)']];
+  let cum=0;
+  byDate(S.records).forEach(x=>{ cum+=x.appts;
+    rows.push([x.date, WD[d(x.date).getDay()], x.calls, x.appts, +(pct(x.appts,x.calls).toFixed(1)), cum, Math.round(gross(x.appts))]); });
+  return rows;
+}
+function tableMember(){
+  const rows=[['担当者','区分','稼働日数','架電数','アポ数','アポ率(%)','想定成約数','想定粗利(円)','レベル','XP']];
+  S.members.forEach(m=>{ const a=agg(recs({memberId:m.id})); if(!a.calls&&!a.appts) return;
+    const xp=xpOf(m.id);
+    rows.push([m.name, m.kind||'', a.days, a.calls, a.appts, +(a.rate.toFixed(1)), +a.deals.toFixed(2), Math.round(a.gross), levelOf(xp).level, xp]); });
+  return rows;
+}
+function tableMonthly(){
+  const rows=[['月','稼働日数','架電数','アポ数','アポ率(%)','想定成約数','想定粗利(円)']];
+  const m=new Map();
+  S.records.forEach(r=>{ const k=r.date.slice(0,7); const o=m.get(k)||{calls:0,appts:0,days:new Set()};
+    o.calls+=+r.calls||0; o.appts+=+r.appts||0; o.days.add(r.date); m.set(k,o); });
+  [...m.entries()].sort().forEach(([k,o])=>rows.push([k,o.days.size,o.calls,o.appts,+(pct(o.appts,o.calls).toFixed(1)),+deals(o.appts).toFixed(2),Math.round(gross(o.appts))]));
+  const t=[...m.values()].reduce((a,o)=>({c:a.c+o.calls,p:a.p+o.appts,d:a.d+o.days.size}),{c:0,p:0,d:0});
+  rows.push(['合計',t.d,t.c,t.p,+(pct(t.p,t.c).toFixed(1)),+deals(t.p).toFixed(2),Math.round(gross(t.p))]);
+  return rows;
+}
+function exportCSV(){
+  const rows=tableDetail();
+  const csv=rows.map(r=>r.map(c=>{ const s=String(c??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(',')).join('\r\n');
+  dl(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}), `テレアポKPI_明細_${stamp()}.csv`);
+  toast('📄 CSVを書き出しました');
+}
+function exportJSON(){
+  dl(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}), `テレアポKPI_バックアップ_${stamp()}.json`);
+  toast('💾 バックアップを保存しました');
+}
+function importJSON(inp){
+  const f=inp.files[0]; if(!f) return;
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const p=JSON.parse(fr.result);
+      if(!p || !Array.isArray(p.records)) throw new Error('形式が違います');
+      const mode = confirm('OK：既存データに統合（同じ日付・同じ担当者は新しい方で上書き）\nキャンセル：完全に置き換え');
+      if(mode){
+        // メンバーを名前基準でマージ
+        (p.members||[]).forEach(pm=>{ if(!S.members.find(m=>m.id===pm.id||m.name===pm.name)) S.members.push(pm); });
+        p.records.forEach(r=>{
+          const mid = S.members.find(m=>m.id===r.memberId)?.id
+                   || S.members.find(m=>m.name===(p.members||[]).find(x=>x.id===r.memberId)?.name)?.id
+                   || r.memberId;
+          const ex=S.records.find(x=>x.date===r.date && x.memberId===mid);
+          if(ex){ if((r.updatedAt||r.createdAt||0) >= (ex.updatedAt||ex.createdAt||0)) Object.assign(ex,{calls:r.calls,appts:r.appts,detail:r.detail,note:r.note,updatedAt:r.updatedAt||Date.now()}); }
+          else S.records.push({...r, id:uid(), memberId:mid});
+        });
+      } else {
+        S = {settings:{...DEFAULTS.settings,...(p.settings||{})}, members:p.members||S.members, records:p.records, meta:p.meta||{}};
+      }
+      save(); render(); toast('📥 読み込みました（'+p.records.length+'件）');
+    }catch(e){ alert('読み込みに失敗しました：'+e.message); }
+    inp.value='';
+  };
+  fr.readAsText(f);
+}
+
+/* ---------- 最小xlsxライター（無圧縮ZIP・外部ライブラリ不要） ---------- */
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
+function crc32(buf){ let c=0xFFFFFFFF; for(let i=0;i<buf.length;i++) c=CRC_T[(c^buf[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+const ENC=new TextEncoder();
+function zip(files){ // files: [{name, data:Uint8Array}]
+  const chunks=[], central=[]; let off=0;
+  const u16=n=>[n&255,(n>>8)&255], u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+  files.forEach(f=>{
+    const nm=ENC.encode(f.name), crc=crc32(f.data), sz=f.data.length;
+    const lh=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(crc),...u32(sz),...u32(sz),...u16(nm.length),...u16(0)]);
+    chunks.push(lh,nm,f.data);
+    central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(crc),...u32(sz),...u32(sz),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]));
+    central.push(nm);
+    off += lh.length+nm.length+sz;
+  });
+  const cdStart=off; let cdSize=0; central.forEach(c=>cdSize+=c.length);
+  const end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),
+    ...u32(cdSize),...u32(cdStart),...u16(0)]);
+  const total=[...chunks,...central,end];
+  let len=0; total.forEach(c=>len+=c.length);
+  const out=new Uint8Array(len); let p=0; total.forEach(c=>{out.set(c,p);p+=c.length;});
+  return out;
+}
+function colLetter(n){ let s=''; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
+function xmlEsc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
+function sheetXML(rows){
+  let x=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>`;
+  rows.forEach((row,ri)=>{
+    x+=`<row r="${ri+1}">`;
+    row.forEach((cell,ci)=>{
+      const ref=colLetter(ci+1)+(ri+1);
+      if(typeof cell==='number' && isFinite(cell)) x+=`<c r="${ref}" s="${ri===0?1:0}"><v>${cell}</v></c>`;
+      else x+=`<c r="${ref}" s="${ri===0?1:0}" t="inlineStr"><is><t>${xmlEsc(cell??'')}</t></is></c>`;
+    });
+    x+=`</row>`;
+  });
+  return x+`</sheetData></worksheet>`;
+}
+function exportXLSX(){
+  const sheets=[
+    {name:'明細',     rows:tableDetail()},
+    {name:'日次集計', rows:tableDaily()},
+    {name:'メンバー別',rows:tableMember()},
+    {name:'月次',     rows:tableMonthly()}
+  ];
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${
+    sheets.map((s,i)=>`<sheet name="${xmlEsc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`;
+  const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${
+    sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts>
+<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2A78D6"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs>
+<cellXfs count="2"><xf xfId="0"/><xf xfId="0" fontId="1" fillId="2" applyFont="1" applyFill="1"/></cellXfs></styleSheet>`;
+  const files=[
+    {name:'[Content_Types].xml', data:ENC.encode(ct)},
+    {name:'_rels/.rels', data:ENC.encode(rels)},
+    {name:'xl/workbook.xml', data:ENC.encode(wb)},
+    {name:'xl/_rels/workbook.xml.rels', data:ENC.encode(wbRels)},
+    {name:'xl/styles.xml', data:ENC.encode(styles)},
+    ...sheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`, data:ENC.encode(sheetXML(s.rows))}))
+  ];
+  dl(new Blob([zip(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `テレアポKPI_${stamp()}.xlsx`);
+  toast('📊 Excelファイルを書き出しました');
+}
+
+/* =========================================================================
+   演出
+   ========================================================================= */
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2600);
+}
+function confetti(){
+  const cols=['var(--s1)','var(--s2)','var(--s3)','var(--s4)'];
+  for(let i=0;i<70;i++){
+    const e=document.createElement('i'); e.className='cf';
+    e.style.left=Math.random()*100+'vw';
+    e.style.background=cols[i%4];
+    e.style.animation=`fall ${1.6+Math.random()*1.4}s cubic-bezier(.25,.6,.4,1) ${Math.random()*.5}s forwards`;
+    document.body.appendChild(e); setTimeout(()=>e.remove(),3800);
+  }
+}
+/* テーマ */
+document.getElementById('themeBtn').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next = cur==='dark' ? 'light' : cur==='light' ? '' : 'dark';
+  if(next) document.documentElement.setAttribute('data-theme',next);
+  else document.documentElement.removeAttribute('data-theme');
+  localStorage.setItem(LS_KEY+'_theme', next);
+  render();
+};
+const savedTheme=localStorage.getItem(LS_KEY+'_theme');
+if(savedTheme) document.documentElement.setAttribute('data-theme',savedTheme);
+
+render();
+</script>
+</body>
+</html>
