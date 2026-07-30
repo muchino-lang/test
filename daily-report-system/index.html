@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日報 × スキルマップ蓄積システム</title>
+<style>
+:root{
+  --bg:#f1f5f9; --panel:#ffffff; --panel2:#f8fafc; --ink:#0f172a; --sub:#64748b; --line:#e2e8f0;
+  --brand:#4f46e5; --brand-d:#3730a3; --ok:#059669; --warn:#d97706; --bad:#e11d48; --amber:#f59e0b;
+  --sh:0 1px 2px rgba(15,23,42,.06),0 4px 12px rgba(15,23,42,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0b1120;--panel:#111a2e;--panel2:#0f172a;--ink:#e2e8f0;--sub:#94a3b8;--line:#1e293b;
+        --sh:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35);}
+}
+:root[data-theme="light"]{--bg:#f1f5f9;--panel:#fff;--panel2:#f8fafc;--ink:#0f172a;--sub:#64748b;--line:#e2e8f0;}
+:root[data-theme="dark"]{--bg:#0b1120;--panel:#111a2e;--panel2:#0f172a;--ink:#e2e8f0;--sub:#94a3b8;--line:#1e293b;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;line-height:1.35}
+button{font:inherit;cursor:pointer}
+input,textarea,select{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+
+/* header */
+header{background:linear-gradient(100deg,#0f172a,#312e81 55%,#0f172a);color:#fff;box-shadow:var(--sh)}
+.hd{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;padding:14px 0}
+.brandbox{display:flex;gap:11px;align-items:center}
+.logo{width:40px;height:40px;border-radius:12px;background:#4f46e5;display:grid;place-items:center;font-size:19px}
+.hd h1{font-size:16px;font-weight:700;letter-spacing:.01em}
+.hd p{margin:2px 0 0;font-size:11px;color:#c7d2fe}
+.hstats{display:flex;gap:8px;flex-wrap:wrap}
+.hstat{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:5px 11px;text-align:center;min-width:74px}
+.hstat b{display:block;font-size:16px;line-height:1.2}
+.hstat span{font-size:10px;color:#c7d2fe}
+nav{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--sub);padding:12px 14px;font-size:13px;font-weight:700;white-space:nowrap}
+.tab.on{color:var(--brand);border-bottom-color:var(--brand)}
+main{padding:20px 0 60px}
+.view{display:none}.view.on{display:block}
+
+/* generic */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);margin-bottom:16px;overflow:hidden}
+.card>h3{padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px;display:flex;align-items:center;gap:8px;justify-content:space-between;background:var(--panel2)}
+.card>h3 .ttl{display:flex;align-items:center;gap:7px}
+.pad{padding:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.muted{color:var(--sub)}
+.xs{font-size:11px}.sm{font-size:12px}
+label.f{display:block;font-size:11.5px;font-weight:700;margin-bottom:4px;color:var(--sub)}
+input[type=text],input[type=date],textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);
+  border-radius:9px;padding:8px 11px;font-size:13px;outline:none;transition:.15s}
+input:focus,textarea:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(79,70,229,.15);background:var(--panel)}
+textarea{resize:vertical;min-height:56px}
+.err{border-color:var(--bad)!important;box-shadow:0 0 0 3px rgba(225,29,72,.13)!important}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.btn:hover{background:var(--panel2)}
+.btn.p{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.p:hover{background:var(--brand-d)}
+.btn.g{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.g:hover{filter:brightness(.93)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.dz{border-style:dashed;width:100%;justify-content:center;color:var(--sub);background:none}
+.btn.dz:hover{color:var(--brand);border-color:var(--brand)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;border:1px solid var(--line);background:var(--panel2);color:var(--sub);white-space:nowrap}
+.lv0{background:#f1f5f9;color:#475569;border-color:#cbd5e1}
+.lv1{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+.lv2{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.lv3{background:#faf5ff;color:#7e22ce;border-color:#e9d5ff}
+.pr1{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+@media (prefers-color-scheme:dark){
+ .lv0{background:#1e293b;color:#cbd5e1;border-color:#334155}
+ .lv1{background:#052e22;color:#6ee7b7;border-color:#065f46}
+ .lv2{background:#0b2545;color:#93c5fd;border-color:#1e40af}
+ .lv3{background:#2a1145;color:#d8b4fe;border-color:#6b21a8}
+ .pr1{background:#3b1c07;color:#fdba74;border-color:#9a3412}
+}
+.alert{border-radius:12px;padding:12px 14px;font-size:12.5px;display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;border:1px solid}
+.alert.w{background:rgba(245,158,11,.11);border-color:rgba(245,158,11,.45);color:var(--warn)}
+.alert.o{background:rgba(5,150,105,.1);border-color:rgba(5,150,105,.4);color:var(--ok)}
+.alert b{color:inherit}
+
+/* focus cards */
+.focus{background:linear-gradient(115deg,#312e81,#0f172a);color:#fff;border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
+.focus>.h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.focus h2{font-size:14px}
+.focus .lead{font-size:11.5px;color:#c7d2fe;margin:2px 0 0}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.fcard{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:7px}
+.fcard .nm{font-size:13px;font-weight:700}
+.fcard .st{font-size:11px;color:#cbd5e1;line-height:1.55;max-height:88px;overflow:auto}
+.fcard .meta{display:flex;gap:5px;flex-wrap:wrap}
+.fcard .btn{margin-top:auto;background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.22);color:#fff}
+.fcard .btn:hover{background:#4f46e5;border-color:#4f46e5}
+
+/* evidence chips in form */
+.evrow{border:1px solid var(--line);border-radius:11px;padding:10px;background:var(--panel2);margin-bottom:8px}
+.evrow .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:6px}
+.evrow .nm{font-size:12.5px;font-weight:700;line-height:1.4}
+.iconbtn{background:none;border:0;color:var(--sub);padding:2px 5px;border-radius:6px;font-size:13px}
+.iconbtn:hover{color:var(--bad);background:rgba(225,29,72,.1)}
+
+/* topic block */
+.topic{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--panel)}
+.topic>.th{display:flex;gap:10px;align-items:center;padding:9px 11px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.topic .body{padding:12px;display:grid;gap:10px}
+.mgj{background:rgba(79,70,229,.06);border:1px solid rgba(79,70,229,.16);border-radius:10px;padding:11px;display:grid;gap:9px}
+.pro{background:rgba(5,150,105,.06);border:1px solid rgba(5,150,105,.18);border-radius:10px;padding:11px;display:grid;gap:9px}
+
+/* skill table */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.filters select,.filters input{width:auto;min-width:130px;flex:0 1 auto;font-size:12px;padding:6px 9px}
+.sk{border-bottom:1px solid var(--line)}
+.sk>.head{display:grid;grid-template-columns:1fr 128px 108px 34px;gap:10px;align-items:center;padding:10px 16px;cursor:pointer}
+.sk>.head:hover{background:var(--panel2)}
+.sk .nm{font-size:13px;font-weight:700}
+.sk .path{font-size:10.5px;color:var(--sub);margin-top:2px}
+.heat{height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-bottom:3px}
+.heat i{display:block;height:100%}
+.cnt{font-size:10.5px;color:var(--sub);text-align:right}
+.sk .det{display:none;padding:0 16px 14px;background:var(--panel2)}
+.sk.open .det{display:block}
+.sk .std{font-size:12px;color:var(--sub);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:10px}
+.log{border-left:2px solid var(--brand);padding:2px 0 2px 10px;margin-bottom:8px}
+.log .d{font-size:10.5px;color:var(--sub);font-weight:700}
+.log .t{font-size:12.5px;white-space:pre-wrap}
+.scoresel{display:flex;gap:3px;flex-wrap:wrap}
+.scoresel button{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:4px 8px;font-size:11px;color:var(--sub)}
+.scoresel button.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.scoresel.sv button.on{background:var(--ok);border-color:var(--ok)}
+
+/* matrix */
+table.mx{width:100%;border-collapse:collapse;font-size:12px}
+table.mx th,table.mx td{border:1px solid var(--line);padding:7px 8px;text-align:center}
+table.mx th:first-child,table.mx td:first-child{text-align:left;font-weight:700}
+table.mx thead th{background:var(--panel2);font-size:11px;color:var(--sub)}
+.cellv{font-weight:700}
+.cells{font-size:10px;opacity:.75}
+
+/* history */
+.hitem{border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:9px;background:var(--panel)}
+.hitem .hh{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.hitem .dt{font-size:13px;font-weight:700}
+.hitem pre{margin:6px 0 0;font-size:11.5px;white-space:pre-wrap;color:var(--sub);font-family:inherit}
+
+/* review */
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpibox{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2)}
+.kpibox b{display:block;font-size:22px;line-height:1.2}
+.kpibox span{font-size:11px;color:var(--sub)}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:5px 0 2px}
+.bar i{display:block;height:100%;background:var(--brand)}
+.pill{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--sub)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+.modal.on{display:flex}
+.mbox{background:var(--panel);border-radius:16px;width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.mbox>.mh{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mbox>.mb{overflow:auto;padding:12px 16px}
+.mbox>.mf{padding:12px 16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--panel2)}
+.pick{display:flex;gap:9px;align-items:flex-start;padding:9px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;background:var(--panel2)}
+.pick:hover{border-color:var(--brand)}
+.pick.on{border-color:var(--brand);background:rgba(79,70,229,.08)}
+.pick input{width:16px;height:16px;margin-top:2px;flex:none;accent-color:var(--brand)}
+.pick .nm{font-size:12.5px;font-weight:700}
+.pick .st{font-size:11px;color:var(--sub);margin-top:2px}
+
+pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-size:11.5px;white-space:pre-wrap;overflow:auto;max-height:420px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,24px);background:#0f172a;color:#fff;border-radius:11px;
+  padding:10px 16px;font-size:12.5px;font-weight:700;opacity:0;transition:.25s;z-index:200;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.emptymsg{padding:26px;text-align:center;color:var(--sub);font-size:12.5px}
+@media(max-width:820px){.fgrid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}
+ .sk>.head{grid-template-columns:1fr 92px 30px}.sk>.head .sc{display:none}}
+@media print{nav,header .hstats,.noprint{display:none!important}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <div class="brandbox">
+      <div class="logo">🎯</div>
+      <div>
+        <h1>日報 × スキルマップ蓄積システム</h1>
+        <p>毎日書く。書いた事実がスキルマップに貯まる。評価面談の時にはもう終わっている。</p>
+      </div>
+    </div>
+    <div class="hstats">
+      <div class="hstat"><b id="kStreak">0</b><span>連続提出</span></div>
+      <div class="hstat"><b id="kReports">0</b><span>日報累計</span></div>
+      <div class="hstat"><b id="kEv">0</b><span>実績記録</span></div>
+      <div class="hstat"><b id="kCov">0%</b><span>項目カバー率</span></div>
+    </div>
+  </div>
+</header>
+
+<nav><div class="wrap tabs">
+  <button class="tab on" data-v="today">📝 今日の日報</button>
+  <button class="tab" data-v="map">📊 スキルマップ</button>
+  <button class="tab" data-v="hist">🗂 履歴</button>
+  <button class="tab" data-v="review">🏁 評価面談シート</button>
+  <button class="tab" data-v="data">⚙️ データ／設定</button>
+</div></nav>
+
+<main class="wrap">
+
+<!-- ================= TODAY ================= -->
+<section class="view on" id="v-today">
+  <div id="statusAlert"></div>
+
+  <!-- 強制表示：今日の重点 -->
+  <div class="focus">
+    <div class="h">
+      <div>
+        <h2>⚡ 今日の重点3項目（毎日ここから始める）</h2>
+        <p class="lead">記録が少ない項目・上位レベルの項目を優先して自動出題。今日の業務で当てにいく。</p>
+      </div>
+      <button class="btn sm" id="btnReroll" style="background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.22);color:#fff">🔀 別の3件</button>
+    </div>
+    <div class="fgrid" id="focusGrid"></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ttl">📝 日報入力（モ・ゲ・ジョ × プロアクティブ）</span><span class="xs muted">目安10分</span></h3>
+    <div class="pad">
+      <div class="grid2" style="margin-bottom:14px">
+        <div><label class="f">提出日</label><input type="date" id="fDate"></div>
+        <div><label class="f">氏名 <span style="color:var(--bad)">*</span></label><input type="text" id="fName" placeholder="山田 太郎"></div>
+      </div>
+
+      <label class="f">■ 1. 今日の業務内容 <span style="color:var(--bad)">*</span></label>
+      <div id="taskBox" style="display:grid;gap:6px"></div>
+      <button class="btn dz sm" id="btnAddTask" style="margin-top:6px">＋ 業務内容の行を追加</button>
+
+      <div style="margin-top:14px">
+        <label class="f">■ 2. 業務を通じた気づき・全体課題 <span style="color:var(--bad)">*</span></label>
+        <textarea id="fInsight" rows="2" placeholder="例：新規校への提案で手数料モデルへの抵抗感が想定以上に強かった。事業インパクトの試算から入る提案順序に変えるべきではないか。"></textarea>
+      </div>
+
+      <!-- 達成項目（本システムの核） -->
+      <div style="margin-top:18px;border:1px solid var(--brand);border-radius:12px;padding:13px;background:rgba(79,70,229,.05)">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <div>
+            <label class="f" style="margin:0;color:var(--brand)">■ 3. 今日できたこと＝スキルマップ実績 <span style="color:var(--bad)">*</span> 最低1件</label>
+            <div class="xs muted">「この項目に対してこういう事象があった」を書く。ここが評価面談の材料になって貯まっていく。</div>
+          </div>
+          <div class="row" style="gap:6px">
+            <button class="btn p sm" id="btnAi">🤖 AIに割り当てさせる</button>
+            <button class="btn sm" id="btnPick">＋ 手動で選ぶ</button>
+          </div>
+        </div>
+        <div id="evBox"></div>
+      </div>
+
+      <!-- モゲジョ -->
+      <div style="margin-top:18px">
+        <label class="f">■ 4. 背景の深掘りと提案（モ・ゲ・ジョ分析）<span class="xs muted">／ 任意・1件でも書けると思考が締まる</span></label>
+        <div id="topicBox"></div>
+        <button class="btn dz sm" id="btnAddTopic">＋ モ・ゲ・ジョ分析を追加する</button>
+      </div>
+
+      <div class="row" style="margin-top:18px;justify-content:space-between">
+        <div class="row">
+          <button class="btn g" id="btnSave">💾 日報を保存して積み上げる</button>
+          <button class="btn" id="btnCopyChat">💬 チャット用コピー</button>
+          <button class="btn" id="btnCopyTsv">📋 Excel貼付(1行)</button>
+        </div>
+        <div class="row">
+          <button class="btn sm" id="btnSample">✨ 見本を流し込む</button>
+          <button class="btn sm danger" id="btnClear">クリア</button>
+        </div>
+      </div>
+      <div id="editNote" class="xs muted" style="margin-top:8px"></div>
+      <pre class="out" id="outBox" style="display:none;margin-top:12px"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MAP ================= -->
+<section class="view" id="v-map">
+  <div class="card">
+    <h3><span class="ttl">📊 スキルマップ蓄積状況（グラデーション）</span><span class="xs muted" id="mapCount"></span></h3>
+    <div class="filters">
+      <input type="text" id="qText" placeholder="🔍 項目・行動基準を検索">
+      <select id="qLv"><option value="">全レベル</option></select>
+      <select id="qPh"><option value="">全フェーズ</option></select>
+      <select id="qCat"><option value="">全カテゴリ</option></select>
+      <select id="qSt">
+        <option value="">全状態</option>
+        <option value="0">未着手（0件）だけ</option>
+        <option value="w">記録が薄い（1-2件）だけ</option>
+        <option value="s">積み上がっている（3件以上）</option>
+      </select>
+      <select id="qPr"><option value="">実践区分すべて</option><option value="1">商談ロープレ</option><option value="0">社内での動き</option></select>
+      <button class="btn sm" id="btnExpandAll">全部ひらく</button>
+    </div>
+    <div id="skList"></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ttl">🌡 フェーズ × レベル ヒートマップ</span><span class="xs muted">セル＝平均記録件数／カバー済み項目数</span></h3>
+    <div class="pad" style="overflow-x:auto"><table class="mx" id="mxTable"></table></div>
+  </div>
+</section>
+
+<!-- ================= HISTORY ================= -->
+<section class="view" id="v-hist">
+  <div class="card">
+    <h3><span class="ttl">🗂 提出履歴</span><span class="xs muted" id="histCount"></span></h3>
+    <div class="filters"><input type="text" id="qHist" placeholder="🔍 日報の本文・項目名で検索"></div>
+    <div class="pad" id="histList"></div>
+  </div>
+</section>
+
+<!-- ================= REVIEW ================= -->
+<section class="view" id="v-review">
+  <div class="card">
+    <h3><span class="ttl">🏁 評価面談サマリー</span>
+      <span class="row noprint">
+        <select id="revRange" style="width:auto;font-size:12px;padding:5px 9px">
+          <option value="0">全期間</option><option value="30">直近30日</option>
+          <option value="90">直近90日（四半期）</option><option value="180">直近180日（半期）</option>
+        </select>
+        <button class="btn sm" onclick="window.print()">🖨 印刷</button>
+      </span></h3>
+    <div class="pad">
+      <div class="kpi" id="revKpi"></div>
+      <h4 style="margin:18px 0 8px;font-size:13px">レベル別 カバー率</h4>
+      <div id="revLv"></div>
+      <h4 style="margin:18px 0 8px;font-size:13px">業務フェーズ別 カバー率</h4>
+      <div id="revPh"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ttl">🕳 ここが足りない（記録ゼロ／薄い項目）</span><span class="xs muted">面談前に潰すリスト</span></h3>
+    <div class="pad" id="revGap"></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ttl">🏅 自己評価が固まっている項目（記録3件以上）</span><span class="xs muted">面談で語れる実績</span></h3>
+    <div class="pad" id="revStrong"></div>
+  </div>
+
+  <div class="card noprint">
+    <h3><span class="ttl">📤 出力</span></h3>
+    <div class="pad row">
+      <button class="btn p" id="btnExpSelf">元Excel互換の自己評価シート(CSV)</button>
+      <button class="btn" id="btnExpEv">実績ログ全件(CSV)</button>
+      <button class="btn" id="btnExpTxt">面談用サマリー(テキスト)</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DATA ================= -->
+<section class="view" id="v-data">
+  <div class="card">
+    <h3><span class="ttl">⚙️ データ管理</span></h3>
+    <div class="pad">
+      <div class="alert w">⚠️ データはこのブラウザのローカル（localStorage）にのみ保存されます。PC入替・ブラウザ初期化で消えるので、月1回はJSONバックアップを取ってください。</div>
+      <div class="row">
+        <button class="btn p" id="btnBackup">💾 バックアップ(JSON)を保存</button>
+        <button class="btn" id="btnRestore">📂 バックアップから復元</button>
+        <input type="file" id="fileIn" accept="application/json" style="display:none">
+        <button class="btn danger" id="btnReset">🗑 全データ削除</button>
+      </div>
+      <div class="grid2" style="margin-top:16px">
+        <div><label class="f">既定の氏名（毎回自動入力）</label><input type="text" id="setName" placeholder="山田 太郎"></div>
+        <div><label class="f">表示テーマ</label>
+          <select id="setTheme"><option value="auto">OS設定に従う</option><option value="light">ライト</option><option value="dark">ダーク</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3><span class="ttl">📖 このシステムの使い方（3ステップ）</span></h3>
+    <div class="pad sm" style="display:grid;gap:9px">
+      <div style="border:1px solid var(--line);border-radius:10px;padding:11px;background:var(--panel2)">
+        <b>① 毎朝ひらく</b> — トップに「今日の重点3項目」が強制表示されます。今日どれを取りにいくか決めてから動く。
+      </div>
+      <div style="border:1px solid var(--line);border-radius:10px;padding:11px;background:var(--panel2)">
+        <b>② 終業時に日報を書く</b> — 業務内容・気づきに加えて、<b>スキル項目に紐づけた「こういう事象がありました」を最低1件</b>書かないと保存できません。これが強制力です。
+      </div>
+      <div style="border:1px solid var(--line);border-radius:10px;padding:11px;background:var(--panel2)">
+        <b>③ 面談前にスキルマップを見る</b> — 濃くなっている項目＝根拠付きで語れる強み、白いまま＝これから取りにいく穴。自己評価は毎日の積み上げで既に埋まっています。
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- AI assign modal -->
+<div class="modal" id="aiModal">
+  <div class="mbox">
+    <div class="mh">
+      <h3 style="font-size:14px">🤖 AIに「どの項目に該当するか」を判定させる</h3>
+      <button class="btn sm" data-close>閉じる</button>
+    </div>
+    <div class="mb">
+      <div class="alert w" style="margin-bottom:12px">
+        ① プロンプトをコピー → ② ChatGPT / Claude / Copilot 等に貼って実行 → ③ 返ってきたJSONを下に貼り付けて「取り込む」。<br>
+        目視で69項目を探す作業はここで終わりです。
+      </div>
+
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <b class="sm">STEP 1. プロンプト</b>
+        <div class="row" style="gap:6px">
+          <label class="xs muted row" style="gap:4px"><input type="checkbox" id="aiFull" checked style="width:14px;height:14px;accent-color:var(--brand)">行動基準も含める（精度↑・長い）</label>
+          <button class="btn p sm" id="aiCopy">📋 プロンプトをコピー</button>
+        </div>
+      </div>
+      <pre class="out" id="aiPrompt" style="max-height:240px"></pre>
+
+      <div class="row" style="justify-content:space-between;margin:14px 0 6px">
+        <b class="sm">STEP 2. AIの回答を貼り付け</b>
+        <span class="xs muted">JSON でも「S012」を含む文章でも読み取れます</span>
+      </div>
+      <textarea id="aiResp" rows="6" placeholder='[{"id":"S030","evidence":"朝日大学の商談で…"}]'></textarea>
+    </div>
+    <div class="mf">
+      <span class="xs muted">取り込み後も、内容は自分の言葉で必ず直してください。</span>
+      <button class="btn g" id="aiImport">📥 取り込んで実績行を作る</button>
+    </div>
+  </div>
+</div>
+
+<!-- picker modal -->
+<div class="modal" id="pickModal">
+  <div class="mbox">
+    <div class="mh">
+      <h3 style="font-size:14px">達成した項目を選ぶ</h3>
+      <button class="btn sm" data-close>閉じる</button>
+    </div>
+    <div class="filters" style="border-bottom:1px solid var(--line)">
+      <input type="text" id="pQ" placeholder="🔍 項目名・行動基準で検索" style="min-width:200px;flex:1">
+      <select id="pLv"><option value="">全レベル</option></select>
+      <select id="pPh"><option value="">全フェーズ</option></select>
+      <select id="pSt"><option value="">全状態</option><option value="0">未着手だけ</option></select>
+      <label class="xs muted row" style="gap:4px;white-space:nowrap"><input type="checkbox" id="pSug" checked style="width:14px;height:14px;accent-color:var(--brand)">日報の内容から候補を上に出す</label>
+    </div>
+    <div class="mb" id="pList"></div>
+    <div class="mf">
+      <span class="xs muted" id="pInfo">0件選択中</span>
+      <button class="btn p" id="pAdd">選んだ項目を日報に追加</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ スキルマップ定義（元Excel「スキルマップ評価結果」から生成） ============ */
+const SKILLS = [{"id":"S001","lv":0,"ph":"1. 事務・基盤・マインド","cat":"チーム・当事者意識","name":"できない理由ではなく、できる方法を考える","std":"指示、ルール、困難な状況に対して、できない理由や不満を先に並べず、まず受け止めて行動できる。期待した結果が得られなかった場合は、不足していた知識、準備、行動、連携を振り返り、次にできるようにする具体策を考えて実行に移せる。","pr":0},{"id":"S002","lv":0,"ph":"1. 事務・基盤・マインド","cat":"チーム・当事者意識","name":"ミス後の挽回(リカバリー)","std":"自分の不手際で周りに迷惑をかけたとき、隠さず素直に非を認めて「これからどう立て直すか」を前向きに考えて行動できる。","pr":0},{"id":"S003","lv":0,"ph":"1. 事務・基盤・マインド","cat":"チーム・当事者意識","name":"他者への影響考慮と事前調整","std":"自分の都合での休みや仕事の進め方が、チームや他部署の負担にならないか想像し、あらかじめ必要な相談や調整ができる。","pr":0},{"id":"S004","lv":0,"ph":"1. 事務・基盤・マインド","cat":"チーム・当事者意識","name":"疑問点の即時解消（曖昧さの排除）","std":"わからないことや不分明な点をそのまま放置して風化させようとせず、自ら事実を確認し、解決に向けて周囲への確認や上司への相談を迅速に行える。","pr":0},{"id":"S005","lv":0,"ph":"1. 事務・基盤・マインド","cat":"プロ意識","name":"会社の「顔」としての自覚","std":"自分のちょっとした言動が「会社全体の評価」につながるという意識を持って、日々の業務に取り組める。","pr":0},{"id":"S006","lv":0,"ph":"1. 事務・基盤・マインド","cat":"プロ意識","name":"会社の備品・環境の管理","std":"会社の備品や職場環境を共有資産として扱い、使用後の整理整頓、適切な保管、不具合や不足の報告を責任を持って行える。","pr":0},{"id":"S007","lv":0,"ph":"1. 事務・基盤・マインド","cat":"プロ意識","name":"適切な態度と言葉遣い(TPO)","std":"その場にだれがいるかを考えて、その場の状況にふさわしい言葉遣い、態度、正しい順番での申請ができる。","pr":0},{"id":"S008","lv":0,"ph":"1. 事務・基盤・マインド","cat":"ホウレンソウ","name":"フィードバックと期待値調整","std":"自分で評価とフィードバックを上司に取りに行き、求められる期待値を握りに行っている。","pr":0},{"id":"S009","lv":0,"ph":"1. 事務・基盤・マインド","cat":"ホウレンソウ","name":"事実と解釈を分けて正確に報告する","std":"顧客や上司への報告時、何が起きているかという客観的な事実と、自分の推測・解釈・感情・意図を明確に分けて伝えられる。相手が判断に必要な情報を、誤解のない表現で正確かつ簡潔に報告できる。","pr":0},{"id":"S010","lv":0,"ph":"1. 事務・基盤・マインド","cat":"ホウレンソウ","name":"悪いニュースの早期報告","std":"自分のミスや仕事の遅れなど、都合の悪いことほど自分で判断を保留にせず、すぐに直属の上司へ報告できる。","pr":0},{"id":"S011","lv":0,"ph":"1. 事務・基盤・マインド","cat":"ホウレンソウ","name":"早めの相談と確認","std":"自分の判断だけで進めず、仕事の早い段階で上司に確認をとり、やり直しや周りへの迷惑を防ぐことができる。","pr":0},{"id":"S012","lv":0,"ph":"1. 事務・基盤・マインド","cat":"マインド・事務","name":"ポジティブな発言","std":"否定的な言葉を使わず、「悩む」ではなく「考える」と表現するなど、周囲に良い印象を与える。","pr":0},{"id":"S013","lv":0,"ph":"1. 事務・基盤・マインド","cat":"マインド・事務","name":"商品・情報検索","std":"必要な物や情報を自分自身の力で探し出し、社内ツールを使いこなせる。","pr":0},{"id":"S014","lv":0,"ph":"1. 事務・基盤・マインド","cat":"マインド・事務","name":"圧倒的なレスポンス","std":"顧客や社内からの連絡（メールや電話）には1分1秒でも早く対応し、信頼を獲得する。","pr":0},{"id":"S015","lv":0,"ph":"1. 事務・基盤・マインド","cat":"マインド・事務","name":"第一印象と身だしなみ","std":"常に笑顔を絶やさず、TPOに合わせた清潔感のある服装を心がける。","pr":0},{"id":"S016","lv":0,"ph":"2. アプローチ・商談創出","cat":"リサーチ","name":"リストアップとリサーチ","std":"攻めたい業界を決め、社名、電話番号、メール、事業内容を事前にリスト化・調査している。","pr":0},{"id":"S017","lv":0,"ph":"5. 受注後処理・連携","cat":"事務処理","name":"正確な手配・契約事務","std":"社内システムへの受注処理や、契約書・NDA等の手続きを法務・管理部門と連携して不備なく進められる。","pr":0},{"id":"S018","lv":0,"ph":"5. 受注後処理・連携","cat":"事務処理","name":"請求・集金管理","std":"売って終わりではなく、請求書の発行状況や入金確認まで責任を持ち、遅延時等には適切に回収・督促を行える。","pr":0},{"id":"S019","lv":1,"ph":"1. 事務・基盤・マインド","cat":"ツール活用","name":"楽楽販売の機能活用","std":"楽楽販売の機能を適切に使用・使いこなすことができ、周囲に対してその操作方法や仕様を分かりやすく説明できる。","pr":0},{"id":"S020","lv":1,"ph":"2. アプローチ・商談創出","cat":"アプローチ","name":"商談創出（テレアポ等）","std":"電話やメールで顧客の興味を引き出し自ら商談の場を作れる。断られても落ち込まず担当者情報を聞き出す粘り強さがある。","pr":1},{"id":"S021","lv":1,"ph":"3. ヒアリング・提案","cat":"ヒアリング","name":"聞く姿勢と結論ファースト","std":"相手の話を途中で遮ったり否定したりせず最後まで聞く。質問には必ず結論からシンプルに答える。","pr":1},{"id":"S022","lv":1,"ph":"3. ヒアリング・提案","cat":"提案","name":"会社説明と初期提案","std":"会社概要や提案資料を用いて対面でしっかり説明でき、顧客に合わせた適切な価格帯やスペックを的外れなく提案できる。","pr":1},{"id":"S023","lv":1,"ph":"3. ヒアリング・提案","cat":"資料作成","name":"資料の簡易改変","std":"顧客の状況に合わせて、既存の提案資料を自分で手直しできる。","pr":0},{"id":"S024","lv":1,"ph":"4. 商談後フォロー","cat":"フォロー","name":"お礼と宿題の即時対応","std":"商談後（当日〜翌営業日）にお礼と決定事項・宿題をまとめたメールを必ず送る。宿題には自ら期日を設定し必ず守る。","pr":0},{"id":"S025","lv":1,"ph":"5. 受注後処理・連携","cat":"社内連携","name":"正確な連携と納期管理","std":"納品・設定部門へ顧客の要望をフォーマット通り引き継ぐ。納期目安を正確に伝え遅れが生じる場合は即座に報告・お詫びができる。","pr":0},{"id":"S026","lv":1,"ph":"5. 受注後処理・連携","cat":"社内連携","name":"生産指示と出荷管理","std":"工場に対して正確な生産指示を出し、納期通りに生産および発送が行われるよう、進捗を管理・コントロールできる。","pr":0},{"id":"S027","lv":2,"ph":"2. アプローチ・商談創出","cat":"アプローチ","name":"状況判断と情報戦","std":"アプローチ手段を上司に相談して最適化できる。顧客の「会いやすい時間帯・曜日」を把握しピンポイントで接触するエリア管理ができる。","pr":1},{"id":"S028","lv":2,"ph":"3. ヒアリング・提案","cat":"ヒアリング","name":"心理学に基づく対応","std":"アイスブレイクで緊張を解き、相手の性格（ソーシャルスタイル）を分析してコミュニケーションの取り方を変えられる。","pr":1},{"id":"S029","lv":2,"ph":"3. ヒアリング・提案","cat":"ヒアリング","name":"課題設定とリスク提示","std":"顧客の言葉を鵜呑みにせず仮説を持って深掘りし「真の課題」を一緒に設定できる。その課題を放置するリスクを認識させられる。","pr":1},{"id":"S030","lv":2,"ph":"3. ヒアリング・提案","cat":"資料作成","name":"資料の構造化（PREP法）","std":"顧客ニーズに合わせ、「結論→理由→具体例→結論」の骨子（ストーリー）で資料を組み立て、分かりやすく伝えられる。","pr":0},{"id":"S031","lv":2,"ph":"4. 商談後フォロー","cat":"クロージング","name":"テストクロージング","std":"本格的な契約を迫る前に、導入可能性や「残りの不安（買わない理由）」をヒアリングし、寄り添って徹底的に不安を潰すことができる。","pr":1},{"id":"S032","lv":2,"ph":"4. 商談後フォロー","cat":"フォロー","name":"次回の方向性・行動・期日を合意する","std":"商談を曖昧な状態で終わらせず、次回の目的、双方が行うこと、担当者、期日をその場で確認し、必要に応じて次回アポイントを設定できる。合意した内容は商談後の連絡でも明文化できる。","pr":1},{"id":"S033","lv":2,"ph":"4. 商談後フォロー","cat":"フォロー","name":"停滞・失注の分析","std":"案件が進まない理由を分析し上司に相談できる。顧客からの質問の「背景」を想像し、+αの回答を用意できる。","pr":0},{"id":"S034","lv":2,"ph":"5. 受注後処理・連携","cat":"社内連携","name":"トラブル調整と背景共有","std":"トラブル時（在庫不足など）に他部門と調整し代替案を提示できる。サポート部門へ「顧客の用途や重視ポイント」まで添えて引き継げる。","pr":0},{"id":"S035","lv":2,"ph":"5. 受注後処理・連携","cat":"社内連携","name":"稼働確認のフォロー","std":"納品後、適切なタイミングで初期トラブルがないか確認の連絡ができる。","pr":0},{"id":"S036","lv":3,"ph":"2. アプローチ・商談創出","cat":"アプローチ","name":"アプローチの自己決定","std":"顧客ニーズに合わせて最適な手法を自ら判断し、実行できる（理由も説明できる）。","pr":1},{"id":"S037","lv":3,"ph":"2. アプローチ・商談創出","cat":"アプローチ","name":"既存顧客の深耕","std":"既存顧客に対し、さらに提案を広げるための施策（新たなアポ獲得など）を自ら講じることができる。","pr":1},{"id":"S038","lv":3,"ph":"3. ヒアリング・提案","cat":"提案","name":"エンタープライズ攻略","std":"会社がこれまで手を出せなかったような難易度の高い大企業（エンタープライズ）を、自らのプレイングで仕留めることができる。","pr":1},{"id":"S039","lv":3,"ph":"3. ヒアリング・提案","cat":"提案","name":"バリュープロポジション提示","std":"「顧客が望み」「他社ができず」「自社に強みがある」領域に狙いを定めて提案できる。","pr":1},{"id":"S040","lv":3,"ph":"4. 商談後フォロー","cat":"クロージング","name":"リスク察知と稟議サポート","std":"「稟議が止まりそう」等のリスクを事前察知しリカバリー策を打つ。決裁を通すために必要な情報を先回りして作成し担当者を支援できる。","pr":1},{"id":"S041","lv":3,"ph":"4. 商談後フォロー","cat":"フォロー","name":"中長期のナーチャリング","std":"「今は時期じゃない」顧客に対し、適切な間隔で情報提供を行い、次のリプレイス時期まで関係を維持できる。","pr":1},{"id":"S042","lv":3,"ph":"5. 受注後処理・連携","cat":"組織貢献","name":"事業を創る力（PL視点）","std":"単なる売上だけでなく利益や投資対効果、運用コストを考慮し「自社のためにならない顧客には売らない」という経営目線の判断ができる。","pr":0},{"id":"S043","lv":3,"ph":"5. 受注後処理・連携","cat":"組織貢献","name":"社内プロセスの改善","std":"案件進行の課題から「社内フローを変えれば良くなる」等の仕組み改善を発信・提案できる。自分のノウハウを組織に共有できる。","pr":0},{"id":"S044","lv":3,"ph":"5. 受注後処理・連携","cat":"組織貢献","name":"追加提案（クロスセル）","std":"納品後のフォローやサポート部門からの声を拾い上げ、営業目線で新たな提案の糸口を見つけ次の商談を生み出せる。","pr":1},{"id":"S045","lv":3,"ph":"6. 予算・実行管理","cat":"予算管理","name":"予算を提案できる","std":"市場環境、過去実績、案件パイプライン、必要な人員・費用を踏まえ、挑戦度と実現可能性のバランスが取れた予算案を上司や関係者に提案できる。","pr":0},{"id":"S046","lv":3,"ph":"6. 予算・実行管理","cat":"予算管理","name":"予算を作れる","std":"年間目標を月別・商品別・顧客別などに分解し、売上、粗利、費用の前提が整合した予算を数値で作成できる。","pr":0},{"id":"S047","lv":3,"ph":"6. 予算・実行管理","cat":"実行管理","name":"予算を遂行する行動計画を立てられる","std":"予算から逆算し、必要な商談数、受注率、単価、活動量を明確にしたうえで、担当・期限・確認指標を含む具体的な行動計画を立てられる。","pr":0},{"id":"S048","lv":3,"ph":"6. 予算・実行管理","cat":"説明責任","name":"予算達成の根拠を話せる","std":"案件パイプライン、受注確度、単価、時期、過去実績を用いて達成シナリオを数値で説明し、未達リスクと対応策についても根拠を持って話せる。","pr":0},{"id":"S049","lv":3,"ph":"6. 予算・実行管理","cat":"当事者意識","name":"腹をくくれる","std":"予算達成の責任を自分事として引き受け、困難な状況でも優先順位を決めて必要な行動をやり切り、結果と課題を自ら説明できる。","pr":0},{"id":"S050","lv":1,"ph":"1. 事務・基盤・マインド","cat":"主体性","name":"自分の意見を持ち、会議で発言する","std":"会議の目的や議題を事前に確認し、情報を受け取るだけで終わらず、「だから何か」「自分はどう考えるか」を整理したうえで、質問・意見・提案のいずれかを自分の言葉で発言できる。","pr":0},{"id":"S051","lv":2,"ph":"3. ヒアリング・提案","cat":"思考力","name":"仮説を立てて検証する","std":"情報収集や顧客への質問を始める前に、課題や原因について仮説を立て、確認すべきポイントを絞り込める。得られた事実が仮説と異なる場合は、固執せず修正して次の質問や提案につなげられる。","pr":1},{"id":"S052","lv":2,"ph":"1. 事務・基盤・マインド","cat":"対人調整","name":"場の状況を読み、適切に収める","std":"相手の立場、感情、周囲の状況を素早く捉え、その場に合った言葉を選んで応答できる。意見の食い違いや緊張が生じた際も、相手を否定せず論点を整理し、必要に応じて謝意や代替案を示して建設的に場を収められる。","pr":0},{"id":"S053","lv":2,"ph":"1. 事務・基盤・マインド","cat":"説明責任","name":"誤解を察知し、意図を即時に説明する","std":"自分の発言が事実と異なって伝わった場合や、複数の解釈が生じる可能性に気づいた場合、相手から問われるのを待たずに、事実・自分の意図・推測を区別して速やかに補足できる。必要な相手と情報伝達の範囲を判断し、誤解や疑念が広がる前に認識を合わせられる。","pr":0},{"id":"S054","lv":2,"ph":"1. 事務・基盤・マインド","cat":"チーム貢献","name":"ニーズを捉え、プロアクティブに業務を巻き取る","std":"上司やチームの目標、優先順位、業務状況を把握し、今後必要になる作業や調整を予測できる。担当者や指示が明確でない場合も、目的、優先度、影響範囲を判断して必要な確認を取り、対応可能な業務へスピード感を持って着手し、関係者との調整、期限管理、完了報告まで主体的に巻き取れる。","pr":0},{"id":"S055","lv":2,"ph":"3. ヒアリング・提案","cat":"商談推進","name":"商談で存在感を示し、主導権を握る","std":"顧客や同席者の反応を見ながら、論点、時間配分、発言の順序を適切に調整できる。相手の話を尊重しつつ、目的に沿った質問や提案を行い、商談の流れと意思決定の方向性を主体的にリードできる。","pr":1},{"id":"S056","lv":3,"ph":"5. 受注後処理・連携","cat":"意思決定推進","name":"稟議・意思決定を承認まで推進する","std":"稟議書や再発防止書を、目的・背景・課題・施策を整理して論理的に作成できる。施策の費用対効果を定量的に調査・分析し、根拠を明示して関係者を説得できる。差し戻しや指摘を受けた場合も改善して再起案し、承認まで粘り強くやり遂げられる。","pr":0},{"id":"S057","lv":3,"ph":"1. 事務・基盤・マインド","cat":"当事者意識","name":"目的達成にオーナーシップを持つ","std":"人的・環境的な障壁に直面しても、他者や状況が変わることを待たず、自らの行動やアプローチを変えて目的達成を図れる。成果を最優先に考え、必要な労力を惜しまず、必要な場面では摩擦を恐れずに意思決定し実行できる。","pr":0},{"id":"S058","lv":3,"ph":"1. 事務・基盤・マインド","cat":"自律性","name":"自ら判断し、結果責任を引き受ける","std":"正解が明確でない状況でも、会社の方針や目的、行動指針に照らして自ら判断し、実行に移せる。他者の助言や既存事例を活用した場合も、最終的には自分の意思決定として引き受け、結果の説明と必要な改善を最後まで行える。","pr":0},{"id":"S059","lv":2,"ph":"1. 事務・基盤・マインド","cat":"建設的対話","name":"目的に沿って課題や不満を建設的に伝える","std":"不満や課題を感情のまま表出せず、長期的な目的、組織への影響、解決したい状態を整理してから発信できる。事実と解釈を分け、自分なりの改善案や協力できる行動を添えて建設的に伝えられる。","pr":0},{"id":"S060","lv":2,"ph":"1. 事務・基盤・マインド","cat":"判断力","name":"定性と定量を分け、根拠と比較で判断する","std":"定性的な情報は、白黒を断定できる事実なのか、解釈が分かれるグレーな内容なのかを区別して扱える。定量的な情報は、数値の出所・前提・正確性を確認し、過去実績、目標、他社、他案件などの比較対象を持って意味を捉えられる。この意識を常に持ち、判断・報告・会話において事実、解釈、比較結果を分けて説明できる。","pr":0},{"id":"S061","lv":1,"ph":"1. 事務・基盤・マインド","cat":"出張管理","name":"出張申請を正確に行う","std":"出張の目的、訪問先、日程、交通・宿泊手段、概算費用などの必要事項を確認し、社内ルールと承認期限に沿って不備なく出張申請を行える。変更が生じた場合も速やかに修正・共有できる。","pr":0},{"id":"S062","lv":2,"ph":"1. 事務・基盤・マインド","cat":"出張管理","name":"出張費用の費用対効果と妥当性を説明する","std":"出張によって期待される売上、商談進捗、関係構築などの効果と、交通費・宿泊費・移動時間などのコストを整理できる。代替手段とも比較し、出張する必要性と費用の妥当性を数値や事実に基づいて説明できる。","pr":0},{"id":"S063","lv":1,"ph":"5. 受注後処理・連携","cat":"与信管理","name":"楽楽販売で与信申請を行う","std":"申請対象、取引条件、希望与信額、必要書類などを確認し、楽楽販売の所定項目へ正確に入力できる。社内ルールと期限に沿って申請し、差し戻しがあった場合は速やかに修正できる。","pr":0},{"id":"S064","lv":2,"ph":"5. 受注後処理・連携","cat":"与信管理","name":"与信判断の内容と根拠を説明する","std":"与信の目的、確認項目、取引条件、与信枠、支払条件、リスクを理解し、申請内容や判断根拠を関係者へ分かりやすく説明できる。懸念がある場合は、条件変更や追加確認などの対応案も提示できる。","pr":0},{"id":"S065","lv":2,"ph":"5. 受注後処理・連携","cat":"与信管理","name":"与信に必要な情報を揃え、判断に活用する","std":"取引額、支払条件、企業情報、財務情報、取引実績、信用情報など、与信判断に必要な情報を目的に応じて特定できる。情報の出所と正確性を確認して不足なく収集し、リスク評価や申請内容の根拠として活用できる。","pr":0},{"id":"S066","lv":2,"ph":"5. 受注後処理・連携","cat":"問題対応","name":"イレギュラー対応を主体的に行う","std":"通常の手順では解決できない事象が発生した際、事実、影響範囲、緊急度を速やかに整理できる。必要な関係者へ共有・相談しながら代替案を考え、自ら対応を進め、解決後の報告と再発防止まで行える。","pr":0},{"id":"S067","lv":1,"ph":"1. 事務・基盤・マインド","cat":"成長姿勢","name":"自ら研修・指導の機会を取りに行く","std":"必要な知識やスキルを自ら特定し、受け身で機会を待たず、上司や有識者へ目的と学びたい内容を明確に伝えて研修・同行・指導の時間を依頼できる。相手の予定に配慮し、事前準備をしたうえで学習機会を自ら作れる。","pr":0},{"id":"S068","lv":1,"ph":"1. 事務・基盤・マインド","cat":"学習力","name":"研修の時間を最大限に吸収し、行動に移す","std":"研修や指導の目的を理解し、事前準備、メモ、質問を通じて限られた時間で必要な内容を吸収できる。終了後は学んだ内容を整理し、具体的な業務で実践するとともに、結果や追加の疑問を報告できる。","pr":0},{"id":"S069","lv":2,"ph":"1. 事務・基盤・マインド","cat":"時間価値","name":"相手の時間に見合う価値を提供する","std":"他者の時間を有限な経営資源として捉え、時間を依頼する際は目的、論点、必要時間、期待する成果を事前に共有できる。終了時には得られた価値と次の行動について認識を合わせ、実行結果を返すことで、相手が費やした時間に見合う価値を提供できる。","pr":0}];
+const LV_NAME = ['土台（基盤）','レベル1（ビギナー）','レベル2（ミドル）','レベル3（ハイレベル）'];
+const SCORE_NAME = ['未着手','やってみた','できる場面がある','安定してできる','人に教えられる'];
+const PHASES = [...new Set(SKILLS.map(s=>s.ph))].sort();
+const CATS   = [...new Set(SKILLS.map(s=>s.cat))].sort();
+const SMAP   = Object.fromEntries(SKILLS.map(s=>[s.id,s]));
+const KEY='drSkillMap.v1';
+
+/* ============ ストア ============ */
+const blank = ()=>({version:1,settings:{name:'',theme:'auto'},reports:[],eval:{}});
+let DB = load();
+function load(){
+  try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.reports)return Object.assign(blank(),r);}catch(e){}
+  return blank();
+}
+function save(){ localStorage.setItem(KEY,JSON.stringify(DB)); }
+
+const today = ()=> new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600);}
+
+/* ============ 集計 ============ */
+function evIndex(){ // skillId -> [{date,text,rid}]
+  const ix={};
+  for(const r of DB.reports) for(const e of (r.ev||[])){
+    (ix[e.sid] ||= []).push({date:r.date,text:e.text||'',rid:r.id});
+  }
+  for(const k in ix) ix[k].sort((a,b)=>b.date.localeCompare(a.date));
+  return ix;
+}
+function evIndexRange(days){
+  if(!days) return evIndex();
+  const lim=new Date(Date.now()-days*864e5).toISOString().slice(0,10);
+  const ix={};
+  for(const r of DB.reports){ if(r.date<lim) continue;
+    for(const e of (r.ev||[])) (ix[e.sid] ||= []).push({date:r.date,text:e.text||'',rid:r.id}); }
+  for(const k in ix) ix[k].sort((a,b)=>b.date.localeCompare(a.date));
+  return ix;
+}
+function autoScore(n){ return n===0?0 : n<=2?1 : n<=5?2 : n<=9?3 : 4; }
+function scoreOf(sid,ix){ const m=DB.eval[sid]; if(m&&m.self!=null) return m.self; return autoScore((ix[sid]||[]).length); }
+function heatColor(n){
+  if(!n) return 'transparent';
+  const t=Math.min(n,8)/8;
+  return `linear-gradient(90deg,rgba(79,70,229,${.35+t*.5}),rgba(5,150,105,${.35+t*.5}))`;
+}
+function streak(){
+  const days=[...new Set(DB.reports.map(r=>r.date))].sort().reverse();
+  if(!days.length) return 0;
+  let cur=new Date(today()); let n=0;
+  if(days[0]!==today()){ cur.setDate(cur.getDate()-1);
+    if(days[0]!==cur.toISOString().slice(0,10)) return 0; }
+  for(const d of days){
+    if(d===cur.toISOString().slice(0,10)){ n++; cur.setDate(cur.getDate()-1); }
+    else if(d<cur.toISOString().slice(0,10)) break;
+  }
+  return n;
+}
+function refreshKpi(){
+  const ix=evIndex();
+  const cov=SKILLS.filter(s=>(ix[s.id]||[]).length>0).length;
+  $('#kStreak').textContent=streak();
+  $('#kReports').textContent=DB.reports.length;
+  $('#kEv').textContent=DB.reports.reduce((a,r)=>a+(r.ev||[]).length,0);
+  $('#kCov').textContent=Math.round(cov/SKILLS.length*100)+'%';
+}
+
+/* ============ タブ ============ */
+$$('.tab').forEach(b=>b.onclick=()=>{
+  $$('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  $$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+b.dataset.v));
+  if(b.dataset.v==='map') renderMap();
+  if(b.dataset.v==='hist') renderHist();
+  if(b.dataset.v==='review') renderReview();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+function goTab(v){ $(`.tab[data-v="${v}"]`).click(); }
+
+/* ============ 今日の重点3項目 ============ */
+let rerollSeed=0;
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0)/4294967295;}
+function renderFocus(){
+  const ix=evIndex();
+  // 記録が少ない項目・久しく触れていない項目を優先しつつ、日替わりでシャッフル
+  const pool=SKILLS.map(s=>{
+    const logs=ix[s.id]||[], n=logs.length;
+    const last=logs[0]?.date||null;
+    const stale=Math.min((Date.now()-new Date(last||'1970-01-01'))/864e5,180)/180;
+    return {s,n,last,score:(1-Math.min(n,6)/6)*3 + stale*1.4 + hash(today()+rerollSeed+s.id)*2.2};
+  });
+  // フェーズ・レベルが偏らないように貪欲に3件選ぶ
+  const ranked=[];
+  while(ranked.length<3 && pool.length){
+    pool.forEach(x=>{
+      x.adj = x.score
+        - (ranked.some(r=>r.s.ph===x.s.ph)?1.3:0)
+        - (ranked.some(r=>r.s.lv===x.s.lv)?0.7:0);
+    });
+    pool.sort((a,b)=>b.adj-a.adj);
+    ranked.push(pool.shift());
+  }
+
+  $('#focusGrid').innerHTML = ranked.map(({s,n,last})=>`
+    <div class="fcard">
+      <div class="meta">
+        <span class="chip lv${s.lv}">${esc(LV_NAME[s.lv])}</span>
+        <span class="chip ${s.pr?'pr1':''}">${s.pr?'商談ロープレ':'社内での動き'}</span>
+        <span class="chip">${n?`記録${n}件`:'未着手'}</span>
+      </div>
+      <div class="nm">${esc(s.name)}</div>
+      <div class="st">${esc(s.std)}</div>
+      <div class="xs" style="color:#94a3b8">${esc(s.cat)}／${esc(s.ph)}${last?`　最終記録 ${last}`:''}</div>
+      <button class="btn sm" onclick="addEv('${s.id}',true)">✅ 今日これに該当する事象があった</button>
+    </div>`).join('');
+}
+$('#btnReroll').onclick=()=>{rerollSeed++;renderFocus();toast('別の3項目を出しました');};
+
+/* ============ 日報フォーム ============ */
+let editing=null; // 編集中の日報ID
+
+function taskRow(v=''){
+  const d=document.createElement('div');d.className='row';d.style.gap='6px';
+  d.innerHTML=`<input type="text" class="tk" placeholder="業務内容を入力" value="${esc(v)}">
+    <button class="iconbtn" title="削除">✕</button>`;
+  d.querySelector('.iconbtn').onclick=()=>{d.remove(); if(!$$('.tk').length) $('#taskBox').appendChild(taskRow());};
+  return d;
+}
+$('#btnAddTask').onclick=()=>{$('#taskBox').appendChild(taskRow());$$('.tk').pop().focus();};
+
+function topicBlock(t={}){
+  const d=document.createElement('div');d.className='topic';
+  d.innerHTML=`
+    <div class="th">
+      <span class="chip lv2 tlabel">分析</span>
+      <input type="text" class="tp-title" placeholder="テーマ（例：朝日大学案件の提案順序）" value="${esc(t.title||'')}">
+      <button class="iconbtn" title="削除">✕</button>
+    </div>
+    <div class="body">
+      <div class="mgj">
+        <div><label class="f">【目的（モ）】何のためにそれをやるのか</label><textarea class="tp-p" rows="2" placeholder="例：FY27までに提携校100校を達成し、参入障壁を確立する。">${esc(t.p||'')}</textarea></div>
+        <div><label class="f">【現状（ゲ）】いまどういう状態か（定量・定性）</label><textarea class="tp-s" rows="2" placeholder="例：現在50校。商談化率のデータが浅く獲得ペースが読めない。">${esc(t.s||'')}</textarea></div>
+        <div><label class="f">【条件（ジョ）】制約・リソース・判断軸</label><textarea class="tp-c" rows="2" placeholder="例：既存校対応のリソースは崩せない。外部チャネルで打席数を確保する。">${esc(t.c||'')}</textarea></div>
+      </div>
+      <div class="pro">
+        <div><label class="f">【仮説（私の考え）】</label><textarea class="tp-h" rows="2" placeholder="例：回答書は他校に8割転用できる。汎用テンプレ化でリードタイムを短縮できるのでは。">${esc(t.h||'')}</textarea></div>
+        <div><label class="f">【具体的な提案・WBS】ゴールから逆算した「〜と思いますが、いかがでしょうか？」</label><textarea class="tp-w" rows="3" placeholder="・7/30までに汎用版テンプレートに再構成します。&#10;・8/1までに次候補2校の提案ドラフトを作成したいのですが、よろしいでしょうか？">${esc(t.w||'')}</textarea></div>
+      </div>
+    </div>`;
+  d.querySelector('.iconbtn').onclick=()=>{d.remove();renumberTopics();};
+  return d;
+}
+function renumberTopics(){ $$('#topicBox .topic .tlabel').forEach((e,i)=>e.textContent='分析 '+(i+1)); }
+$('#btnAddTopic').onclick=()=>{$('#topicBox').appendChild(topicBlock());renumberTopics();};
+
+/* ---- 実績（エビデンス）行 ---- */
+function addEv(sid,jump){
+  if($$(`#evBox [data-sid="${sid}"]`).length){ toast('その項目はすでに追加済みです'); return; }
+  const s=SMAP[sid]; if(!s) return;
+  const d=document.createElement('div');d.className='evrow';d.dataset.sid=sid;
+  d.innerHTML=`
+    <div class="top">
+      <div>
+        <div class="nm">${esc(s.name)}</div>
+        <div class="row" style="gap:4px;margin-top:3px">
+          <span class="chip lv${s.lv}">${esc(LV_NAME[s.lv])}</span>
+          <span class="chip">${esc(s.cat)}</span>
+          <span class="chip ${s.pr?'pr1':''}">${s.pr?'商談ロープレ':'社内での動き'}</span>
+        </div>
+      </div>
+      <button class="iconbtn" title="外す">✕</button>
+    </div>
+    <div class="xs muted" style="margin-bottom:5px">基準：${esc(s.std)}</div>
+    <textarea class="ev-t" rows="2" placeholder="この項目に対して、今日どういう事象があったか（誰に・何を・どうした・結果どうなった）"></textarea>`;
+  d.querySelector('.iconbtn').onclick=()=>{d.remove();};
+  $('#evBox').appendChild(d);
+  if(jump){ goTab('today'); d.scrollIntoView({behavior:'smooth',block:'center'}); d.querySelector('.ev-t').focus(); }
+  renderEvEmpty();
+}
+function renderEvEmpty(){
+  const box=$('#evBox');
+  const ph=box.querySelector('.emptymsg');
+  if(box.querySelectorAll('.evrow').length){ ph&&ph.remove(); }
+  else if(!ph) box.innerHTML='<div class="emptymsg">まだ選ばれていません。上の「＋ 項目を選ぶ」か、重点3項目のボタンから追加してください。</div>';
+}
+
+/* ---- 日報本文からの候補スコアリング（オフライン簡易マッチ） ---- */
+function bigrams(t){
+  const s=String(t||'').replace(/[\s、。「」（）()・,.\/]/g,'');
+  const g=new Set(); for(let i=0;i<s.length-1;i++) g.add(s.slice(i,i+2)); return g;
+}
+// 「〜できる」「すること」等のありふれた語を効かせないよう IDF で重み付けする
+const SK_G = SKILLS.map(s=>({id:s.id,g:bigrams(s.name+s.name+s.cat+s.std)}));
+const IDF = (()=>{
+  const df={}; SK_G.forEach(x=>x.g.forEach(g=>df[g]=(df[g]||0)+1));
+  const N=SK_G.length, m={};
+  for(const g in df) m[g]=Math.log(N/df[g])+0.15;
+  return m;
+})();
+const SK_NORM = Object.fromEntries(SK_G.map(x=>{
+  let sum=0; x.g.forEach(g=>sum+=(IDF[g]||1.9)**2);
+  return [x.id,Math.sqrt(sum)||1];
+}));
+function suggestScores(){
+  const d=formData();
+  const q=[...d.tasks,d.insight,...d.topics.map(t=>[t.title,t.p,t.s,t.c,t.h,t.w].join(''))].join('');
+  if(q.replace(/\s/g,'').length<8) return null;
+  const qg=bigrams(q), out={};
+  for(const x of SK_G){
+    let sc=0; for(const g of x.g) if(qg.has(g)) sc+=(IDF[g]||1.9)**2;
+    out[x.id]=sc/SK_NORM[x.id];
+  }
+  return out;
+}
+
+/* ---- ピッカー ---- */
+let pickSel=new Set();
+function openPicker(){ pickSel=new Set(); $('#pickModal').classList.add('on'); renderPick(); $('#pQ').focus(); }
+$('#btnPick').onclick=openPicker;
+$$('#pickModal [data-close]').forEach(b=>b.onclick=()=>$('#pickModal').classList.remove('on'));
+$('#pickModal').onclick=e=>{ if(e.target.id==='pickModal') e.currentTarget.classList.remove('on'); };
+['pQ','pLv','pPh','pSt'].forEach(id=>$('#'+id).oninput=renderPick);
+$('#pSug').onchange=renderPick;
+function renderPick(){
+  const q=$('#pQ').value.trim(), lv=$('#pLv').value, ph=$('#pPh').value, st=$('#pSt').value;
+  const ix=evIndex(); const has=new Set($$('#evBox .evrow').map(e=>e.dataset.sid));
+  const sug=$('#pSug').checked? suggestScores() : null;
+  let list=SKILLS.filter(s=>{
+    const n=(ix[s.id]||[]).length;
+    if(lv!==''&&s.lv!=+lv) return false;
+    if(ph&&s.ph!==ph) return false;
+    if(st==='0'&&n>0) return false;
+    if(q&&!(s.name+s.std+s.cat).includes(q)) return false;
+    return true;
+  });
+  let cut=0;
+  if(sug && !q){
+    list=[...list].sort((a,b)=>sug[b.id]-sug[a.id]);
+    cut=Math.min(8,list.length);
+  }
+  $('#pList').innerHTML = list.length? list.map((s,i)=>{
+    const n=(ix[s.id]||[]).length;
+    const hdr = cut&&i===0? '<div class="xs muted" style="margin:2px 0 6px">▼ 今日の日報の記述に近い候補</div>'
+              : cut&&i===cut? '<div class="xs muted" style="margin:12px 0 6px;border-top:1px solid var(--line);padding-top:10px">▼ その他すべての項目</div>' : '';
+    return hdr+`<label class="pick ${pickSel.has(s.id)?'on':''}" data-id="${s.id}">
+      <input type="checkbox" ${pickSel.has(s.id)?'checked':''} ${has.has(s.id)?'disabled':''}>
+      <div style="flex:1">
+        <div class="nm">${cut&&i<cut?'<span class="chip pr1">候補</span> ':''}${esc(s.name)} ${has.has(s.id)?'<span class="chip">追加済</span>':''}</div>
+        <div class="st">${esc(s.std)}</div>
+        <div class="row" style="gap:4px;margin-top:4px">
+          <span class="chip lv${s.lv}">${esc(LV_NAME[s.lv])}</span>
+          <span class="chip">${esc(s.cat)}</span>
+          <span class="chip">${n?`記録${n}件`:'未着手'}</span>
+        </div>
+      </div></label>`;
+  }).join('') : '<div class="emptymsg">該当する項目がありません</div>';
+  $('#pList').querySelectorAll('.pick').forEach(el=>{
+    const cb=el.querySelector('input');
+    if(cb.disabled) return;
+    cb.onchange=()=>{ cb.checked?pickSel.add(el.dataset.id):pickSel.delete(el.dataset.id);
+      el.classList.toggle('on',cb.checked); $('#pInfo').textContent=pickSel.size+'件選択中'; };
+  });
+  $('#pInfo').textContent=pickSel.size+'件選択中';
+}
+$('#pAdd').onclick=()=>{
+  if(!pickSel.size){ toast('項目を選んでください'); return; }
+  pickSel.forEach(id=>addEv(id));
+  $('#pickModal').classList.remove('on');
+  toast(pickSel.size+'件を日報に追加しました');
+};
+
+/* ---- AI割り当て（プロンプト生成 → 回答の取り込み） ---- */
+function buildPrompt(full){
+  const d=formData();
+  const body=`# 本日の業務内容
+${d.tasks.length?d.tasks.map(t=>'・'+t).join('\n'):'（未入力）'}
+
+# 業務を通じた気づき・課題
+${d.insight||'（未入力）'}
+${d.topics.length?`\n# モ・ゲ・ジョ分析\n${d.topics.map(t=>`【${t.title}】\n目的:${t.p}\n現状:${t.s}\n条件:${t.c}\n仮説:${t.h}\n提案:${t.w}`).join('\n\n')}\n`:''}`;
+  const list=SKILLS.map(s=>full
+    ? `${s.id} [${LV_NAME[s.lv]}／${s.ph}／${s.cat}] ${s.name}\n    基準: ${s.std}`
+    : `${s.id} [${LV_NAME[s.lv]}／${s.cat}] ${s.name}`).join('\n');
+  return `あなたは営業組織の評価者です。以下の日報を読み、営業スキルマップの項目のうち「今日この行動が実際に体現された」と言えるものを最大5件選び、JSONで返してください。
+
+# 判定ルール
+1. 各項目の「基準」に照らして、日報に実際の行動として書かれているものだけを選ぶ。推測で盛らない。
+2. 該当が弱ければ件数を減らす。無理に5件埋めない。1件も該当しなければ [] を返す。
+3. evidence は日報に書かれた事実だけを使い、「誰に・何を・どうした・結果どうなったか」を1〜2文で書く。日報にない事実を創作しない。
+4. 迷ったら、より下位レベル（土台＜レベル1＜レベル2＜レベル3）の項目を選ぶ。
+
+# 出力形式（このJSON配列だけを出力。前後に説明文を書かない）
+[{"id":"S012","evidence":"（事実ベースで1〜2文）"},{"id":"S030","evidence":"…"}]
+
+${body}
+# スキルマップ項目一覧
+${list}`;
+}
+function renderPrompt(){ $('#aiPrompt').textContent=buildPrompt($('#aiFull').checked); }
+$('#btnAi').onclick=()=>{
+  const d=formData();
+  if(!d.tasks.length && !d.insight){ toast('先に「業務内容」か「気づき」を入力してください'); $$('.tk')[0].focus(); return; }
+  $('#aiResp').value=''; renderPrompt(); $('#aiModal').classList.add('on');
+};
+$('#aiFull').onchange=renderPrompt;
+$$('#aiModal [data-close]').forEach(b=>b.onclick=()=>$('#aiModal').classList.remove('on'));
+$('#aiModal').onclick=e=>{ if(e.target.id==='aiModal') e.currentTarget.classList.remove('on'); };
+$('#aiCopy').onclick=()=>toast(copy(buildPrompt($('#aiFull').checked))?'プロンプトをコピーしました。AIに貼り付けてください':'コピーできませんでした。枠内を手動でコピーしてください');
+
+function parseAi(raw){
+  const out=[];
+  const m=raw.match(/\[[\s\S]*\]/);
+  if(m){ try{
+      const arr=JSON.parse(m[0]);
+      if(Array.isArray(arr)) arr.forEach(o=>{
+        const id=String(o.id||o.ID||'').toUpperCase().match(/S\d{3}/)?.[0];
+        if(id&&SMAP[id]) out.push({sid:id,text:String(o.evidence||o.text||'').trim()});
+      });
+    }catch(e){}
+  }
+  if(!out.length){ // 崩れた回答向けのフォールバック
+    const re=/(S\d{3})[^\S\n]*[:：\-）)\]】]?[^\S\n]*(.*)/g; let x;
+    while((x=re.exec(raw))){ const id=x[1].toUpperCase();
+      if(SMAP[id]&&!out.some(o=>o.sid===id)) out.push({sid:id,text:x[2].replace(/^["'「]|["'」],?$/g,'').trim()}); }
+  }
+  return out;
+}
+$('#aiImport').onclick=()=>{
+  const items=parseAi($('#aiResp').value);
+  if(!items.length){ toast('項目を読み取れませんでした。JSONをそのまま貼り付けてください'); return; }
+  let added=0;
+  items.forEach(it=>{
+    if($$(`#evBox [data-sid="${it.sid}"]`).length) return;
+    addEv(it.sid); const r=$(`#evBox [data-sid="${it.sid}"]`);
+    if(r&&it.text) r.querySelector('.ev-t').value=it.text;
+    added++;
+  });
+  $('#aiModal').classList.remove('on');
+  renderEvEmpty();
+  toast(added?`${added}件を取り込みました。内容を自分の言葉で確認・修正してください`:'すべて追加済みの項目でした');
+  $('#evBox').scrollIntoView({behavior:'smooth',block:'center'});
+};
+
+/* ---- フォーム読み書き ---- */
+function formData(){
+  return {
+    date: $('#fDate').value || today(),
+    name: $('#fName').value.trim(),
+    tasks: $$('.tk').map(i=>i.value.trim()).filter(Boolean),
+    insight: $('#fInsight').value.trim(),
+    ev: $$('#evBox .evrow').map(r=>({sid:r.dataset.sid,text:r.querySelector('.ev-t').value.trim()})),
+    topics: $$('#topicBox .topic').map(t=>({
+      title:t.querySelector('.tp-title').value.trim(), p:t.querySelector('.tp-p').value.trim(),
+      s:t.querySelector('.tp-s').value.trim(), c:t.querySelector('.tp-c').value.trim(),
+      h:t.querySelector('.tp-h').value.trim(), w:t.querySelector('.tp-w').value.trim()
+    })).filter(t=>t.title||t.p||t.s||t.c||t.h||t.w)
+  };
+}
+function clearForm(keepDate){
+  editing=null; $('#editNote').textContent='';
+  if(!keepDate) $('#fDate').value=today();
+  $('#fName').value=DB.settings.name||'';
+  $('#taskBox').innerHTML=''; $('#taskBox').appendChild(taskRow());
+  $('#fInsight').value=''; $('#evBox').innerHTML=''; renderEvEmpty();
+  $('#topicBox').innerHTML=''; $('#outBox').style.display='none';
+  $$('.err').forEach(e=>e.classList.remove('err'));
+}
+function loadReport(id){
+  const r=DB.reports.find(x=>x.id===id); if(!r) return;
+  editing=id;
+  $('#fDate').value=r.date; $('#fName').value=r.name||'';
+  $('#taskBox').innerHTML=''; (r.tasks.length?r.tasks:['']).forEach(t=>$('#taskBox').appendChild(taskRow(t)));
+  $('#fInsight').value=r.insight||'';
+  $('#evBox').innerHTML='';
+  (r.ev||[]).forEach(e=>{ addEv(e.sid); const row=$(`#evBox [data-sid="${e.sid}"]`); if(row) row.querySelector('.ev-t').value=e.text||''; });
+  renderEvEmpty();
+  $('#topicBox').innerHTML=''; (r.topics||[]).forEach(t=>$('#topicBox').appendChild(topicBlock(t))); renumberTopics();
+  $('#editNote').textContent=`※ ${r.date} の日報を編集中です。保存すると上書きされます。`;
+  goTab('today'); window.scrollTo({top:0});
+  toast(r.date+' の日報を読み込みました');
+}
+function validate(){
+  $$('.err').forEach(e=>e.classList.remove('err'));
+  const d=formData(); let bad=null;
+  if(!d.name){ $('#fName').classList.add('err'); bad ||= $('#fName'); }
+  if(!d.tasks.length){ const t=$$('.tk')[0]; t.classList.add('err'); bad ||= t; }
+  if(!d.insight){ $('#fInsight').classList.add('err'); bad ||= $('#fInsight'); }
+  const evs=$$('#evBox .evrow');
+  if(!evs.length){ toast('スキルマップの達成項目を最低1件、記録してください'); goTab('today'); $('#btnPick').focus(); $('#btnPick').scrollIntoView({behavior:'smooth',block:'center'}); return null; }
+  evs.forEach(r=>{ const t=r.querySelector('.ev-t'); if(!t.value.trim()){ t.classList.add('err'); bad ||= t; } });
+  if(bad){ toast('未入力の必須項目があります（赤枠を確認）'); bad.focus(); bad.scrollIntoView({behavior:'smooth',block:'center'}); return null; }
+  return d;
+}
+$('#btnSave').onclick=()=>{
+  const d=validate(); if(!d) return;
+  if(editing){
+    const i=DB.reports.findIndex(r=>r.id===editing);
+    DB.reports[i]=Object.assign(DB.reports[i],d);
+  }else{
+    const dup=DB.reports.find(r=>r.date===d.date);
+    if(dup && !confirm(`${d.date} の日報はすでに存在します。追加でもう1件保存しますか？\n（「キャンセル」を押して履歴タブから編集することもできます）`)) return;
+    DB.reports.push(Object.assign({id:'R'+Date.now().toString(36)},d));
+  }
+  DB.reports.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
+  DB.settings.name=d.name;
+  save(); refreshKpi(); renderFocus(); renderStatus();
+  const n=d.ev.length;
+  clearForm();
+  toast(`保存しました。${n}件の実績がスキルマップに積み上がりました 🎉`);
+};
+$('#btnClear').onclick=()=>{ if(confirm('入力内容をクリアしますか？')) clearForm(); };
+
+/* ---- 出力 ---- */
+function reportText(d){
+  const ix=evIndex();
+  const ev=d.ev.map(e=>{const s=SMAP[e.sid];return `・【${LV_NAME[s.lv]}／${s.cat}】${s.name}\n　→ ${e.text}`;}).join('\n');
+  const tp=d.topics.map((t,i)=>`【テーマ${i+1}】${t.title}
+■ 背景の深掘り（モ・ゲ・ジョ）
+［目的］${t.p}
+［現状］${t.s}
+［条件］${t.c}
+■ 仮説とプロアクティブな提案
+［仮説］${t.h}
+［提案・WBS］
+${t.w}`).join('\n--------------------------------\n');
+  return `━━━━━━━━━━━━━━━━━━━━━━
+■ 業務日報（モ・ゲ・ジョ × プロアクティブ）
+━━━━━━━━━━━━━━━━━━━━━━
+【提出日】${d.date}　【氏名】${d.name}
+
+■ 1. 今日の業務内容
+${d.tasks.map(t=>'・'+t).join('\n')}
+
+■ 2. 業務を通じた気づき・課題
+${d.insight}
+
+■ 3. 今日できたこと（スキルマップ実績）
+${ev}
+${tp?`\n■ 4. 背景の深掘りと提案\n${tp}\n`:''}━━━━━━━━━━━━━━━━━━━━━━`;
+}
+function showOut(t){ const b=$('#outBox'); b.textContent=t; b.style.display='block'; b.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+function copy(t){
+  const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';
+  document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+  document.body.removeChild(a);return ok;
+}
+$('#btnCopyChat').onclick=()=>{ const d=validate(); if(!d) return; const t=reportText(d); showOut(t);
+  toast(copy(t)?'チャット用にコピーしました':'コピーできませんでした。下の枠から手動でコピーしてください'); };
+$('#btnCopyTsv').onclick=()=>{
+  const d=validate(); if(!d) return;
+  const q=s=>`"${String(s||'').replace(/"/g,'""')}"`;
+  const ev=d.ev.map(e=>`【${SMAP[e.sid].name}】${e.text}`).join('\n');
+  const tsv=[d.date.replace(/-/g,'/'),d.name,q(d.tasks.map(t=>'・'+t).join('\n')),q(d.insight),q(ev),
+    q(d.topics.map(t=>`【${t.title}】${t.p}`).join('\n\n')),q(d.topics.map(t=>`【${t.title}】${t.s}`).join('\n\n')),
+    q(d.topics.map(t=>`【${t.title}】${t.c}`).join('\n\n')),
+    q(d.topics.map(t=>`【${t.title}】［仮説］${t.h} ［提案］${t.w}`).join('\n\n'))].join('\t');
+  showOut(tsv); toast(copy(tsv)?'Excel貼付用にコピーしました（A列でCtrl+V）':'コピーできませんでした');
+};
+$('#btnSample').onclick=()=>{
+  clearForm();
+  $('#fName').value=DB.settings.name||'ソリューション 太郎';
+  $('#taskBox').innerHTML='';
+  ['学内展示会（2日間）の来場者アンケート集計（回答87件・当日申込9件）','展示什器および持ち込み機の返却手配','展示会レポートの下書き作成']
+    .forEach(t=>$('#taskBox').appendChild(taskRow(t)));
+  $('#fInsight').value='アンケートで「価格が決め手」と答えたのは約2割にとどまり、大半は「入学後の使い方をイメージできるか」を重視していた。一方で当日の説明は価格・スペック中心で、来場者の関心とズレが生じていた。';
+  const pick=[SKILLS.find(s=>s.name.includes('課題設定')),SKILLS.find(s=>s.name.includes('事実と解釈')),SKILLS.find(s=>s.name.includes('仮説を立てて'))].filter(Boolean);
+  const txt=['来場者アンケートの自由記述を読み込み、「価格が課題」という現場の思い込みに対して、実際の不安は利用イメージの不足であると整理して上長に共有した。',
+             '展示会レポートで、来場87件／当日申込9件という事実と、「説明の切り口がズレていた」という自分の解釈を分けて記載した。',
+             '「決め切れない要因は価格ではなく利用イメージの不足」という仮説を立て、次回展示の冒頭トークで検証する設計にした。'];
+  pick.forEach((s,i)=>{ addEv(s.id); const r=$(`#evBox [data-sid="${s.id}"]`); if(r) r.querySelector('.ev-t').value=txt[i]||''; });
+  $('#topicBox').appendChild(topicBlock({title:'展示会での案内・接客フロー改善',
+    p:'展示会を認知の場ではなく「購入導線を固定する場」に位置づけ、来場者からの成約率を引き上げること。',
+    s:'来場87件に対し当日申込は9件と約1割。持ち帰り検討組へのフォロー導線がなく離脱後の追跡ができていない。',
+    c:'展示時間・什器・持ち込み機の台数は増やせないため、改善余地は「説明の中身」と「離脱後の接点設計」に限られる。',
+    h:'決め切れない要因は価格ではなく利用イメージの不足にあり、冒頭を授業での具体的な使用シーンに差し替えれば当日申込率を改善できるのではないか。',
+    w:'・今週木曜までに自由記述を「使い方・価格・時期」の3分類で整理し、頻出の不安点を抽出します。\n・来週火曜までに冒頭2分のトークを利用シーン起点に再構成したいと考えておりますが、いかがでしょうか？'}));
+  renumberTopics(); renderEvEmpty();
+  toast('見本データを流し込みました');
+};
+
+/* ---- 今日の提出状況 ---- */
+function renderStatus(){
+  const done=DB.reports.some(r=>r.date===today());
+  const st=streak();
+  $('#statusAlert').innerHTML = done
+    ? `<div class="alert o">✅ <div><b>今日（${today()}）の日報は提出済みです。</b> 連続提出 ${st}日。追記したい場合は履歴タブから編集できます。</div></div>`
+    : `<div class="alert w">🔥 <div><b>今日（${today()}）の日報はまだ未提出です。</b> ${st>0?`連続提出 ${st}日を継続中 — ここで止めない。`:'まずは1日目を積み上げましょう。'}</div></div>`;
+}
+
+/* ============ スキルマップ描画 ============ */
+function fillSelect(sel,opts){ opts.forEach(o=>{const e=document.createElement('option');e.value=o[0];e.textContent=o[1];sel.appendChild(e);}); }
+[['#qLv','#pLv'],['#qPh','#pPh']].forEach(()=>{});
+fillSelect($('#qLv'),LV_NAME.map((n,i)=>[i,n])); fillSelect($('#pLv'),LV_NAME.map((n,i)=>[i,n]));
+fillSelect($('#qPh'),PHASES.map(p=>[p,p]));      fillSelect($('#pPh'),PHASES.map(p=>[p,p]));
+fillSelect($('#qCat'),CATS.map(c=>[c,c]));
+
+['qText','qLv','qPh','qCat','qSt','qPr'].forEach(id=>$('#'+id).oninput=renderMap);
+let expandAll=false;
+$('#btnExpandAll').onclick=()=>{expandAll=!expandAll;$('#btnExpandAll').textContent=expandAll?'全部とじる':'全部ひらく';renderMap();};
+
+function renderMap(){
+  const ix=evIndex();
+  const q=$('#qText').value.trim(), lv=$('#qLv').value, ph=$('#qPh').value, cat=$('#qCat').value, st=$('#qSt').value, pr=$('#qPr').value;
+  const list=SKILLS.filter(s=>{
+    const n=(ix[s.id]||[]).length;
+    if(lv!==''&&s.lv!=+lv) return false;
+    if(ph&&s.ph!==ph) return false;
+    if(cat&&s.cat!==cat) return false;
+    if(pr!==''&&s.pr!=+pr) return false;
+    if(st==='0'&&n!==0) return false;
+    if(st==='w'&&!(n>=1&&n<=2)) return false;
+    if(st==='s'&&n<3) return false;
+    if(q&&!(s.name+s.std+s.cat+s.ph).includes(q)) return false;
+    return true;
+  });
+  $('#mapCount').textContent=`${list.length} / ${SKILLS.length} 項目を表示`;
+  $('#skList').innerHTML = list.length ? list.map(s=>{
+    const logs=ix[s.id]||[], n=logs.length, sc=scoreOf(s.id,ix), boss=DB.eval[s.id]?.boss;
+    const pct=Math.min(n,8)/8*100;
+    return `<div class="sk ${expandAll?'open':''}" data-id="${s.id}">
+      <div class="head">
+        <div>
+          <div class="nm">${esc(s.name)}</div>
+          <div class="path">
+            <span class="chip lv${s.lv}">${esc(LV_NAME[s.lv])}</span>
+            <span class="chip ${s.pr?'pr1':''}">${s.pr?'ロープレ':'社内'}</span>
+            ${esc(s.ph)}／${esc(s.cat)}${logs[0]?`　最終 ${logs[0].date}`:''}
+          </div>
+        </div>
+        <div><div class="heat"><i style="width:${pct}%;background:${heatColor(n)}"></i></div>
+          <div class="cnt">${n?`実績 ${n}件`:'記録なし'}</div></div>
+        <div class="sc xs" style="text-align:center">
+          <span class="chip ${sc>=3?'lv1':sc>=1?'lv2':'lv0'}">${sc}: ${SCORE_NAME[sc]}</span>
+          ${boss!=null?`<div class="xs muted" style="margin-top:2px">上司 ${boss}</div>`:''}
+        </div>
+        <div style="text-align:center;color:var(--sub)">▾</div>
+      </div>
+      <div class="det">
+        <div class="std"><b>行動基準：</b>${esc(s.std)}</div>
+        <div class="grid2" style="margin-bottom:12px">
+          <div>
+            <label class="f">自己評価（未設定なら実績件数から自動判定：${autoScore(n)}）</label>
+            <div class="scoresel" data-kind="self" data-id="${s.id}">
+              ${SCORE_NAME.map((nm,i)=>`<button data-v="${i}" class="${DB.eval[s.id]?.self===i?'on':''}">${i} ${nm}</button>`).join('')}
+              <button data-v="auto" class="${DB.eval[s.id]?.self==null?'on':''}">自動</button>
+            </div>
+          </div>
+          <div>
+            <label class="f">上司評価（面談時に入力）</label>
+            <div class="scoresel sv" data-kind="boss" data-id="${s.id}">
+              ${SCORE_NAME.map((nm,i)=>`<button data-v="${i}" class="${boss===i?'on':''}">${i}</button>`).join('')}
+              <button data-v="auto" class="${boss==null?'on':''}">未</button>
+            </div>
+          </div>
+        </div>
+        <div><label class="f">備考・課題・目標</label>
+          <textarea rows="2" class="notein" data-id="${s.id}" placeholder="この項目について次に取りにいくこと">${esc(DB.eval[s.id]?.note||'')}</textarea></div>
+        <h4 style="margin:14px 0 7px;font-size:12px">積み上がった実績ログ（${n}件）</h4>
+        ${n? logs.map(l=>`<div class="log"><div class="d">${l.date}</div><div class="t">${esc(l.text||'（記載なし）')}</div></div>`).join('')
+            : '<div class="emptymsg" style="padding:14px">まだ記録がありません。日報でこの項目に紐づけて実績を書きましょう。</div>'}
+        <button class="btn p sm" style="margin-top:8px" onclick="addEv('${s.id}',true)">＋ 今日の日報にこの項目を追加</button>
+      </div></div>`;
+  }).join('') : '<div class="emptymsg">条件に合う項目がありません</div>';
+
+  $$('#skList .sk .head').forEach(h=>h.onclick=e=>{
+    if(e.target.closest('.scoresel')) return;
+    h.parentElement.classList.toggle('open');
+  });
+  $$('#skList .scoresel button').forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    const box=b.parentElement, id=box.dataset.id, kind=box.dataset.kind;
+    DB.eval[id] ||= {};
+    DB.eval[id][kind] = b.dataset.v==='auto'? null : +b.dataset.v;
+    save(); renderMap(); toast('評価を更新しました');
+  });
+  $$('#skList .notein').forEach(t=>t.onchange=()=>{ DB.eval[t.dataset.id] ||= {}; DB.eval[t.dataset.id].note=t.value; save(); toast('備考を保存しました'); });
+  renderMatrix(ix);
+}
+function renderMatrix(ix){
+  const rows=PHASES.map(ph=>{
+    const cells=LV_NAME.map((_,lv)=>{
+      const items=SKILLS.filter(s=>s.ph===ph&&s.lv===lv);
+      if(!items.length) return '<td class="muted">—</td>';
+      const cov=items.filter(s=>(ix[s.id]||[]).length>0).length;
+      const tot=items.reduce((a,s)=>a+(ix[s.id]||[]).length,0);
+      const r=cov/items.length;
+      const bg=r===0?'transparent':`rgba(79,70,229,${.12+r*.55})`;
+      return `<td style="background:${bg}"><div class="cellv">${cov}/${items.length}</div><div class="cells">実績${tot}件</div></td>`;
+    }).join('');
+    return `<tr><td>${esc(ph)}</td>${cells}</tr>`;
+  }).join('');
+  $('#mxTable').innerHTML=`<thead><tr><th>業務フェーズ</th>${LV_NAME.map(n=>`<th>${esc(n)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody>`;
+}
+
+/* ============ 履歴 ============ */
+$('#qHist').oninput=renderHist;
+function renderHist(){
+  const q=$('#qHist').value.trim();
+  const list=[...DB.reports].reverse().filter(r=>{
+    if(!q) return true;
+    const hay=[r.date,r.name,...(r.tasks||[]),r.insight,...(r.ev||[]).map(e=>(SMAP[e.sid]?.name||'')+e.text),
+      ...(r.topics||[]).map(t=>Object.values(t).join(''))].join('');
+    return hay.includes(q);
+  });
+  $('#histCount').textContent=`${list.length}件`;
+  $('#histList').innerHTML = list.length ? list.map(r=>`
+    <div class="hitem">
+      <div class="hh">
+        <div><span class="dt">${r.date}</span> <span class="pill">${esc(r.name||'')}</span>
+          <span class="pill">実績 ${(r.ev||[]).length}件</span>${r.topics?.length?`<span class="pill">分析 ${r.topics.length}件</span>`:''}</div>
+        <div class="row">
+          <button class="btn sm" onclick="loadReport('${r.id}')">✏️ 編集</button>
+          <button class="btn sm" onclick="copyOne('${r.id}')">💬 コピー</button>
+          <button class="btn sm danger" onclick="delReport('${r.id}')">削除</button>
+        </div>
+      </div>
+      <div class="sm">${(r.tasks||[]).map(t=>'・'+esc(t)).join('<br>')}</div>
+      <div class="row" style="gap:4px;margin-top:7px">${(r.ev||[]).map(e=>`<span class="chip lv${SMAP[e.sid]?.lv??0}">${esc(SMAP[e.sid]?.name||e.sid)}</span>`).join('')}</div>
+      ${r.insight?`<pre>${esc(r.insight)}</pre>`:''}
+    </div>`).join('') : '<div class="emptymsg">まだ日報がありません</div>';
+}
+function delReport(id){
+  if(!confirm('この日報を削除しますか？紐づく実績記録も一緒に消えます。')) return;
+  DB.reports=DB.reports.filter(r=>r.id!==id); save(); refreshKpi(); renderHist(); renderFocus(); renderStatus(); toast('削除しました');
+}
+function copyOne(id){ const r=DB.reports.find(x=>x.id===id); if(!r) return; toast(copy(reportText(r))?'コピーしました':'コピーできませんでした'); }
+
+/* ============ 評価面談 ============ */
+$('#revRange').onchange=renderReview;
+function renderReview(){
+  const days=+$('#revRange').value;
+  const ix=evIndexRange(days), ixAll=evIndex();
+  const cov=SKILLS.filter(s=>(ix[s.id]||[]).length>0).length;
+  const evTot=Object.values(ix).reduce((a,v)=>a+v.length,0);
+  const reps=days?DB.reports.filter(r=>r.date>=new Date(Date.now()-days*864e5).toISOString().slice(0,10)):DB.reports;
+  const avg=(SKILLS.reduce((a,s)=>a+scoreOf(s.id,ix),0)/SKILLS.length).toFixed(2);
+  $('#revKpi').innerHTML=`
+    <div class="kpibox"><b>${reps.length}</b><span>日報提出数</span></div>
+    <div class="kpibox"><b>${evTot}</b><span>実績記録の総数</span></div>
+    <div class="kpibox"><b>${cov}/${SKILLS.length}</b><span>実績のある項目（${Math.round(cov/SKILLS.length*100)}%）</span></div>
+    <div class="kpibox"><b>${avg}</b><span>自己評価 平均スコア（0-4）</span></div>
+    <div class="kpibox"><b>${SKILLS.filter(s=>(ix[s.id]||[]).length>=3).length}</b><span>語れる項目（3件以上）</span></div>`;
+
+  const barBlock=(label,items)=>{
+    const c=items.filter(s=>(ix[s.id]||[]).length>0).length, p=items.length?c/items.length*100:0;
+    const t=items.reduce((a,s)=>a+(ix[s.id]||[]).length,0);
+    return `<div style="margin-bottom:9px">
+      <div class="row" style="justify-content:space-between"><span class="sm"><b>${esc(label)}</b></span>
+        <span class="xs muted">${c}/${items.length}項目（${Math.round(p)}%）・実績${t}件</span></div>
+      <div class="bar"><i style="width:${p}%"></i></div></div>`;
+  };
+  $('#revLv').innerHTML=LV_NAME.map((n,i)=>barBlock(n,SKILLS.filter(s=>s.lv===i))).join('');
+  $('#revPh').innerHTML=PHASES.map(p=>barBlock(p,SKILLS.filter(s=>s.ph===p))).join('');
+
+  const gaps=SKILLS.map(s=>({s,n:(ix[s.id]||[]).length})).filter(x=>x.n<=1)
+    .sort((a,b)=>a.n-b.n||a.s.lv-b.s.lv);
+  $('#revGap').innerHTML = gaps.length? `<div class="xs muted" style="margin-bottom:9px">${gaps.length}項目。ここを次の期間の重点にする。</div>`+
+    gaps.map(({s,n})=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0">
+      <div><span class="chip lv${s.lv}">${esc(LV_NAME[s.lv])}</span> <b class="sm">${esc(s.name)}</b>
+        <div class="xs muted">${esc(s.ph)}／${esc(s.cat)}</div></div>
+      <span class="chip ${n?'':'pr1'}">${n?'1件のみ':'記録なし'}</span></div>`).join('')
+    : '<div class="emptymsg">全項目に2件以上の実績があります。素晴らしい。</div>';
+
+  const strong=SKILLS.map(s=>({s,n:(ix[s.id]||[]).length,logs:ix[s.id]||[]})).filter(x=>x.n>=3).sort((a,b)=>b.n-a.n);
+  $('#revStrong').innerHTML = strong.length? strong.map(({s,n,logs})=>`
+    <div style="border-bottom:1px solid var(--line);padding:8px 0">
+      <div class="row" style="justify-content:space-between">
+        <div><span class="chip lv${s.lv}">${esc(LV_NAME[s.lv])}</span> <b class="sm">${esc(s.name)}</b></div>
+        <span class="chip lv1">実績${n}件／自己評価 ${scoreOf(s.id,ix)}</span>
+      </div>
+      <div class="xs muted" style="margin-top:4px">直近：${esc(logs[0].date)} ${esc((logs[0].text||'').slice(0,70))}${(logs[0].text||'').length>70?'…':''}</div>
+    </div>`).join('') : '<div class="emptymsg">まだ3件以上積み上がった項目がありません。</div>';
+}
+
+/* ---- 出力（CSV等） ---- */
+function dl(name,text){
+  const blob=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),text],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+const csvq=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+$('#btnExpSelf').onclick=()=>{
+  const ix=evIndex();
+  const head=['レベル','業務フェーズ','分類','スキル・項目','具体的な行動基準','実践カテゴリ','自己評価','上司評価','備考（課題や目標）','実績件数','最終記録日','実績サマリー'];
+  const rows=SKILLS.map(s=>{
+    const l=ix[s.id]||[], m=DB.eval[s.id]||{};
+    return [LV_NAME[s.lv],s.ph,s.cat,s.name,s.std,s.pr?'商談ロープレで練習できること':'上司や会社内での動きで体現できること',
+      `${scoreOf(s.id,ix)}: ${SCORE_NAME[scoreOf(s.id,ix)]}`, m.boss!=null?`${m.boss}: ${SCORE_NAME[m.boss]}`:'',
+      m.note||'', l.length, l[0]?.date||'', l.slice(0,5).map(x=>`${x.date} ${x.text}`).join(' / ')].map(csvq).join(',');
+  });
+  dl(`スキルマップ自己評価_${today()}.csv`,[head.map(csvq).join(','),...rows].join('\r\n'));
+  toast('自己評価シート(CSV)を保存しました');
+};
+$('#btnExpEv').onclick=()=>{
+  const head=['日付','氏名','レベル','業務フェーズ','分類','スキル・項目','起きた事象（実績）'].map(csvq).join(',');
+  const rows=[];
+  DB.reports.forEach(r=>(r.ev||[]).forEach(e=>{const s=SMAP[e.sid];if(!s)return;
+    rows.push([r.date,r.name,LV_NAME[s.lv],s.ph,s.cat,s.name,e.text].map(csvq).join(','));}));
+  dl(`実績ログ_${today()}.csv`,[head,...rows].join('\r\n'));
+  toast('実績ログ(CSV)を保存しました');
+};
+$('#btnExpTxt').onclick=()=>{
+  const days=+$('#revRange').value, ix=evIndexRange(days);
+  const cov=SKILLS.filter(s=>(ix[s.id]||[]).length>0).length;
+  let t=`■ 自己評価サマリー（${days?`直近${days}日`:'全期間'}／出力日 ${today()}）
+氏名：${DB.settings.name||''}
+日報提出数：${(days?DB.reports.filter(r=>r.date>=new Date(Date.now()-days*864e5).toISOString().slice(0,10)):DB.reports).length}件
+実績のある項目：${cov}/${SKILLS.length}（${Math.round(cov/SKILLS.length*100)}%）
+
+【根拠を持って語れる項目（実績3件以上）】\n`;
+  SKILLS.map(s=>({s,l:ix[s.id]||[]})).filter(x=>x.l.length>=3).sort((a,b)=>b.l.length-a.l.length)
+    .forEach(({s,l})=>{ t+=`・[${LV_NAME[s.lv]}] ${s.name}（実績${l.length}件／自己評価 ${scoreOf(s.id,ix)}:${SCORE_NAME[scoreOf(s.id,ix)]}）\n`;
+      l.slice(0,3).forEach(x=>t+=`    - ${x.date} ${x.text}\n`); });
+  t+=`\n【次の期間で取りにいく項目（実績0〜1件）】\n`;
+  SKILLS.map(s=>({s,n:(ix[s.id]||[]).length})).filter(x=>x.n<=1).sort((a,b)=>a.n-b.n||a.s.lv-b.s.lv)
+    .forEach(({s,n})=>t+=`・[${LV_NAME[s.lv]}] ${s.name}（${n?'1件':'記録なし'}）${DB.eval[s.id]?.note?` ※${DB.eval[s.id].note}`:''}\n`);
+  showOut(t); goTab('review');
+  toast(copy(t)?'面談用サマリーをコピーしました':'下の枠からコピーしてください');
+  const b=$('#outBox'); $('#v-review').appendChild(b); b.style.display='block';
+};
+
+/* ============ データ管理 ============ */
+$('#btnBackup').onclick=()=>{
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`日報スキルマップ_backup_${today()}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);toast('バックアップを保存しました');
+};
+$('#btnRestore').onclick=()=>$('#fileIn').click();
+$('#fileIn').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+      const d=JSON.parse(rd.result);
+      if(!d.reports) throw 0;
+      if(!confirm(`日報 ${d.reports.length}件を復元します。現在のデータは置き換えられます。よろしいですか？`)) return;
+      DB=Object.assign(blank(),d); save(); initUI(); toast('復元しました');
+    }catch(err){ alert('バックアップファイルを読み込めませんでした。'); } };
+  rd.readAsText(f); e.target.value='';
+};
+$('#btnReset').onclick=()=>{
+  if(!confirm('全データを削除します。元に戻せません。実行しますか？')) return;
+  if(!confirm('本当によろしいですか？先にバックアップを取ることを強く推奨します。')) return;
+  DB=blank(); save(); initUI(); toast('全データを削除しました');
+};
+$('#setName').onchange=()=>{ DB.settings.name=$('#setName').value.trim(); save(); $('#fName').value=DB.settings.name; toast('保存しました'); };
+$('#setTheme').onchange=()=>{ DB.settings.theme=$('#setTheme').value; save(); applyTheme(); };
+function applyTheme(){
+  const t=DB.settings.theme||'auto';
+  if(t==='auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme',t);
+}
+
+/* ============ 初期化 ============ */
+function initUI(){
+  applyTheme();
+  $('#setName').value=DB.settings.name||'';
+  $('#setTheme').value=DB.settings.theme||'auto';
+  clearForm();
+  refreshKpi(); renderStatus(); renderFocus(); renderMap(); renderHist(); renderReview();
+}
+initUI();
+</script>
+</body>
+</html>
