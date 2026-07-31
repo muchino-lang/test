@@ -182,6 +182,44 @@ input.bad,textarea.bad{border-color:var(--crit);background:color-mix(in srgb,var
 .steps div{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink-2)}
 .steps b{display:grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px}
 
+/* object-oriented call list */
+.oo{display:grid;grid-template-columns:330px minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.oo{grid-template-columns:1fr}}
+.plist{max-height:62vh;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+@media (max-width:900px){.plist{max-height:340px}}
+.prow{display:block;width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:11px;padding:9px 11px;cursor:pointer;font:inherit}
+.prow:hover{border-color:var(--accent)}
+.prow.on{background:color-mix(in srgb,var(--accent) 14%,var(--surface));border-color:var(--accent)}
+.prow .pn{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .pm{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--ink-2);margin-top:3px}
+.prow .pm .due{color:var(--crit);font-weight:800}
+.resgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:8px;margin-bottom:10px}
+.rbtn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:11px 6px;border-radius:12px;
+  border:1px solid var(--border);background:var(--surface-2);cursor:pointer;font-size:12.5px;font-weight:700;line-height:1.3}
+.rbtn:hover{border-color:var(--accent)}
+.rbtn.on{background:var(--accent);color:#fff;border-color:transparent}
+.rbtn .e{font-size:21px}
+.tl{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+.tli{display:flex;gap:10px}
+.tld{display:flex;flex-direction:column;align-items:center}
+.tld .te{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);border:1px solid var(--border);font-size:15px}
+.tlb{flex:1;min-width:0;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:8px 11px}
+.tlh{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:13px}
+.tlh .spacer{flex:1}
+.tlm{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+/* funnel (ordinal blue ramp) */
+:root{--f1:#86b6ef;--f2:#5598e7;--f3:#2a78d6;--f4:#184f95}
+@media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])){--f1:#b7d3f6;--f2:#6da7ec;--f3:#3987e5;--f4:#1c5cab}}
+:root[data-theme="dark"]{--f1:#b7d3f6;--f2:#6da7ec;--f3:#3987e5;--f4:#1c5cab}
+.fn{display:flex;flex-direction:column;gap:9px}
+.fnr{display:grid;grid-template-columns:112px minmax(0,1fr) auto;gap:11px;align-items:center}
+.fnb{height:30px;border-radius:7px;position:relative;transition:width .6s cubic-bezier(.2,.8,.2,1);min-width:3px;
+  display:flex;align-items:center;padding:0 9px}
+.fnb b{color:#fff;font-size:13px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.fnl{font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.fnv{font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+
 /* calendar */
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
 .cal-h{text-align:center;font-size:12px;font-weight:700;color:var(--ink-2);padding:5px 0}
@@ -275,8 +313,38 @@ const DEFAULTS = {
   //   {company, apptAt:'YYYY-MM-DDTHH:MM', contact, tel, email, content}
   // ]}
   records:[],
+  // prospects: 架電先（オブジェクト中心のCRM本体）
+  //   {id,name,category,tel,area,dept,contactName,contactRole,email,ownerId,
+  //    status,memo,nextAt,createdAt}
+  prospects:[],
+  // calls: 1回の通話ログ。KPIはここから自動集計される
+  //   {id,prospectId,memberId,at,result,reach,nextAt,memo,apptAt,apptNote}
+  calls:[],
   meta:{maxLevelSeen:{}}
 };
+
+/* ---------- 架電結果・到達点のマスタ ---------- */
+const CALL_RESULTS = [
+  {id:'appt',   label:'アポ獲得',     e:'🎉', talked:true,  appt:true,  status:'アポ獲得',    reach:'it'},
+  {id:'talk',   label:'担当者と会話', e:'🗣️', talked:true,  appt:false, status:'アプローチ中', reach:'it'},
+  {id:'absent', label:'担当者不在',   e:'🔁', talked:true,  appt:false, status:'アプローチ中', reach:'reception'},
+  {id:'block',  label:'受付ブロック', e:'🚧', talked:true,  appt:false, status:'アプローチ中', reach:'reception'},
+  {id:'noans',  label:'不通・留守',   e:'📵', talked:false, appt:false, status:'アプローチ中', reach:'none'},
+  {id:'ng',     label:'見込みなしNG', e:'🚫', talked:true,  appt:false, status:'NG',          reach:'reception'}
+];
+const RESULT = id => CALL_RESULTS.find(r=>r.id===id) || CALL_RESULTS[4];
+/* 到達点＝決裁ルートのどこまで届いたか。lvl>=2 で「担当者到達」とみなす */
+const REACHES = [
+  {id:'none',      label:'繋がらず',       lvl:0},
+  {id:'reception', label:'受付・事務窓口', lvl:1},
+  {id:'staff',     label:'事務長・事務室', lvl:2},
+  {id:'it',        label:'情報システム課', lvl:3},
+  {id:'exec',      label:'教頭・副校長',   lvl:4},
+  {id:'decider',   label:'決裁者',         lvl:5}
+];
+const REACH = id => REACHES.find(r=>r.id===id) || REACHES[0];
+const PSTATUS = ['未着手','アプローチ中','アポ獲得','保留','NG'];
+const FUNNEL_COLORS = ['var(--f1)','var(--f2)','var(--f3)','var(--f4)'];
 
 let S = load();
 function load(){
@@ -288,6 +356,8 @@ function load(){
       settings:{...DEFAULTS.settings, ...(p.settings||{})},
       members: (p.members&&p.members.length)? p.members : structuredClone(DEFAULTS.members),
       records: (p.records||[]).map(migrateRecord),
+      prospects: p.prospects||[],
+      calls: p.calls||[],
       meta:{maxLevelSeen:{}, ...(p.meta||{})}
     };
   }catch(e){ console.warn(e); return structuredClone(DEFAULTS); }
@@ -317,7 +387,68 @@ function apptLabel(a){
   return `${jp(dt)} ${tm||''}`.trim();
 }
 function isUpcoming(a){ return a.apptAt && a.apptAt.slice(0,10) >= TODAY(); }
-function save(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+function save(){ _eff=null; localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+
+/* =========================================================================
+   通話ログ → 日次KPIの自動集計
+   架電数は「発信数」と「通話数」の2本立て。アポ率の分母は通話数。
+   同じ日・同じ担当者に通話ログと手入力の両方がある場合は、通話ログを採用する
+   （二重計上を防ぐため。手入力側は履歴タブで「ログ優先」と表示する）
+   ========================================================================= */
+let _eff = null;
+function effectiveRecords(){
+  if(_eff) return _eff;
+  const byKey = new Map();       // 'date|memberId' → 合成レコード
+  S.calls.forEach(c=>{
+    const date = (c.at||'').slice(0,10); if(!date) return;
+    const k = date+'|'+c.memberId;
+    const o = byKey.get(k) || {id:'auto_'+k, date, memberId:c.memberId, dials:0, calls:0,
+                               appts:0, reached:0, appointments:[], note:'', auto:true};
+    const R = RESULT(c.result);
+    o.dials++;                                        // 発信数
+    if(R.talked) o.calls++;                           // 通話数（＝アポ率の分母）
+    if(REACH(c.reach).lvl>=2) o.reached++;            // 担当者到達
+    if(R.appt){
+      o.appts++;
+      const pr = prospectById(c.prospectId);
+      o.appointments.push({
+        company: pr.name||'', apptAt: c.apptAt||'', contact: pr.contactName||'',
+        tel: pr.tel||'', email: pr.email||'', content: c.apptNote||c.memo||'', callId:c.id
+      });
+    }
+    byKey.set(k,o);
+  });
+  const out = [...byKey.values()];
+  S.records.forEach(r=>{
+    const k = r.date+'|'+r.memberId;
+    if(byKey.has(k)) return;                          // 通話ログ優先
+    out.push({...r, dials:+r.calls||0, reached:0, auto:false});
+  });
+  _eff = out;
+  return out;
+}
+function prospectById(id){ return S.prospects.find(p=>p.id===id) || {id, name:'(削除済)'}; }
+function callsOf(filter={}){
+  return S.calls.filter(c=>{
+    const dt=(c.at||'').slice(0,10);
+    if(filter.memberId && c.memberId!==filter.memberId) return false;
+    if(filter.prospectId && c.prospectId!==filter.prospectId) return false;
+    if(filter.from && dt<filter.from) return false;
+    if(filter.to && dt>filter.to) return false;
+    return true;
+  });
+}
+/* ファネル：発信 → 通話 → 担当者到達 → アポ獲得 */
+function funnel(filter={}){
+  const list = callsOf(filter);
+  const dials = list.length;
+  const talked = list.filter(c=>RESULT(c.result).talked).length;
+  const reached = list.filter(c=>REACH(c.reach).lvl>=2).length;
+  const appts = list.filter(c=>RESULT(c.result).appt).length;
+  return {dials, talked, reached, appts,
+          talkRate:pct(talked,dials), reachRate:pct(reached,talked),
+          apptRate:pct(appts,talked), apptRateDial:pct(appts,dials)};
+}
 
 /* ---------- 汎用ユーティリティ ---------- */
 const WD = ['日','月','火','水','木','金','土'];
@@ -351,7 +482,7 @@ function gross(appts){ return appts*grossPerAppt(); }
 
 /* ---------- 集計 ---------- */
 function recs(filter={}){
-  return S.records.filter(r=>{
+  return effectiveRecords().filter(r=>{
     if(filter.memberId && r.memberId!==filter.memberId) return false;
     if(filter.from && r.date < filter.from) return false;
     if(filter.to   && r.date > filter.to  ) return false;
@@ -361,13 +492,16 @@ function recs(filter={}){
 function agg(list){
   const calls = list.reduce((a,r)=>a+(+r.calls||0),0);
   const appts = list.reduce((a,r)=>a+(+r.appts||0),0);
-  return {calls, appts, rate:pct(appts,calls), deals:deals(appts), gross:gross(appts), days:new Set(list.map(r=>r.date)).size};
+  const dials = list.reduce((a,r)=>a+(+r.dials||+r.calls||0),0);
+  const reached = list.reduce((a,r)=>a+(+r.reached||0),0);
+  return {calls, appts, dials, reached, rate:pct(appts,calls), dialRate:pct(appts,dials),
+          deals:deals(appts), gross:gross(appts), days:new Set(list.map(r=>r.date)).size};
 }
 function byDate(list){
   const m=new Map();
   list.forEach(r=>{
-    const o=m.get(r.date)||{date:r.date,calls:0,appts:0};
-    o.calls+=+r.calls||0; o.appts+=+r.appts||0; m.set(r.date,o);
+    const o=m.get(r.date)||{date:r.date,calls:0,appts:0,dials:0};
+    o.calls+=+r.calls||0; o.appts+=+r.appts||0; o.dials+=(+r.dials||+r.calls||0); m.set(r.date,o);
   });
   return [...m.values()].sort((a,b)=>a.date<b.date?-1:1);
 }
@@ -518,6 +652,7 @@ function badgeStats(memberId){
    ========================================================================= */
 const TABS = [
   ['dash','📊 ダッシュボード'],
+  ['calllist','📞 架電リスト'],
   ['input','✍️ 実績入力'],
   ['cal','🗓 カレンダー'],
   ['appts','📅 アポ一覧'],
@@ -534,9 +669,10 @@ function render(){
     `<button role="tab" aria-selected="${k===tab}" onclick="go('${k}')">${l}</button>`).join('');
   renderLevelBox();
   const v = document.getElementById('view');
-  v.innerHTML = ({dash:viewDash, input:viewInput, cal:viewCal, appts:viewAppts, history:viewHistory, report:viewReport, settings:viewSettings})[tab]();
+  v.innerHTML = ({dash:viewDash, calllist:viewCallList, input:viewInput, cal:viewCal, appts:viewAppts, history:viewHistory, report:viewReport, settings:viewSettings})[tab]();
   if(tab==='dash') mountDash();
   if(tab==='input') mountInput();
+  if(tab==='calllist') mountCallList();
   window.scrollTo({top:0});
 }
 function go(k){ tab=k; render(); }
@@ -567,7 +703,7 @@ function rangeLabel(){
 }
 function viewDash(){
   const who = dashMember==='all'? null : dashMember;
-  if(!S.records.length) return onboardingHTML();
+  if(!effectiveRecords().length && !S.prospects.length) return onboardingHTML();
   const all = recs(who?{memberId:who}:{});                 // 期間全体（累計）
   const A = agg(all);
   const RB = rangeBounds();
@@ -624,6 +760,8 @@ function viewDash(){
     </div>
   </div>
 
+  ${todoHTML(who)}
+
   <div class="card" style="margin-top:14px">
     <h2>🔥 本日のクエスト<span class="spacer"></span><span class="pill">${questDone(who)}/3 達成</span></h2>
     <div class="grid g3" id="quests">${questsHTML(who)}</div>
@@ -635,7 +773,8 @@ function viewDash(){
   </div>
 
   <div class="grid g4">
-    ${tile(`${rangeLabel()} 架電数`, int(R.calls)+'<small>件</small>', `稼働 ${R.days}日（累計 ${int(A.calls)}件）`, 1)}
+    ${tile(`${rangeLabel()} 架電数`, int(R.calls)+'<small>件</small>',
+        `${R.dials>R.calls?`発信 ${int(R.dials)}件 ・ `:''}稼働 ${R.days}日（累計 ${int(A.calls)}件）`, 1)}
     ${tile(`${rangeLabel()} アポ数`, int(R.appts)+'<small>件</small>', `1日平均 ${fmt(R.days? R.appts/R.days:0)}件（累計 ${int(A.appts)}件）`, 3)}
     ${tile(`${rangeLabel()} アポ率`, R.calls? R.rate.toFixed(1)+'<small>%</small>':'—',
         `目標 ${rateGoal.toFixed(0)}% <span class="${R.rate>=rateGoal?'up':'down'}">${R.calls? (R.rate>=rateGoal?'+':'')+ (R.rate-rateGoal).toFixed(1)+'pt':''}</span>（累計 ${pctS(A.appts,A.calls)}）`, 2)}
@@ -654,6 +793,8 @@ function viewDash(){
       <div class="legend"><span><i style="background:var(--s2)"></i>アポ率</span><span><i style="background:var(--axis)"></i>目標 ${rateGoal.toFixed(0)}%</span></div>
     </div>
   </div>
+
+  ${funnelHTML(who, RB)}
 
   <div class="grid g2" style="margin-top:14px">
     <div class="card chartbox">
@@ -687,17 +828,66 @@ function onboardingHTML(){
     <h3>ようこそ！まずは今日の架電数を登録しましょう</h3>
     <p>実績を1件登録すると、アポ率・想定粗利・目標達成率・グラフ・称号がすべて自動で動き出します。</p>
     <div class="steps">
-      <div><b>1</b><span><strong>「✍️ 実績入力」</strong>で今日の架電数を入れる（アポが取れていればアポ数も）</span></div>
-      <div><b>2</b><span>アポ数を1以上にすると<strong>会社名・アポ日時・先方担当者・電話・メール</strong>の入力欄が出ます</span></div>
-      <div><b>3</b><span><strong>「💬 レポート」</strong>でチャット報告用の文章をコピーして共有</span></div>
-      <div><b>4</b><span>設定タブで目標（現在：アポ${s.apptGoal}件／アポ率${(s.apptRateGoal*100).toFixed(0)}%）とメンバーを調整</span></div>
+      <div><b>1</b><span><strong>「📞 架電リスト」</strong>に架電先（学校名・電話番号）を登録する</span></div>
+      <div><b>2</b><span>電話が終わったら結果を<strong>1タップ</strong>で記録。架電数・アポ数は自動集計されます</span></div>
+      <div><b>3</b><span>リストを作らず件数だけ入れたい場合は<strong>「✍️ 実績入力」</strong>でも登録できます</span></div>
+      <div><b>4</b><span><strong>「💬 レポート」</strong>でチャット報告用の文章をコピーして共有</span></div>
     </div>
     <div class="row" style="justify-content:center">
-      <button class="btn" onclick="go('input')">✍️ 今日の実績を入力する</button>
+      <button class="btn" onclick="go('calllist')">📞 架電先を登録する</button>
+      <button class="btn sec" onclick="go('input')">✍️ 件数だけ入力する</button>
       <button class="btn sec" onclick="go('settings')">⚙️ 目標・メンバー設定</button>
     </div>
     <div class="hint">現在のメンバー：${ms.length? ms.map(m=>esc(m.name)).join('・') : '未設定'}</div>
   </div></div>`;
+}
+/* 本日やること：折り返し予定と未着手の架電先 */
+function todoHTML(who){
+  if(!S.prospects.length) return '';
+  const mine = p=>!who || !p.ownerId || p.ownerId===who;
+  const now = TODAY()+'T23:59';
+  const due = S.prospects.filter(p=>mine(p)&&p.nextAt&&p.nextAt<=now&&p.status!=='NG'&&p.status!=='アポ獲得')
+                .sort((a,b)=>a.nextAt<b.nextAt?-1:1);
+  const fresh = S.prospects.filter(p=>mine(p)&&p.status==='未着手');
+  if(!due.length && !fresh.length) return '';
+  return `<div class="card" style="margin-top:14px">
+    <h2>📋 本日の架電リスト<span class="spacer"></span>
+      <span class="pill ${due.length?'ng':''}">🔁 折り返し ${due.length}件</span>
+      <span class="pill">🆕 未着手 ${fresh.length}件</span>
+      <button class="btn sm" onclick="go('calllist')">架電リストを開く</button></h2>
+    ${due.length? `<div class="grid g2">${due.slice(0,6).map(p=>`
+      <button class="quest" style="text-align:left;cursor:pointer;border-color:color-mix(in srgb,var(--crit) 35%,transparent)"
+              onclick="clSel='${p.id}';go('calllist')">
+        <div class="ic">🔁</div>
+        <div class="tx"><b>${esc(p.name)}</b><span>${esc(apptLabel({apptAt:p.nextAt}))} に折り返し${p.contactName?` ／ ${esc(p.contactName)}`:''}</span></div>
+        <span class="pill">${esc(p.status)}</span></button>`).join('')}</div>`
+      : `<div class="hint" style="margin:0">折り返し予定はありません。未着手 ${fresh.length}件から架電を始めましょう。</div>`}
+  </div>`;
+}
+/* ファネル：発信 → 通話 → 担当者到達 → アポ獲得 */
+function funnelHTML(who, rb){
+  const F = funnel({...(who?{memberId:who}:{}), from:rb.from, to:rb.to});
+  if(!F.dials) return '';
+  const stages = [
+    ['発信',       F.dials,   '', FUNNEL_COLORS[0]],
+    ['通話（接続）', F.talked,  `接続率 ${F.talkRate.toFixed(1)}%`, FUNNEL_COLORS[1]],
+    ['担当者到達',  F.reached, `通話の ${F.reachRate.toFixed(1)}%`, FUNNEL_COLORS[2]],
+    ['アポ獲得',    F.appts,   `通話の ${F.apptRate.toFixed(1)}%`, FUNNEL_COLORS[3]]
+  ];
+  const max = Math.max(1, F.dials);
+  return `<div class="card" style="margin-top:14px">
+    <h2>🔻 架電ファネル（${rangeLabel()}・通話ログから自動集計）<span class="spacer"></span>
+      <span class="pill">アポ率 通話ベース ${F.talked?F.apptRate.toFixed(1)+'%':'—'}</span>
+      <span class="pill">発信ベース ${F.dials?F.apptRateDial.toFixed(1)+'%':'—'}</span></h2>
+    <div class="fn">
+      ${stages.map(([l,v,sub,c])=>`<div class="fnr">
+        <div class="fnl">${l}</div>
+        <div><div class="fnb" style="width:${Math.max(2,v/max*100).toFixed(1)}%;background:${c}"><b>${int(v)}</b></div></div>
+        <div class="fnv">${sub}</div>
+      </div>`).join('')}
+    </div>
+    <div class="hint">受付ブロックが多い時期でも「担当者到達」が伸びていれば前進しています。アポ率の分母は通話数（＝実際に話せた件数）です。</div>
+  </div>`;
 }
 /* 今後のアポ予定 */
 function upcomingHTML(who){
@@ -934,6 +1124,317 @@ function drawCum(host){
         <div class="r"><span>差分</span><span>${p.future?'—':(p.cum-p.pace>=0?'+':'')+fmt(p.cum-p.pace)+' 件'}</span></div>`,e); });
     r.addEventListener('mouseleave',hideTT);
   });
+}
+
+/* =========================================================================
+   架電リスト（オブジェクト指向UI：架電先を選ぶ → 履歴を見る → 結果を1タップ）
+   ========================================================================= */
+let clMember = null;        // 稼働中の担当者
+let clView   = 'today';     // today | all | ng
+let clSel    = null;        // 選択中の架電先ID
+let clQuery  = '';
+let clResult = '';          // 記録フォームで選択中の結果
+
+function nowLocal(){ const t=new Date(); t.setMinutes(t.getMinutes()-t.getTimezoneOffset()); return t.toISOString().slice(0,16); }
+function lastCall(pid){ return callsOf({prospectId:pid}).sort((a,b)=>a.at<b.at?1:-1)[0]||null; }
+function prospectStats(p){
+  const cs = callsOf({prospectId:p.id});
+  const best = cs.reduce((m,c)=>Math.max(m,REACH(c.reach).lvl),0);
+  return {count:cs.length, best, last:cs.sort((a,b)=>a.at<b.at?1:-1)[0]||null};
+}
+/* 本日かけるべきリスト：折り返し予定が来ているもの → 未着手 → 進行中 */
+function todayList(){
+  const end = TODAY()+'T23:59';
+  return S.prospects
+    .filter(p=>p.status!=='NG' && p.status!=='アポ獲得')
+    .filter(p=>!p.nextAt || p.nextAt<=end)
+    .sort((a,b)=>{
+      const an=a.nextAt?0:1, bn=b.nextAt?0:1;
+      if(an!==bn) return an-bn;
+      if(a.nextAt&&b.nextAt) return a.nextAt<b.nextAt?-1:1;
+      const ao=a.status==='未着手'?0:1, bo=b.status==='未着手'?0:1;
+      if(ao!==bo) return ao-bo;
+      return a.name<b.name?-1:1;
+    });
+}
+function clRows(){
+  let list = clView==='today' ? todayList()
+           : clView==='ng'    ? S.prospects.filter(p=>p.status==='NG')
+           : S.prospects;
+  if(clMember && clMember!=='all') list=list.filter(p=>!p.ownerId||p.ownerId===clMember);
+  if(clQuery){ const q=clQuery.toLowerCase();
+    list=list.filter(p=>[p.name,p.tel,p.contactName,p.area,p.memo].some(v=>String(v||'').toLowerCase().includes(q))); }
+  return list;
+}
+function viewCallList(){
+  const ms=activeMembers();
+  if(!clMember || !ms.find(m=>m.id===clMember)) clMember = ms[0]?.id||'';
+  if(!S.prospects.length) return `<div class="card" style="margin-top:16px"><div class="onb">
+    <div class="e">📋</div><h3>まず「どこに電話するか」を登録しましょう</h3>
+    <p>架電先を登録すると、電話のたびに結果を1タップで記録するだけで、架電数・通話数・アポ数・アポ率がすべて自動で集計されます。数を数える必要はありません。</p>
+    <div class="steps">
+      <div><b>1</b><span>学校名・電話番号を登録（1行1件でまとめて貼り付けできます）</span></div>
+      <div><b>2</b><span>リストから1件選び、電話が終わったら結果を1タップ</span></div>
+      <div><b>3</b><span>不在なら折り返し時刻を入れる → 時間になると本日のリストに自動で並びます</span></div>
+      <div><b>4</b><span>アポ獲得を選ぶと、アポ日時と商談内容を記録してカレンダーに反映されます</span></div>
+    </div>
+    <div class="row" style="justify-content:center"><button class="btn" onclick="openBulk()">📋 架電先を登録する</button></div>
+  </div>${bulkHTML()}</div>`;
+
+  const rows = clRows();
+  const sel = clSel ? S.prospects.find(p=>p.id===clSel) : null;
+  const f = funnel({memberId:clMember, from:TODAY(), to:TODAY()});
+
+  return `
+  <div class="row" style="margin:16px 0 10px">
+    <span style="font-size:13px;font-weight:700;color:var(--ink-2)">記録する担当者</span>
+    ${ms.map(m=>`<button class="chip" aria-pressed="${clMember===m.id}" onclick="clMember='${m.id}';render()">${esc(m.name)}</button>`).join('')}
+    <span class="spacer" style="flex:1"></span>
+    <span class="pill">本日 発信 ${f.dials}</span><span class="pill">通話 ${f.talked}</span>
+    <span class="pill ${f.appts?'ok':''}">アポ ${f.appts}</span>
+    <span class="pill">アポ率 ${f.talked?f.apptRate.toFixed(0)+'%':'—'}</span>
+  </div>
+
+  <div class="oo">
+    <div class="card" style="padding:12px">
+      <div class="row" style="margin-bottom:8px">
+        ${[['today',`本日 (${todayList().length})`],['all',`全件 (${S.prospects.length})`],['ng','NG']].map(([k,l])=>
+          `<button class="chip" aria-pressed="${clView===k}" onclick="clView='${k}';render()">${l}</button>`).join('')}
+      </div>
+      <input type="text" id="clQ" placeholder="🔍 学校名・電話番号で検索" value="${esc(clQuery)}"
+             oninput="clQuery=this.value;renderList()" style="margin-bottom:8px">
+      <div id="plist" class="plist">${listHTML(rows)}</div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sec sm" onclick="openBulk()">＋ 架電先を追加</button>
+      </div>
+      ${bulkHTML()}
+    </div>
+
+    <div id="pdetail">${sel? detailHTML(sel) : `<div class="card"><div class="empty">
+      左のリストから架電先を選んでください。<br>電話が終わったら結果を1タップで記録できます。</div></div>`}</div>
+  </div>`;
+}
+function mountCallList(){ /* リストは innerHTML 生成のみ。フォーカスは奪わない */ }
+function renderList(){
+  const h=document.getElementById('plist'); if(h) h.innerHTML=listHTML(clRows());
+}
+function listHTML(rows){
+  if(!rows.length) return `<div class="empty" style="padding:18px">該当する架電先がありません</div>`;
+  return rows.map(p=>{
+    const st=prospectStats(p);
+    const due = p.nextAt && p.nextAt<=TODAY()+'T23:59';
+    return `<button class="prow${clSel===p.id?' on':''}" onclick="selectProspect('${p.id}')">
+      <div class="pn">${esc(p.name)}</div>
+      <div class="pm">
+        <span class="pill ${p.status==='アポ獲得'?'ok':p.status==='NG'?'ng':''}">${esc(p.status||'未着手')}</span>
+        ${st.count?`<span>📞${st.count}回</span>`:''}
+        ${st.best>=2?`<span style="color:var(--good-text);font-weight:700">${esc(REACH(REACHES.find(r=>r.lvl===st.best)?.id).label)}まで</span>`:''}
+        ${p.nextAt?`<span class="${due?'due':''}">🔁 ${esc(apptLabel({apptAt:p.nextAt}))}</span>`:''}
+      </div>
+    </button>`;
+  }).join('');
+}
+function selectProspect(id){ clSel=id; clResult='';
+  document.getElementById('pdetail').innerHTML = detailHTML(S.prospects.find(p=>p.id===id));
+  renderList();
+  if(innerWidth<=900) document.getElementById('pdetail').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function detailHTML(p){
+  if(!p) return '';
+  const st=prospectStats(p);
+  const hist = callsOf({prospectId:p.id}).sort((a,b)=>a.at<b.at?1:-1);
+  const F = [['name','学校・企業名','text'],['tel','電話番号','tel'],['area','所在地・エリア','text'],
+             ['dept','部署','text'],['contactName','先方担当者名','text'],['contactRole','役職','text'],
+             ['email','メールアドレス','email']];
+  return `
+  <div class="card">
+    <h2 style="margin-bottom:6px">
+      <span style="font-size:17px;color:var(--ink);font-weight:800">${esc(p.name)}</span>
+      <span class="pill ${p.status==='アポ獲得'?'ok':p.status==='NG'?'ng':''}">${esc(p.status||'未着手')}</span>
+      ${st.best?`<span class="pill">最高到達：${esc(REACH(REACHES.find(r=>r.lvl===st.best)?.id).label)}</span>`:''}
+      <span class="pill">通算 ${st.count}回</span>
+      <span class="spacer"></span>
+      ${p.tel?`<a class="btn sm" href="tel:${esc(p.tel)}">📞 発信</a>`:''}
+    </h2>
+
+    <div class="sec-title" style="margin-top:10px">☎️ 架電結果を記録（${esc(memberById(clMember).name)}）</div>
+    <div class="resgrid">
+      ${CALL_RESULTS.map(r=>`<button class="rbtn${clResult===r.id?' on':''}" data-r="${r.id}"
+         onclick="pickResult('${r.id}')"><span class="e">${r.e}</span>${r.label}</button>`).join('')}
+    </div>
+    <div id="logform">${clResult? logFormHTML(p) : `<div class="hint">↑ 結果を選ぶと、到達点と次アクションの入力欄が出ます</div>`}</div>
+
+    <div class="sec-title">🕒 通話履歴（${hist.length}件）</div>
+    ${hist.length? `<div class="tl">${hist.map(c=>{
+      const R=RESULT(c.result), m=memberById(c.memberId);
+      return `<div class="tli">
+        <div class="tld"><span class="te">${R.e}</span></div>
+        <div class="tlb">
+          <div class="tlh"><b>${R.label}</b>
+            <span class="pill">${esc(REACH(c.reach).label)}</span>
+            <span style="color:var(--muted);font-size:12px">${esc((c.at||'').replace('T',' '))} ・ ${esc(m.name)}</span>
+            <span class="spacer"></span>
+            <button class="btn sec sm" onclick="deleteCall('${c.id}')">削除</button></div>
+          ${c.apptAt?`<div class="tlm">📅 アポ日時 ${esc(apptLabel({apptAt:c.apptAt}))}</div>`:''}
+          ${c.nextAt?`<div class="tlm">🔁 次回 ${esc(apptLabel({apptAt:c.nextAt}))}</div>`:''}
+          ${c.memo?`<div class="tlm">💬 ${esc(c.memo)}</div>`:''}
+          ${c.apptNote?`<div class="tlm">📝 ${esc(c.apptNote)}</div>`:''}
+        </div></div>`;}).join('')}</div>`
+      : `<div class="empty" style="padding:14px">まだ通話履歴はありません</div>`}
+
+    <div class="sec-title">🏢 架電先情報</div>
+    <div class="grid g3">
+      ${F.map(([k,l,t])=>`<div class="field"><label class="f">${l}</label>
+        <input type="${t}" value="${esc(p[k]||'')}" onchange="setProspect('${p.id}','${k}',this.value)"></div>`).join('')}
+      <div class="field"><label class="f">ステータス</label>
+        <select onchange="setProspect('${p.id}','status',this.value)">
+          ${PSTATUS.map(s=>`<option ${p.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="field"><label class="f">担当（自社）</label>
+        <select onchange="setProspect('${p.id}','ownerId',this.value)">
+          <option value="">未割当</option>
+          ${S.members.map(m=>`<option value="${m.id}" ${p.ownerId===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}</select></div>
+      <div class="field" style="grid-column:1/-1"><label class="f">メモ</label>
+        <input type="text" value="${esc(p.memo||'')}" onchange="setProspect('${p.id}','memo',this.value)"
+               placeholder="例）更新は来年度予算。担当者は水曜不在"></div>
+    </div>
+    <div class="row"><button class="btn sec sm" onclick="deleteProspect('${p.id}')">この架電先を削除</button></div>
+  </div>`;
+}
+function logFormHTML(p){
+  const R = RESULT(clResult);
+  const t = new Date(); t.setMinutes(t.getMinutes()-t.getTimezoneOffset());
+  return `<div class="appt" style="margin-top:10px">
+    <div class="grid g2">
+      <div class="field"><label class="f">📶 どこまで到達しましたか？</label>
+        <div class="row">${REACHES.map(r=>`<button class="chip" data-reach="${r.id}"
+           aria-pressed="${(document.querySelector('[data-reach][aria-pressed=true]')?.dataset.reach||R.reach)===r.id}"
+           onclick="pickReach('${r.id}')">${r.label}</button>`).join('')}</div></div>
+      ${R.appt? `
+      <div class="field"><label class="f">📅 アポ日時 <span style="color:var(--crit)">*</span></label>
+        <input type="datetime-local" id="lgApptAt" oninput="validateLog()"></div>
+      <div class="field" style="grid-column:1/-1"><label class="f">📝 商談内容・メモ</label>
+        <input type="text" id="lgApptNote" placeholder="例）PC40台の更新時期。次回デモ持参"></div>`
+      : `
+      <div class="field"><label class="f">🔁 次回の連絡予定（不在なら折り返し時刻）</label>
+        <input type="datetime-local" id="lgNextAt" value="${clResult==='absent'? t.toISOString().slice(0,11)+'15:00':''}">
+        <div class="row" style="margin-top:8px">
+          ${[['1時間後',60],['3時間後',180],['明日9時','t9'],['明日15時','t15'],['来週','w']].map(([l,v])=>
+            `<button class="chip" type="button" onclick="quickNext('${v}')">${l}</button>`).join('')}
+          <button class="chip" type="button" onclick="document.getElementById('lgNextAt').value=''">予定なし</button>
+        </div></div>`}
+      <div class="field" style="grid-column:1/-1"><label class="f">💬 一言メモ</label>
+        <input type="text" id="lgMemo" placeholder="例）情報システム課の田中様宛。10時台が繋がりやすい"
+               onkeydown="if(event.key==='Enter')saveCall('${p.id}')"></div>
+    </div>
+    <span class="err" id="errLog"></span>
+    <div class="row" style="margin-top:4px">
+      <button class="btn" id="logBtn" onclick="saveCall('${p.id}')">${R.e} ${R.label}として記録する</button>
+      <button class="btn sec" onclick="clResult='';selectProspect('${p.id}')">キャンセル</button>
+    </div>
+  </div>`;
+}
+function pickResult(id){
+  clResult = (clResult===id) ? '' : id;
+  document.querySelectorAll('.rbtn').forEach(b=>b.classList.toggle('on', b.dataset.r===clResult));
+  const p=S.prospects.find(x=>x.id===clSel);
+  document.getElementById('logform').innerHTML = clResult? logFormHTML(p)
+    : `<div class="hint">↑ 結果を選ぶと、到達点と次アクションの入力欄が出ます</div>`;
+  if(clResult) validateLog();
+}
+function pickReach(id){
+  document.querySelectorAll('[data-reach]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.reach===id)));
+}
+function quickNext(v){
+  const el=document.getElementById('lgNextAt'); if(!el) return;
+  const t=new Date();
+  if(v==='t9'||v==='t15'){ t.setDate(t.getDate()+1); t.setHours(v==='t9'?9:15,0,0,0); }
+  else if(v==='w'){ t.setDate(t.getDate()+7); t.setHours(10,0,0,0); }
+  else { t.setMinutes(t.getMinutes()+ +v); }
+  t.setMinutes(t.getMinutes()-t.getTimezoneOffset());
+  el.value=t.toISOString().slice(0,16);
+}
+function validateLog(){
+  const R=RESULT(clResult), btn=document.getElementById('logBtn'), er=document.getElementById('errLog');
+  if(!btn) return true;
+  let msg='';
+  if(R.appt && !document.getElementById('lgApptAt')?.value) msg='アポ日時を入力してください';
+  er.textContent = msg? '⚠ '+msg : '';
+  btn.disabled = !!msg;
+  return !msg;
+}
+function saveCall(pid){
+  if(!validateLog()) return;
+  const R = RESULT(clResult);
+  const reach = document.querySelector('[data-reach][aria-pressed="true"]')?.dataset.reach || R.reach;
+  const c = {
+    id:uid(), prospectId:pid, memberId:clMember, at:nowLocal(), result:clResult, reach,
+    nextAt: document.getElementById('lgNextAt')?.value || '',
+    memo: document.getElementById('lgMemo')?.value.trim() || '',
+    apptAt: document.getElementById('lgApptAt')?.value || '',
+    apptNote: document.getElementById('lgApptNote')?.value.trim() || ''
+  };
+  const beforeLv = levelOf(xpOf(clMember)).level;
+  S.calls.push(c);
+  const p = S.prospects.find(x=>x.id===pid);
+  p.status = R.status;
+  p.nextAt = R.appt ? '' : c.nextAt;
+  save();
+
+  if(R.appt){ confetti(); toast(`🎉 ${p.name} でアポ獲得！ +${XP_APPT}XP`); }
+  else toast(`${R.e} ${R.label} を記録しました`);
+  const afterLv = levelOf(xpOf(clMember)).level;
+  if(afterLv>beforeLv){
+    const rk=rankOf(afterLv);
+    document.getElementById('luTitle').textContent=`Lv.${afterLv} にレベルアップ！`;
+    document.getElementById('luDesc').textContent=`${memberById(clMember).name} ・ ${rk.emoji} ${rk.name}`;
+    document.getElementById('levelup').classList.add('on');
+  }
+  clResult=''; render();
+}
+function deleteCall(id){
+  if(!confirm('この通話履歴を削除しますか？（架電数・アポ数も再計算されます）')) return;
+  S.calls=S.calls.filter(c=>c.id!==id); save(); toast('🗑 削除しました'); render();
+}
+function setProspect(id,k,v){
+  const p=S.prospects.find(x=>x.id===id); if(!p) return;
+  p[k]=v; save(); if(k==='name'||k==='status') render(); else renderList();
+}
+function deleteProspect(id){
+  const n=callsOf({prospectId:id}).length;
+  if(!confirm(`この架電先を削除しますか？${n?`\n通話履歴${n}件も削除され、KPIが再計算されます。`:''}`)) return;
+  S.prospects=S.prospects.filter(p=>p.id!==id);
+  S.calls=S.calls.filter(c=>c.prospectId!==id);
+  clSel=null; save(); toast('🗑 削除しました'); render();
+}
+/* 一括登録 */
+let bulkOpen=false;
+function openBulk(){ bulkOpen=!bulkOpen; render();
+  if(bulkOpen) setTimeout(()=>document.getElementById('bulkTa')?.focus(),50); }
+function bulkHTML(){
+  if(!bulkOpen) return '';
+  return `<div class="appt" style="margin-top:10px">
+    <div class="field"><label class="f">架電先の一括登録（1行1件）</label>
+      <textarea id="bulkTa" style="min-height:120px"
+        placeholder="学校名, 電話番号, エリア&#10;大阪産業大学, 06-1234-5678, 大阪&#10;京都商業高校, 075-111-2222, 京都"></textarea>
+      <div class="hint">カンマ・タブ区切りで「名称, 電話番号, エリア」。名称だけでも登録できます。</div></div>
+    <div class="row"><button class="btn" onclick="doBulk()">登録する</button>
+      <button class="btn sec" onclick="bulkOpen=false;render()">閉じる</button></div>
+  </div>`;
+}
+function doBulk(){
+  const raw=document.getElementById('bulkTa').value;
+  const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
+  let n=0, dup=0;
+  lines.forEach(l=>{
+    const [name,tel,area]=l.split(/[,\t、]/).map(s=>(s||'').trim());
+    if(!name) return;
+    if(S.prospects.some(p=>p.name===name)){ dup++; return; }
+    S.prospects.push({id:'p'+uid(), name, tel:tel||'', area:area||'', dept:'', contactName:'',
+      contactRole:'', email:'', ownerId:clMember||'', status:'未着手', memo:'', nextAt:'', createdAt:Date.now()});
+    n++;
+  });
+  bulkOpen=false; save(); render();
+  toast(`📋 ${n}件を登録しました${dup?`（重複${dup}件はスキップ）`:''}`);
 }
 
 /* ---------------- 実績入力 ---------------- */
@@ -1356,7 +1857,8 @@ function viewAppts(){
 /* ---------------- 履歴・出力 ---------------- */
 let hFilterMember='all', hFilterMonth='all';
 function viewHistory(){
-  let list=[...S.records].sort((a,b)=> a.date<b.date?1:-1);
+  let list=[...effectiveRecords()].sort((a,b)=> a.date<b.date?1:-1);
+  const shadowed = S.records.filter(r=>effectiveRecords().some(e=>e.auto&&e.date===r.date&&e.memberId===r.memberId));
   if(hFilterMember!=='all') list=list.filter(r=>r.memberId===hFilterMember);
   if(hFilterMonth!=='all') list=list.filter(r=>r.date.startsWith(hFilterMonth));
   const months=[...new Set(S.records.map(r=>r.date.slice(0,7)))].sort().reverse();
@@ -1366,8 +1868,10 @@ function viewHistory(){
     <h2>📤 データ出力・バックアップ</h2>
     <div class="row">
       <button class="btn" onclick="exportXLSX()">📊 Excel（.xlsx）で出力</button>
-      <button class="btn sec" onclick="exportCSV('detail')">📄 日次明細 CSV</button>
+      <button class="btn sec" onclick="exportCSV('call')">📄 通話ログ CSV</button>
+      <button class="btn sec" onclick="exportCSV('prospect')">📄 架電先 CSV</button>
       <button class="btn sec" onclick="exportCSV('appt')">📄 アポ一覧 CSV</button>
+      <button class="btn sec" onclick="exportCSV('detail')">📄 日次明細 CSV</button>
       <button class="btn sec" onclick="exportJSON()">💾 バックアップ（JSON）</button>
       <label class="btn sec" style="cursor:pointer;margin:0">📥 JSON読込<input type="file" accept="application/json" style="display:none" onchange="importJSON(this)"></label>
     </div>
@@ -1388,17 +1892,21 @@ function viewHistory(){
       </select>
     </div>
     ${list.length? `<div class="tablewrap"><table>
-      <thead><tr><th>日付</th><th>担当</th><th class="num">架電</th><th class="num">アポ</th><th class="num">アポ率</th><th class="num">想定粗利</th><th>アポ先・場所</th><th>メモ</th><th></th></tr></thead>
+      <thead><tr><th>日付</th><th>担当</th><th>入力元</th><th class="num">発信</th><th class="num">通話</th><th class="num">アポ</th><th class="num">アポ率</th><th class="num">想定粗利</th><th>アポ先・場所</th><th>メモ</th><th></th></tr></thead>
       <tbody>${list.map(r=>{const m=memberById(r.memberId);return `<tr>
         <td>${jpFull(r.date)}</td>
         <td><span class="swatch" style="background:${slotVar(m.slot)}"></span> ${esc(m.name)}</td>
+        <td>${r.auto?'<span class="pill ok">📞 通話ログ</span>':'<span class="pill">✍️ 手入力</span>'}</td>
+        <td class="num">${int(r.dials||r.calls)}</td>
         <td class="num">${int(r.calls)}</td><td class="num">${int(r.appts)}</td>
         <td class="num">${pctS(r.appts,r.calls)}</td><td class="num">${moneyS(gross(r.appts))}</td>
         <td style="white-space:normal;min-width:200px">${(r.appointments||[]).map(a=>
             `${esc(a.company||'(未入力)')}${a.apptAt?`<span style="color:var(--ink-2)"> ${esc(apptLabel(a))}</span>`:''}`).join('<br>')}</td>
         <td style="white-space:normal;min-width:150px;color:var(--ink-2)">${esc(r.note||'')}</td>
-        <td><button class="btn sec sm" onclick="editRec('${r.id}')">編集</button></td></tr>`;}).join('')}
+        <td>${r.auto? `<button class="btn sec sm" onclick="go('calllist')">架電リストへ</button>`
+                    : `<button class="btn sec sm" onclick="editRec('${r.id}')">編集</button>`}</td></tr>`;}).join('')}
       </tbody></table></div>` : `<div class="empty">まだ実績がありません。</div>`}
+    ${shadowed.length? `<div class="hint">⚠ ${shadowed.length}日分の手入力レコードは、同じ日に通話ログがあるため集計から除外されています（二重計上の防止）。通話ログの数値が優先されます。</div>`:''}
   </div>`;
 }
 function editRec(id){ const r=S.records.find(x=>x.id===id); if(!r) return;
@@ -1455,8 +1963,11 @@ function buildSummary(mode, who){
   let out = title+'\n'+line+'\n';
   per.forEach(p=>{
     const dayT=(+p.m.dailyCall||0);
+    const F = funnel({memberId:p.m.id, from, to});
     out += `【${p.m.name}】\n`;
-    out += `　📞 架電 ${int(p.calls)}件 ／ 🤝 アポ ${int(p.appts)}件\n`;
+    out += F.dials
+      ? `　📞 発信 ${int(F.dials)}件 → 通話 ${int(F.talked)}件 → 担当者到達 ${int(F.reached)}件 → 🤝 アポ ${int(F.appts)}件\n`
+      : `　📞 架電 ${int(p.calls)}件 ／ 🤝 アポ ${int(p.appts)}件\n`;
     out += `　🎯 アポ率 ${pctS(p.appts,p.calls)}（目標${rateGoal}%）${p.calls? (p.rate>=+rateGoal?' ✅達成':' ⚠未達'):''}\n`;
     if(mode==='today' && dayT) out += `　📋 日次目標 ${dayT}件 → ${p.calls>=dayT?'達成 ✅':`あと${dayT-p.calls}件`}\n`;
     const st=streak(p.m.id); if(st>1) out += `　🔥 ${st}営業日連続で稼働中\n`;
@@ -1493,6 +2004,14 @@ function buildSummary(mode, who){
   out += `　${r.emoji} Lv.${L.level} ${r.name}（${int(xp)}XP）\n`;
   const nb = BADGES.filter(b=>b.f(badgeStats(who)));
   if(nb.length) out += `　🎖 称号 ${nb.length}/${BADGES.length}：${nb.slice(-3).map(b=>b.e+b.n).join(' ')}\n`;
+
+  const cb = S.prospects.filter(p=>p.nextAt && p.status!=='NG' && p.status!=='アポ獲得'
+              && (!who || !p.ownerId || p.ownerId===who))
+              .sort((a,b)=>a.nextAt<b.nextAt?-1:1).slice(0,8);
+  if(cb.length){
+    out += line+'\n🔁 折り返し・再架電の予定\n';
+    cb.forEach(p=>{ out += `　${apptLabel({apptAt:p.nextAt})}　${p.name}${p.contactName?`（${p.contactName}）`:''}\n`; });
+  }
 
   const up = allAppointments(who?{memberId:who}:{}).filter(isUpcoming)
               .sort((a,b)=>a.apptAt<b.apptAt?-1:1).slice(0,5);
@@ -1639,6 +2158,41 @@ function tableDetail(){
   });
   return rows;
 }
+function tableProspects(){
+  const rows=[['学校・企業名','ステータス','担当（自社）','電話番号','エリア','部署','先方担当者名','役職','メールアドレス','架電回数','最高到達点','初回架電日','最終架電日','次回予定','メモ']];
+  S.prospects.forEach(p=>{
+    const cs=callsOf({prospectId:p.id}).sort((a,b)=>a.at<b.at?-1:1);
+    const best=cs.reduce((m,c)=>Math.max(m,REACH(c.reach).lvl),0);
+    rows.push([p.name, p.status||'未着手', p.ownerId?memberById(p.ownerId).name:'', p.tel||'', p.area||'',
+      p.dept||'', p.contactName||'', p.contactRole||'', p.email||'', cs.length,
+      best? REACH(REACHES.find(r=>r.lvl===best).id).label : '—',
+      cs[0]?cs[0].at.slice(0,10):'', cs.length?cs[cs.length-1].at.slice(0,10):'',
+      (p.nextAt||'').replace('T',' '), p.memo||'']);
+  });
+  return rows;
+}
+function tableCalls(){
+  const rows=[['日時','担当者','架電先','何回目','結果','到達点','次回予定','アポ日時','メモ','商談内容']];
+  [...S.calls].sort((a,b)=>a.at<b.at?-1:1).forEach(c=>{
+    const seq = callsOf({prospectId:c.prospectId}).sort((a,b)=>a.at<b.at?-1:1).findIndex(x=>x.id===c.id)+1;
+    rows.push([(c.at||'').replace('T',' '), memberById(c.memberId).name, prospectById(c.prospectId).name,
+      seq, RESULT(c.result).label, REACH(c.reach).label, (c.nextAt||'').replace('T',' '),
+      (c.apptAt||'').replace('T',' '), c.memo||'', c.apptNote||'']);
+  });
+  return rows;
+}
+function tableFunnel(){
+  const rows=[['担当者','発信数','通話数','接続率(%)','担当者到達','到達率(%)','アポ数','アポ率_通話(%)','アポ率_発信(%)']];
+  activeMembers().forEach(m=>{
+    const f=funnel({memberId:m.id}); if(!f.dials) return;
+    rows.push([m.name, f.dials, f.talked, +f.talkRate.toFixed(1), f.reached, +f.reachRate.toFixed(1),
+      f.appts, +f.apptRate.toFixed(1), +f.apptRateDial.toFixed(1)]);
+  });
+  const t=funnel();
+  rows.push(['全体', t.dials, t.talked, +t.talkRate.toFixed(1), t.reached, +t.reachRate.toFixed(1),
+    t.appts, +t.apptRate.toFixed(1), +t.apptRateDial.toFixed(1)]);
+  return rows;
+}
 function tableAppts(){
   const rows=[['獲得日','担当者','会社・学校名','アポ日時','先方担当者名','電話','メールアドレス','商談内容・メモ','ステータス']];
   allAppointments().sort((a,b)=> (a.apptAt||a.date) < (b.apptAt||b.date) ? -1 : 1).forEach(a=>{
@@ -1676,9 +2230,10 @@ function toCSV(rows){
   return rows.map(r=>r.map(c=>{ const s=String(c??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(',')).join('\r\n');
 }
 function exportCSV(kind){
-  const appt = kind==='appt';
-  dl(new Blob(['﻿'+toCSV(appt?tableAppts():tableDetail())],{type:'text/csv;charset=utf-8'}),
-     `テレアポKPI_${appt?'アポ一覧':'明細'}_${stamp()}.csv`);
+  const map={appt:['アポ一覧',tableAppts], call:['通話ログ',tableCalls],
+             prospect:['架電先',tableProspects], detail:['日次明細',tableDetail]};
+  const [nm,fn]=map[kind]||map.detail;
+  dl(new Blob(['﻿'+toCSV(fn())],{type:'text/csv;charset=utf-8'}), `テレアポKPI_${nm}_${stamp()}.csv`);
   toast('📄 CSVを書き出しました');
 }
 function exportJSON(){
@@ -1704,10 +2259,24 @@ function importJSON(inp){
           if(ex){ if((r.updatedAt||r.createdAt||0) >= (ex.updatedAt||ex.createdAt||0)) Object.assign(ex,{calls:r.calls,appts:r.appts,detail:r.detail,note:r.note,updatedAt:r.updatedAt||Date.now()}); }
           else S.records.push({...r, id:uid(), memberId:mid});
         });
+        // 架電先は名称で突合、通話ログはIDで突合して統合する
+        const pmap = new Map();
+        (p.prospects||[]).forEach(pp=>{
+          const hit = S.prospects.find(x=>x.name===pp.name);
+          if(hit){ pmap.set(pp.id, hit.id); }
+          else { const nid='p'+uid(); pmap.set(pp.id,nid); S.prospects.push({...pp, id:nid}); }
+        });
+        (p.calls||[]).forEach(c=>{
+          const pid = pmap.get(c.prospectId)||c.prospectId;
+          if(S.calls.some(x=>x.at===c.at && x.prospectId===pid && x.memberId===c.memberId)) return;
+          S.calls.push({...c, id:uid(), prospectId:pid});
+        });
       } else {
-        S = {settings:{...DEFAULTS.settings,...(p.settings||{})}, members:p.members||S.members, records:p.records, meta:p.meta||{}};
+        S = {settings:{...DEFAULTS.settings,...(p.settings||{})}, members:p.members||S.members,
+             records:(p.records||[]).map(migrateRecord), prospects:p.prospects||[], calls:p.calls||[], meta:p.meta||{}};
       }
-      save(); render(); toast('📥 読み込みました（'+p.records.length+'件）');
+      save(); render();
+      toast(`📥 読み込みました（実績${(p.records||[]).length}件 / 架電先${(p.prospects||[]).length}件 / 通話${(p.calls||[]).length}件）`);
     }catch(e){ alert('読み込みに失敗しました：'+e.message); }
     inp.value='';
   };
@@ -1756,8 +2325,11 @@ function sheetXML(rows){
 }
 function exportXLSX(){
   const sheets=[
-    {name:'明細',     rows:tableDetail()},
+    {name:'架電先',   rows:tableProspects()},
+    {name:'通話ログ', rows:tableCalls()},
+    {name:'ファネル', rows:tableFunnel()},
     {name:'アポ一覧', rows:tableAppts()},
+    {name:'日次明細', rows:tableDetail()},
     {name:'日次集計', rows:tableDaily()},
     {name:'メンバー別',rows:tableMember()},
     {name:'月次',     rows:tableMonthly()}
