@@ -112,6 +112,27 @@ textarea{resize:vertical;min-height:56px}
 .topic>.th{display:flex;gap:10px;align-items:center;padding:9px 11px;background:var(--panel2);border-bottom:1px solid var(--line)}
 .topic .body{padding:12px;display:grid;gap:10px}
 .mgj{background:rgba(79,70,229,.06);border:1px solid rgba(79,70,229,.16);border-radius:10px;padding:11px;display:grid;gap:9px}
+/* ピン止め */
+.pinbtn{background:none;border:1px solid var(--line);border-radius:8px;padding:2px 7px;font-size:12px;
+  line-height:1.5;filter:grayscale(1);opacity:.45;transition:.15s;flex:none}
+.pinbtn:hover{opacity:1;filter:none;border-color:var(--amber)}
+.pinbtn.on{opacity:1;filter:none;border-color:var(--amber);background:rgba(245,158,11,.14)}
+.pinquick{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.pinquick .pq{border:1px solid var(--amber);background:rgba(245,158,11,.1);color:var(--ink);border-radius:999px;
+  padding:3px 11px;font-size:11.5px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pinquick .pq:hover{background:var(--amber);color:#fff}
+.pinquick .pq.used{opacity:.4;text-decoration:line-through}
+/* 大枠ブラウズ */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:6px;margin:7px 0}
+.tile{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 10px;text-align:left;transition:.15s}
+.tile:hover{border-color:var(--brand)}
+.tile.on{border-color:var(--brand);background:rgba(79,70,229,.1)}
+.tile b{display:block;font-size:11.5px;line-height:1.4}
+.tile span{font-size:10px;color:var(--sub)}
+.catrow{display:flex;gap:5px;flex-wrap:wrap}
+.catchip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 10px;font-size:11px;color:var(--sub);transition:.15s}
+.catchip:hover{border-color:var(--brand);color:var(--brand)}
+.catchip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
 .chipbtn{border:1px dashed var(--brand);background:transparent;color:var(--brand);border-radius:999px;
   padding:3px 11px;font-size:11px;font-weight:700;white-space:nowrap;transition:.15s}
 .chipbtn:hover{background:var(--brand);color:#fff;border-style:solid}
@@ -121,7 +142,7 @@ textarea{resize:vertical;min-height:56px}
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
 .filters select,.filters input{width:auto;min-width:130px;flex:0 1 auto;font-size:12px;padding:6px 9px}
 .sk{border-bottom:1px solid var(--line)}
-.sk>.head{display:grid;grid-template-columns:1fr 128px 108px 34px;gap:10px;align-items:center;padding:10px 16px;cursor:pointer}
+.sk>.head{display:grid;grid-template-columns:1fr 128px 108px 34px 34px;gap:10px;align-items:center;padding:10px 16px;cursor:pointer}
 .sk>.head:hover{background:var(--panel2)}
 .sk .nm{font-size:13px;font-weight:700}
 .sk .path{font-size:10.5px;color:var(--sub);margin-top:2px}
@@ -182,7 +203,7 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
 .toast.on{opacity:1;transform:translate(-50%,0)}
 .emptymsg{padding:26px;text-align:center;color:var(--sub);font-size:12.5px}
 @media(max-width:820px){.fgrid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}
- .sk>.head{grid-template-columns:1fr 92px 30px}.sk>.head .sc{display:none}}
+ .sk>.head{grid-template-columns:1fr 92px 30px 30px}.sk>.head .sc{display:none}}
 @media print{nav,header .hstats,.noprint{display:none!important}.card{break-inside:avoid}}
 </style>
 </head>
@@ -261,6 +282,7 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
             <button class="btn sm" id="btnPick">＋ 手動で選ぶ</button>
           </div>
         </div>
+        <div class="pinquick" id="evPins"></div>
         <div id="evBox"></div>
       </div>
 
@@ -302,6 +324,7 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
         <option value="0">未着手（0件）だけ</option>
         <option value="w">記録が薄い（1-2件）だけ</option>
         <option value="s">積み上がっている（3件以上）</option>
+        <option value="pin">📌 ピン止めした項目だけ</option>
       </select>
       <select id="qPr"><option value="">実践区分すべて</option><option value="1">商談ロープレ</option><option value="0">社内での動き</option></select>
       <select id="qSk"><option value="">スキル種別すべて</option><option value="0">考え方・立ち回り</option><option value="1">具体的なスキル</option></select>
@@ -448,11 +471,22 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
     <div class="filters" style="border-bottom:1px solid var(--line)">
       <input type="text" id="pQ" placeholder="🔍 項目名・行動基準で検索" style="min-width:200px;flex:1">
       <select id="pLv"><option value="">全レベル</option></select>
-      <select id="pPh"><option value="">全フェーズ</option></select>
-      <select id="pSt"><option value="">全状態</option><option value="0">未着手だけ</option></select>
+      <select id="pPh" style="display:none"><option value="">全フェーズ</option></select>
+      <select id="pSk"><option value="">スキル種別すべて</option><option value="0">考え方・立ち回り</option><option value="1">具体的なスキル</option></select>
+      <select id="pSt"><option value="">全状態</option><option value="0">未着手だけ</option><option value="pin">📌 ピン止めだけ</option></select>
       <label class="xs muted row" style="gap:4px;white-space:nowrap"><input type="checkbox" id="pSug" checked style="width:14px;height:14px;accent-color:var(--brand)">日報の内容から候補を上に出す</label>
     </div>
-    <div class="mb" id="pList"></div>
+    <div class="mb">
+      <div id="pBrowse" style="border:1px solid var(--line);border-radius:11px;padding:11px;background:var(--panel2);margin-bottom:12px">
+        <div class="row" style="justify-content:space-between">
+          <b class="xs" style="color:var(--sub)">🗂 大枠（業務フェーズ）から探す</b>
+          <button class="btn sm" id="pReset">絞り込みを解除</button>
+        </div>
+        <div class="tiles" id="pTiles"></div>
+        <div class="catrow" id="pCats"></div>
+      </div>
+      <div id="pList"></div>
+    </div>
     <div class="mf">
       <span class="xs muted" id="pInfo">0件選択中</span>
       <button class="btn p" id="pAdd">選んだ項目を日報に追加</button>
@@ -475,12 +509,33 @@ const SMAP   = Object.fromEntries(SKILLS.map(s=>[s.id,s]));
 const KEY='drSkillMap.v1';
 
 /* ============ ストア ============ */
-const blank = ()=>({version:1,settings:{name:'',theme:'auto'},reports:[],eval:{}});
+const blank = ()=>({version:1,settings:{name:'',theme:'auto'},reports:[],eval:{},pins:[]});
 let DB = load();
 function load(){
-  try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.reports)return Object.assign(blank(),r);}catch(e){}
+  try{const r=JSON.parse(localStorage.getItem(KEY));
+    if(r&&r.reports){ const d=Object.assign(blank(),r);
+      // 旧バージョンのバックアップにも対応（存在しない項目IDは捨てる）
+      d.pins=(Array.isArray(d.pins)?d.pins:[]).filter(id=>SMAP[id]);
+      return d; }
+  }catch(e){}
   return blank();
 }
+const isPin = sid => DB.pins.includes(sid);
+function togglePin(sid){
+  const i=DB.pins.indexOf(sid);
+  if(i<0) DB.pins.push(sid); else DB.pins.splice(i,1);
+  save();
+  $$(`[data-pin="${sid}"]`).forEach(b=>b.classList.toggle('on',i<0));
+  renderEvPins();
+  if($('#pickModal').classList.contains('on')) renderPick();
+  if($('#qSt').value==='pin') renderMap();
+  toast(i<0?'📌 ピン止めしました。日報入力欄とピッカーの先頭に出ます':'ピン止めを解除しました');
+}
+// ピンボタンはどの画面でも同じ挙動（イベント委譲）
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-pin]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation(); togglePin(b.dataset.pin);
+});
 function save(){ localStorage.setItem(KEY,JSON.stringify(DB)); }
 
 const today = ()=> new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
@@ -661,10 +716,20 @@ function addEv(sid,jump){
     </div>
     <div class="xs muted" style="margin-bottom:5px">基準：${esc(s.std)}</div>
     <textarea class="ev-t" rows="2" placeholder="この項目に対して、今日どういう事象があったか（誰に・何を・どうした・結果どうなった）"></textarea>`;
-  d.querySelector('.iconbtn').onclick=()=>{d.remove();};
+  d.querySelector('.iconbtn').onclick=()=>{d.remove(); renderEvEmpty(); renderEvPins();};
   $('#evBox').appendChild(d);
   if(jump){ goTab('today'); d.scrollIntoView({behavior:'smooth',block:'center'}); d.querySelector('.ev-t').focus(); }
-  renderEvEmpty();
+  renderEvEmpty(); renderEvPins();
+}
+// ピン止め項目のワンクリック追加行（日報入力欄）
+function renderEvPins(){
+  const has=new Set($$('#evBox .evrow').map(e=>e.dataset.sid));
+  const pins=DB.pins.map(id=>SMAP[id]).filter(Boolean);
+  $('#evPins').innerHTML = pins.length
+    ? `<span class="xs muted" style="align-self:center">📌 ピン止め：</span>`+
+      pins.map(s=>`<button type="button" class="pq ${has.has(s.id)?'used':''}" data-add="${s.id}" title="${esc(s.std)}">${esc(s.name)}</button>`).join('')
+    : '';
+  $$('#evPins .pq').forEach(b=>b.onclick=()=>addEv(b.dataset.add));
 }
 function renderEvEmpty(){
   const box=$('#evBox');
@@ -708,41 +773,94 @@ function openPicker(){ pickSel=new Set(); $('#pickModal').classList.add('on'); r
 $('#btnPick').onclick=openPicker;
 $$('#pickModal [data-close]').forEach(b=>b.onclick=()=>$('#pickModal').classList.remove('on'));
 $('#pickModal').onclick=e=>{ if(e.target.id==='pickModal') e.currentTarget.classList.remove('on'); };
-['pQ','pLv','pPh','pSt'].forEach(id=>$('#'+id).oninput=renderPick);
+['pQ','pLv','pPh','pSk','pSt'].forEach(id=>$('#'+id).oninput=renderPick);
 $('#pSug').onchange=renderPick;
+let pCat='', pCatOpen=false;
+$('#pReset').onclick=()=>{ $('#pPh').value=''; pCat=''; pCatOpen=false; $('#pQ').value=''; $('#pLv').value=''; $('#pSk').value=''; $('#pSt').value=''; renderPick(); };
+
+// 大枠（業務フェーズ）→ 分類 の2段ブラウズ
+function renderBrowse(ix){
+  const ph=$('#pPh').value;
+  $('#pTiles').innerHTML = PHASES.map(p=>{
+    const items=SKILLS.filter(s=>s.ph===p);
+    const cov=items.filter(s=>(ix[s.id]||[]).length>0).length;
+    return `<button type="button" class="tile ${ph===p?'on':''}" data-ph="${esc(p)}">
+      <b>${esc(p)}</b><span>${items.length}項目・記録あり ${cov}</span></button>`;
+  }).join('');
+  const cats=[...new Set(SKILLS.filter(s=>!ph||s.ph===ph).map(s=>s.cat))];
+  // フェーズ未選択のときは分類が34件並んで邪魔になるので、既定では畳んでおく
+  const open = ph || pCat || pCatOpen;
+  $('#pCats').innerHTML = open
+    ? `<button type="button" class="catchip ${pCat?'':'on'}" data-cat="">分類すべて</button>`
+      + cats.map(c=>{
+          const n=SKILLS.filter(s=>s.cat===c&&(!ph||s.ph===ph)).length;
+          return `<button type="button" class="catchip ${pCat===c?'on':''}" data-cat="${esc(c)}">${esc(c)} <span class="xs">${n}</span></button>`;
+        }).join('')
+    : `<button type="button" class="catchip" id="pCatOpen">＋ 分類（${cats.length}件）から直接えらぶ</button>`;
+  $$('#pTiles .tile').forEach(t=>t.onclick=()=>{
+    $('#pPh').value = $('#pPh').value===t.dataset.ph ? '' : t.dataset.ph;
+    pCat=''; renderPick();
+  });
+  const ob=$('#pCatOpen'); if(ob) ob.onclick=()=>{ pCatOpen=true; renderPick(); };
+  $$('#pCats .catchip').forEach(c=>{ if(c.id!=='pCatOpen') c.onclick=()=>{ pCat=c.dataset.cat; renderPick(); }; });
+}
+
 function renderPick(){
-  const q=$('#pQ').value.trim(), lv=$('#pLv').value, ph=$('#pPh').value, st=$('#pSt').value;
+  const q=$('#pQ').value.trim(), lv=$('#pLv').value, ph=$('#pPh').value, sk=$('#pSk').value, st=$('#pSt').value;
   const ix=evIndex(); const has=new Set($$('#evBox .evrow').map(e=>e.dataset.sid));
+  renderBrowse(ix);
+  if(pCat && !SKILLS.some(s=>s.cat===pCat&&(!ph||s.ph===ph))) pCat='';
   const sug=$('#pSug').checked? suggestScores() : null;
-  let list=SKILLS.filter(s=>{
+  const match=s=>{
     const n=(ix[s.id]||[]).length;
     if(lv!==''&&s.lv!=+lv) return false;
     if(ph&&s.ph!==ph) return false;
+    if(pCat&&s.cat!==pCat) return false;
+    if(sk!==''&&s.sk!=+sk) return false;
     if(st==='0'&&n>0) return false;
-    if(q&&!(s.name+s.std+s.cat).includes(q)) return false;
+    if(st==='pin'&&!isPin(s.id)) return false;
+    if(q&&!(s.name+s.std+s.cat+s.ph).includes(q)) return false;
     return true;
-  });
+  };
+  let list=SKILLS.filter(match);
+  // ピン止めは常に先頭（絞り込み条件からは独立して出す）
+  const pinned = st==='pin' ? [] : DB.pins.map(id=>SMAP[id]).filter(Boolean);
+  const pinSet = new Set(pinned.map(s=>s.id));
+  list = list.filter(s=>!pinSet.has(s.id));
   let cut=0;
-  if(sug && !q){
+  if(sug && !q && !pCat && !ph){
     list=[...list].sort((a,b)=>sug[b.id]-sug[a.id]);
     cut=Math.min(8,list.length);
   }
-  $('#pList').innerHTML = list.length? list.map((s,i)=>{
+  const card=(s,badge)=>{
     const n=(ix[s.id]||[]).length;
-    const hdr = cut&&i===0? '<div class="xs muted" style="margin:2px 0 6px">▼ 今日の日報の記述に近い候補</div>'
-              : cut&&i===cut? '<div class="xs muted" style="margin:12px 0 6px;border-top:1px solid var(--line);padding-top:10px">▼ その他すべての項目</div>' : '';
-    return hdr+`<label class="pick ${pickSel.has(s.id)?'on':''}" data-id="${s.id}">
+    return `<label class="pick ${pickSel.has(s.id)?'on':''}" data-id="${s.id}">
       <input type="checkbox" ${pickSel.has(s.id)?'checked':''} ${has.has(s.id)?'disabled':''}>
       <div style="flex:1">
-        <div class="nm">${cut&&i<cut?'<span class="chip pr1">候補</span> ':''}${esc(s.name)} ${has.has(s.id)?'<span class="chip">追加済</span>':''}</div>
+        <div class="nm">${badge}${esc(s.name)} ${has.has(s.id)?'<span class="chip">追加済</span>':''}</div>
         <div class="st">${esc(s.std)}</div>
         <div class="row" style="gap:4px;margin-top:4px">
           <span class="chip lv${s.lv}">${esc(LV_NAME[s.lv])}</span>
           <span class="chip">${esc(s.cat)}</span>
+          <span class="chip">${SK_NAME[s.sk]}</span>
           <span class="chip">${n?`記録${n}件`:'未着手'}</span>
         </div>
-      </div></label>`;
-  }).join('') : '<div class="emptymsg">該当する項目がありません</div>';
+      </div>
+      <button type="button" class="pinbtn ${isPin(s.id)?'on':''}" data-pin="${s.id}" title="ピン止め">📌</button></label>`;
+  };
+  const sec=t=>`<div class="xs muted" style="margin:12px 0 6px;border-top:1px solid var(--line);padding-top:10px">${t}</div>`;
+  let html='';
+  if(pinned.length) html += `<div class="xs muted" style="margin:2px 0 6px">📌 ピン止めした項目（いつでもここから選べます）</div>`
+    + pinned.map(s=>card(s,'<span class="chip pr1">📌</span> ')).join('');
+  if(list.length){
+    html += list.map((s,i)=>{
+      const hd = (pinned.length&&i===0) ? sec(cut?'▼ 今日の日報の記述に近い候補':'▼ 項目一覧')
+               : (cut&&i===0) ? '<div class="xs muted" style="margin:2px 0 6px">▼ 今日の日報の記述に近い候補</div>'
+               : (cut&&i===cut) ? sec('▼ その他すべての項目') : '';
+      return hd+card(s, cut&&i<cut?'<span class="chip pr1">候補</span> ':'');
+    }).join('');
+  }else if(!pinned.length){ html='<div class="emptymsg">該当する項目がありません</div>'; }
+  $('#pList').innerHTML=html;
   $('#pList').querySelectorAll('.pick').forEach(el=>{
     const cb=el.querySelector('input');
     if(cb.disabled) return;
@@ -826,7 +944,7 @@ $('#aiImport').onclick=()=>{
     added++;
   });
   $('#aiModal').classList.remove('on');
-  renderEvEmpty();
+  renderEvEmpty(); renderEvPins();
   toast(added?`${added}件を取り込みました。内容を自分の言葉で確認・修正してください`:'すべて追加済みの項目でした');
   $('#evBox').scrollIntoView({behavior:'smooth',block:'center'});
 };
@@ -851,7 +969,7 @@ function clearForm(keepDate){
   if(!keepDate) $('#fDate').value=today();
   $('#fName').value=DB.settings.name||'';
   $('#taskBox').innerHTML=''; $('#taskBox').appendChild(taskRow());
-  $('#fInsight').value=''; $('#evBox').innerHTML=''; renderEvEmpty();
+  $('#fInsight').value=''; $('#evBox').innerHTML=''; renderEvEmpty(); renderEvPins();
   $('#topicBox').innerHTML=''; $('#outBox').style.display='none';
   $$('.err').forEach(e=>e.classList.remove('err'));
 }
@@ -863,7 +981,7 @@ function loadReport(id){
   $('#fInsight').value=r.insight||'';
   $('#evBox').innerHTML='';
   (r.ev||[]).forEach(e=>{ addEv(e.sid); const row=$(`#evBox [data-sid="${e.sid}"]`); if(row) row.querySelector('.ev-t').value=e.text||''; });
-  renderEvEmpty();
+  renderEvEmpty(); renderEvPins();
   $('#topicBox').innerHTML=''; (r.topics||[]).forEach(t=>$('#topicBox').appendChild(topicBlock(t))); renumberTopics();
   $('#editNote').textContent=`※ ${r.date} の日報を編集中です。保存すると上書きされます。`;
   goTab('today'); window.scrollTo({top:0});
@@ -964,7 +1082,7 @@ $('#btnSample').onclick=()=>{
     c:'展示時間・什器・持ち込み機の台数は増やせないため、改善余地は「説明の中身」と「離脱後の接点設計」に限られる。',
     h:'決め切れない要因は価格ではなく利用イメージの不足にあり、冒頭を授業での具体的な使用シーンに差し替えれば当日申込率を改善できるのではないか。',
     w:'・今週木曜までに自由記述を「使い方・価格・時期」の3分類で整理し、頻出の不安点を抽出します。\n・来週火曜までに冒頭2分のトークを利用シーン起点に再構成したいと考えておりますが、いかがでしょうか？'}));
-  renumberTopics(); renderEvEmpty();
+  renumberTopics(); renderEvEmpty(); renderEvPins();
   toast('見本データを流し込みました');
 };
 
@@ -1001,6 +1119,7 @@ function renderMap(){
     if(st==='0'&&n!==0) return false;
     if(st==='w'&&!(n>=1&&n<=2)) return false;
     if(st==='s'&&n<3) return false;
+    if(st==='pin'&&!isPin(s.id)) return false;
     if(q&&!(s.name+s.std+s.cat+s.ph).includes(q)) return false;
     return true;
   });
@@ -1025,6 +1144,7 @@ function renderMap(){
           <span class="chip ${sc>=3?'lv1':sc>=1?'lv2':'lv0'}">${sc}: ${SCORE_NAME[sc]}</span>
           ${boss!=null?`<div class="xs muted" style="margin-top:2px">上司 ${boss}</div>`:''}
         </div>
+        <div style="text-align:center"><button type="button" class="pinbtn ${isPin(s.id)?'on':''}" data-pin="${s.id}" title="ピン止めして日報入力欄から選べるようにする">📌</button></div>
         <div style="text-align:center;color:var(--sub)">▾</div>
       </div>
       <div class="det">
@@ -1055,7 +1175,7 @@ function renderMap(){
   }).join('') : '<div class="emptymsg">条件に合う項目がありません</div>';
 
   $$('#skList .sk .head').forEach(h=>h.onclick=e=>{
-    if(e.target.closest('.scoresel')) return;
+    if(e.target.closest('.scoresel')||e.target.closest('[data-pin]')) return;
     h.parentElement.classList.toggle('open');
   });
   $$('#skList .scoresel button').forEach(b=>b.onclick=e=>{
@@ -1225,7 +1345,9 @@ $('#fileIn').onchange=e=>{
       const d=JSON.parse(rd.result);
       if(!d.reports) throw 0;
       if(!confirm(`日報 ${d.reports.length}件を復元します。現在のデータは置き換えられます。よろしいですか？`)) return;
-      DB=Object.assign(blank(),d); save(); initUI(); toast('復元しました');
+      DB=Object.assign(blank(),d);
+      DB.pins=(Array.isArray(DB.pins)?DB.pins:[]).filter(id=>SMAP[id]);
+      save(); initUI(); toast('復元しました');
     }catch(err){ alert('バックアップファイルを読み込めませんでした。'); } };
   rd.readAsText(f); e.target.value='';
 };
