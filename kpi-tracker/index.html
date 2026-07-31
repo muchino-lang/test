@@ -182,6 +182,57 @@ input.bad,textarea.bad{border-color:var(--crit);background:color-mix(in srgb,var
 .steps div{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink-2)}
 .steps b{display:grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px}
 
+/* ---- dashboard hero: monthly budget vs actual ---- */
+.hero{background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--st);
+  border-radius:var(--radius);padding:16px 18px}
+.hero-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.hero-hd .spacer{flex:1}
+.hero-ttl{font-size:19px;font-weight:800;letter-spacing:-.01em}
+.hero-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:980px){.hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.hero-grid{grid-template-columns:1fr}}
+.hm-lbl,.hg-lbl{font-size:12px;font-weight:700;color:var(--muted)}
+.hm-val{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-top:2px}
+.hm-val small{font-size:14px;font-weight:700;color:var(--ink-2)}
+.hm-bar{position:relative;height:12px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border);margin:8px 0 5px;overflow:visible}
+.hm-bar i{display:block;height:100%;border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.hm-bar .mark{position:absolute;top:-4px;width:2px;height:18px;background:var(--ink);opacity:.6;border-radius:2px}
+.hm-sub,.hg-sub{font-size:11.5px;color:var(--ink-2)}
+.hero-gap,.hero-todo{border-left:1px solid var(--border);padding-left:16px}
+@media (max-width:980px){.hero-gap,.hero-todo{border-left:0;padding-left:0}}
+.hg-val{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-top:2px}
+.hg-val small{font-size:14px;font-weight:700}
+.hg-bar{height:7px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border);margin:7px 0 5px;overflow:hidden}
+.hg-bar i{display:block;height:100%;border-radius:99px}
+.hg-note{font-size:12px;color:var(--ink-2);line-height:1.5}
+.hg-note b{color:var(--ink)}
+
+/* ---- today strip ---- */
+.today{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:14px;align-items:center;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-top:14px}
+@media (max-width:900px){.today{grid-template-columns:auto repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.today{grid-template-columns:auto minmax(0,1fr)}}
+.td-day{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:60px;
+  background:var(--st);color:#fff;border-radius:12px;padding:7px 10px}
+.td-day .td-d{font-size:26px;font-weight:800;line-height:1}
+.td-day .td-m{font-size:10.5px;font-weight:700;opacity:.95}
+.td-l{font-size:11.5px;font-weight:700;color:var(--muted)}
+.td-v{font-size:23px;font-weight:800;line-height:1.2}
+.td-v small{font-size:12px;font-weight:700;color:var(--ink-2)}
+.td-x{display:block;font-size:11.5px;font-weight:600;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- dashboard calendar with weekly plan/actual ---- */
+.cal2{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 74px;gap:5px}
+@media (max-width:760px){.cal2{grid-template-columns:repeat(7,minmax(0,1fr)) 54px;gap:3px}}
+.cal-big{font-size:17px;font-weight:800;color:var(--good-text);line-height:1.2;margin-top:1px}
+.cal-w{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;
+  background:var(--surface-2);border:1px solid var(--border);padding:4px}
+.cal-w.ok{background:color-mix(in srgb,var(--good) 14%,var(--surface));border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.cal-w.ng{background:color-mix(in srgb,var(--crit) 10%,var(--surface));border-color:color-mix(in srgb,var(--crit) 32%,transparent)}
+.cw-v{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.cw-v small{font-size:10.5px;font-weight:700;color:var(--ink-2)}
+.cw-l{font-size:10px;font-weight:700;color:var(--ink-2)}
+
 /* object-oriented call list */
 .oo{display:grid;grid-template-columns:330px minmax(0,1fr);gap:14px;align-items:start}
 @media (max-width:900px){.oo{grid-template-columns:1fr}}
@@ -306,7 +357,8 @@ const DEFAULTS = {
     closeRate:0.20,       // 成約率
     unitsPerDeal:40,      // 1校あたり平均販売台数
     grossPerUnit:30000,   // 粗利単価
-    workWeekend:false     // 土日を営業日に含めるか
+    workWeekend:false,    // 土日を営業日に含めるか
+    budgets:{}            // 月次予算 {'2026-08':{appts:30, visits:20}}
   },
   members:[
     {id:'m_kondo',   name:'近藤',        slot:1, dailyCall:5, dailyAppt:1, active:true,  kind:'社内',
@@ -544,6 +596,79 @@ function apptStreak(memberId){
   return n;
 }
 
+/* =========================================================================
+   月次予算（これだけアポを取る／これだけ訪問する）
+   ========================================================================= */
+function ymList(){
+  const out=[]; const s=S.settings;
+  let y=+s.periodStart.slice(0,4), m=+s.periodStart.slice(5,7);
+  const ey=+s.periodEnd.slice(0,4), em=+s.periodEnd.slice(5,7);
+  let g=0;
+  while((y<ey || (y===ey && m<=em)) && g++<60){
+    out.push(`${y}-${String(m).padStart(2,'0')}`);
+    m++; if(m>12){ m=1; y++; }
+  }
+  return out;
+}
+function ymRange(ym){
+  const [y,m]=ym.split('-').map(Number);
+  const last=new Date(y,m,0).getDate();
+  return {from:`${ym}-01`, to:`${ym}-${String(last).padStart(2,'0')}`, last};
+}
+function workdaysInMonth(ym){ const r=ymRange(ym); return dateRangeArr(r.from,r.to).filter(isWorkday).length||1; }
+/* 予算が空なら、期間目標アポ数を営業日数で按分して初期値を作る */
+function ensureBudgets(){
+  const b=S.settings.budgets;
+  if(Object.keys(b).length) return;
+  const yms=ymList();
+  const total=yms.reduce((a,ym)=>a+workdaysInMonth(ym),0)||1;
+  let left=S.settings.apptGoal;
+  yms.forEach((ym,i)=>{
+    const n = i===yms.length-1 ? left : Math.round(S.settings.apptGoal*workdaysInMonth(ym)/total);
+    left-=n;
+    b[ym]={appts:Math.max(0,n), visits:Math.max(0,n)};
+  });
+  save();
+}
+function budgetOf(ym){ return S.settings.budgets[ym] || {appts:0, visits:0}; }
+/* 実績：アポ獲得数（獲得日ベース）／訪問数（アポ日時ベース） */
+function monthActual(ym, who){
+  const r=ymRange(ym);
+  const a=agg(recs({...(who?{memberId:who}:{}), from:r.from, to:r.to}));
+  const visits=allAppointments(who?{memberId:who}:{}).filter(x=>x.apptAt && x.apptAt.slice(0,7)===ym).length;
+  return {...a, visits};
+}
+/* 予算に対する進捗・ビハインドの計算 */
+function budgetProgress(ym, who, metric='appts'){
+  const bud=budgetOf(ym)[metric]||0;
+  const act=metric==='appts' ? monthActual(ym,who).appts : monthActual(ym,who).visits;
+  const r=ymRange(ym);
+  const total=workdaysInMonth(ym);
+  const today=TODAY();
+  const elapsed = today<r.from ? 0
+                : today>r.to ? total
+                : dateRangeArr(r.from, today).filter(isWorkday).length;
+  const left=Math.max(0,total-elapsed);
+  const should=bud*(elapsed/total);
+  const diff=act-should;
+  const perDay= left>0 ? Math.max(0,bud-act)/left : 0;
+  const pace = elapsed>0 ? act/elapsed : 0;
+  const landing = Math.round(pace*total);
+  const future = r.from > today;                 // まだ始まっていない月
+  return {ym, metric, bud, act, total, elapsed, left, should, diff, perDay, pace, landing, future,
+          remain:Math.max(0,bud-act), ratio:pct(act,bud),
+          state: bud===0 ? 'none' : act>=bud ? 'done' : future ? 'future'
+               : diff>=0 ? 'ok' : diff>=-bud*0.1 ? 'warn' : 'behind'};
+}
+const BSTATE = {
+  done:  {c:'var(--good)',  t:'🎉 予算達成', p:'ok'},
+  ok:    {c:'var(--good)',  t:'✅ 予定どおり', p:'ok'},
+  warn:  {c:'var(--warn)',  t:'⚠ やや遅れ', p:''},
+  behind:{c:'var(--crit)',  t:'🚨 ビハインド', p:'ng'},
+  future:{c:'var(--axis)',  t:'これから', p:''},
+  none:  {c:'var(--axis)',  t:'予算未設定', p:''}
+};
+
 /* ---------- ミッション（期限付きの個別目標） ---------- */
 function workdaysBetween(from,to){ return dateRangeArr(from,to).filter(isWorkday).length; }
 function missionStats(m){
@@ -667,6 +792,7 @@ const TABS = [
   ['input','✍️ 実績入力'],
   ['cal','🗓 カレンダー'],
   ['appts','📅 アポ一覧'],
+  ['team','🏅 実績・称号'],
   ['history','📒 履歴・出力'],
   ['report','💬 レポート'],
   ['settings','⚙️ 設定']
@@ -680,8 +806,10 @@ function render(){
     `<button role="tab" aria-selected="${k===tab}" onclick="go('${k}')">${l}</button>`).join('');
   renderLevelBox();
   const v = document.getElementById('view');
-  v.innerHTML = ({dash:viewDash, calllist:viewCallList, input:viewInput, cal:viewCal, appts:viewAppts, history:viewHistory, report:viewReport, settings:viewSettings})[tab]();
+  v.innerHTML = ({dash:viewDash, calllist:viewCallList, input:viewInput, cal:viewCal, appts:viewAppts,
+                  team:viewTeam, history:viewHistory, report:viewReport, settings:viewSettings})[tab]();
   if(tab==='dash') mountDash();
+  if(tab==='team') mountTeam();
   if(tab==='input') mountInput();
   if(tab==='calllist') mountCallList();
   window.scrollTo({top:0});
@@ -712,124 +840,252 @@ function rangeLabel(){
   return dashRange==='period' ? '期間全体' : dashRange==='month' ? '今月'
        : `直近${dashRange}日`;
 }
+let dashYm = null;                    // 表示中の月（null なら今月／期間内の直近）
+function currentYm(){
+  const yms = ymList();
+  if(dashYm && yms.includes(dashYm)) return dashYm;
+  const t = TODAY().slice(0,7);
+  return yms.includes(t) ? t : (yms[0]||t);
+}
 function viewDash(){
   const who = dashMember==='all'? null : dashMember;
   if(!effectiveRecords().length && !S.prospects.length) return onboardingHTML();
-  const all = recs(who?{memberId:who}:{});                 // 期間全体（累計）
-  const A = agg(all);
-  const RB = rangeBounds();
-  const R = agg(recs({...(who?{memberId:who}:{}), from:RB.from, to:RB.to}));  // 選択期間
-  const todayList = recs({...(who?{memberId:who}:{}), from:TODAY(), to:TODAY()});
-  const T = agg(todayList);
-  const goal = S.settings.apptGoal;
-  const remain = Math.max(0, goal - A.appts);
-  const rateGoal = S.settings.apptRateGoal*100;
-  const rateOK = A.rate>=rateGoal;
-
-  // 必要架電数（残アポを目標アポ率で獲るのに必要な架電）
-  const needCalls = Math.ceil(remain / (S.settings.apptRateGoal||0.3));
-  // 残営業日
-  const days = dateRangeArr(TODAY() > S.settings.periodStart ? TODAY() : S.settings.periodStart, S.settings.periodEnd).filter(isWorkday);
-  const remainDays = days.length;
-  const perDayAppt = remainDays>0 ? remain/remainDays : 0;
-  const perDayCall = remainDays>0 ? needCalls/remainDays : 0;
+  ensureBudgets();
+  const ym = currentYm();
+  const A = budgetProgress(ym, who, 'appts');    // 今月のアポ予算
+  const V = budgetProgress(ym, who, 'visits');   // 今月の訪問予算
+  const [y,mo] = ym.split('-').map(Number);
 
   const memberChips = ['all',...S.members.filter(m=>m.active).map(m=>m.id)].map(id=>{
     const nm = id==='all'?'👥 全員':memberById(id).name;
     return `<button class="chip" aria-pressed="${dashMember===id}" onclick="dashMember='${id}';render()">${esc(nm)}</button>`;
   }).join('');
-
-  const rangeChips = [[14,'直近14日'],[30,'直近30日'],['month','今月'],['period','期間全体']].map(([k,l])=>
-    `<button class="chip" aria-pressed="${String(dashRange)===String(k)}" onclick="dashRange=${typeof k==='number'?k:`'${k}'`};render()">${l}</button>`).join('');
+  const ymChips = ymList().map(k=>{
+    const b=budgetProgress(k,who,'appts');
+    const dot = (b.bud===0||b.future) ? '' : b.state==='done'||b.state==='ok' ? '🟢' : b.state==='warn' ? '🟡' : '🔴';
+    return `<button class="chip" aria-pressed="${ym===k}" onclick="dashYm='${k}';render()">${dot}${+k.slice(5)}月</button>`;
+  }).join('');
 
   return `
-  <div class="row" style="margin:16px 0 12px">${memberChips}</div>
+  <div class="row" style="margin:16px 0 10px">${memberChips}<span style="flex:1"></span>${ymChips}</div>
 
-  <div class="grid g4">
-    ${tile('本日の架電', int(T.calls)+'<small>件</small>', dayTargetSub(who,'call',T.calls), 1)}
-    ${tile('本日のアポ', int(T.appts)+'<small>件</small>', dayTargetSub(who,'appt',T.appts), 3)}
-    ${tile('本日のアポ率', T.calls? T.rate.toFixed(1)+'<small>%</small>' : '—', T.calls? badgeRate(T.rate) : `<span style="color:var(--muted)">架電の入力待ち</span>`, 2)}
-    ${tile('本日の想定粗利', moneyS(T.gross), `成約 ${fmt(T.deals)}校 相当`, 4)}
-  </div>
+  ${budgetHero(A, V, y, mo)}
+  ${todayStrip(who)}
 
-  ${(who? [memberById(who)] : activeMembers()).map(missionCard).join('')}
-
-  <div class="card" style="margin-top:14px">
-    <h2>🎯 目標アポ ${goal}件への進捗（期間全体）<span class="spacer"></span>
-      <span class="pill ${A.appts>=goal?'ok':''}">${int(A.appts)} / ${goal} 件</span></h2>
-    <div class="meter" style="height:14px"><i style="width:${Math.min(100,pct(A.appts,goal)).toFixed(1)}%;background:linear-gradient(90deg,var(--s1),var(--s3))"></i></div>
-    <div class="grid g4" style="margin-top:14px">
-      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">達成率</div><div style="font-size:22px;font-weight:800">${pct(A.appts,goal).toFixed(1)}%</div></div>
-      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">残り必要アポ</div><div style="font-size:22px;font-weight:800">${int(remain)}<small style="font-size:13px">件</small></div></div>
-      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">残り必要架電（@${(rateGoal).toFixed(0)}%）</div><div style="font-size:22px;font-weight:800">${int(needCalls)}<small style="font-size:13px">件</small></div></div>
-      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">残${remainDays}営業日のペース</div>
-        ${remain<=0
-          ? `<div style="font-size:22px;font-weight:800" class="up">🎉 目標達成</div><div class="sub" style="font-size:12px;color:var(--ink-2)">おめでとうございます</div>`
-          : `<div style="font-size:22px;font-weight:800">${fine(perDayCall)}<small style="font-size:13px">架電/日</small></div>
-             <div class="sub" style="font-size:12px;color:var(--ink-2)">アポ ${fine(perDayAppt)}件/日</div>`}
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card chartbox">
+      <h2>📈 アポ獲得：予算ラインと実績<span class="spacer"></span>
+        <span class="pill ${BSTATE[A.state].p}">${BSTATE[A.state].t}</span></h2>
+      <div id="burnAppt"></div>
+      <div class="legend">
+        <span><i style="background:var(--s1)"></i>実績（累計）</span>
+        <span><i style="background:var(--axis)"></i>予算ライン</span>
+        <span><i style="background:var(--muted)"></i>この先の見通し</span>
+      </div>
+    </div>
+    <div class="card chartbox">
+      <h2>🚗 訪問商談：予算ラインと実績<span class="spacer"></span>
+        <span class="pill ${BSTATE[V.state].p}">${BSTATE[V.state].t}</span></h2>
+      <div id="burnVisit"></div>
+      <div class="legend">
+        <span><i style="background:var(--s3)"></i>実績（累計）</span>
+        <span><i style="background:var(--axis)"></i>予算ライン</span>
+        <span><i style="background:var(--muted)"></i>この先の見通し</span>
       </div>
     </div>
   </div>
 
-  ${todoHTML(who)}
+  ${dashCalendar(ym, who, A)}
 
-  <div class="card" style="margin-top:14px">
-    <h2>🔥 本日のクエスト<span class="spacer"></span><span class="pill">${questDone(who)}/3 達成</span></h2>
-    <div class="grid g3" id="quests">${questsHTML(who)}</div>
-  </div>
-
-  <div class="row" style="margin:20px 0 10px">
-    <span style="font-size:13px;font-weight:700;color:var(--ink-2);margin-right:4px">集計期間</span>${rangeChips}
-    <span class="hint" style="margin:0">↓ 以下の数値・グラフ・ランキングがこの期間に連動します</span>
-  </div>
-
-  <div class="grid g4">
-    ${tile(`${rangeLabel()} 架電数`, int(R.calls)+'<small>件</small>',
-        `${R.dials>R.calls?`発信 ${int(R.dials)}件 ・ `:''}稼働 ${R.days}日（累計 ${int(A.calls)}件）`, 1)}
-    ${tile(`${rangeLabel()} アポ数`, int(R.appts)+'<small>件</small>', `1日平均 ${fmt(R.days? R.appts/R.days:0)}件（累計 ${int(A.appts)}件）`, 3)}
-    ${tile(`${rangeLabel()} アポ率`, R.calls? R.rate.toFixed(1)+'<small>%</small>':'—',
-        `目標 ${rateGoal.toFixed(0)}% <span class="${R.rate>=rateGoal?'up':'down'}">${R.calls? (R.rate>=rateGoal?'+':'')+ (R.rate-rateGoal).toFixed(1)+'pt':''}</span>（累計 ${pctS(A.appts,A.calls)}）`, 2)}
-    ${tile(`${rangeLabel()} 想定粗利`, moneyS(R.gross), `想定成約 ${fmt(R.deals)}校（累計 ${moneyS(A.gross)}）`, 4)}
-  </div>
-
-  <div class="grid g2" style="margin-top:14px">
-    <div class="card chartbox">
-      <h2>📈 日次の架電数・アポ数（件）</h2>
-      <div id="chartDaily"></div>
-      <div class="legend"><span><i style="background:var(--s1)"></i>架電数</span><span><i style="background:var(--s3)"></i>アポ数</span></div>
-    </div>
-    <div class="card chartbox">
-      <h2>🎯 日次アポ率と目標ライン（%）</h2>
-      <div id="chartRate"></div>
-      <div class="legend"><span><i style="background:var(--s2)"></i>アポ率</span><span><i style="background:var(--axis)"></i>目標 ${rateGoal.toFixed(0)}%</span></div>
-    </div>
-  </div>
-
-  ${funnelHTML(who, RB)}
-
-  <div class="grid g2" style="margin-top:14px">
-    <div class="card chartbox">
-      <h2>📊 累計アポ数 vs 必要ペース</h2>
-      <div id="chartCum"></div>
-      <div class="legend"><span><i style="background:var(--s1)"></i>累計アポ（実績）</span><span><i style="background:var(--axis)"></i>目標ペース</span></div>
-    </div>
-    <div class="card">
-      <h2>🏆 ランキング（${rangeLabel()}のアポ数）</h2>
-      <div id="rankList">${rankHTML(RB)}</div>
-    </div>
-  </div>
+  ${(who? [memberById(who)] : activeMembers()).map(missionCard).join('')}
 
   ${upcomingHTML(who)}
 
   <div class="card" style="margin-top:14px">
-    <h2>🎖 称号コレクション（通算）<span class="spacer"></span><span class="pill">${badgeCount(who)}/${BADGES.length}</span></h2>
-    <div class="badges">${badgesHTML(who)}</div>
-  </div>
-
-  <div class="card" style="margin-top:14px">
-    <h2>🗓 月次サマリー（データ表）</h2>
-    ${monthTableHTML(who)}
+    <h2>📊 月次の予算と実績<span class="spacer"></span>
+      <button class="btn sec sm" onclick="go('settings')">予算を編集</button></h2>
+    ${budgetTable(who)}
   </div>`;
+}
+
+/* ---- ヒーロー：今月これだけやる／今どこまで来ている ---- */
+function budgetHero(A, V, y, mo){
+  const s = BSTATE[A.state];
+  const behind = A.diff < 0;
+  return `<div class="hero" style="--st:${s.c}">
+    <div class="hero-hd">
+      <div class="hero-ttl">${y}年${mo}月の予算</div>
+      <span class="pill ${s.p}" style="font-size:13px">${s.t}</span>
+      <span class="spacer"></span>
+      <span class="pill">残り ${A.left}営業日</span>
+    </div>
+
+    <div class="hero-grid">
+      ${heroMetric('🤝 アポ獲得', A, 'var(--s1)')}
+      ${heroMetric('🚗 訪問商談', V, 'var(--s3)')}
+      <div class="hero-gap">
+        <div class="hg-lbl">本日時点の予定との差</div>
+        ${A.future
+          ? `<div class="hg-val" style="color:var(--muted)">—</div>
+             <div class="hg-sub">${+A.ym.slice(5)}月はまだ始まっていません</div>
+             <div class="hg-note">開始まで待たずに、いまの月の予算を追いましょう</div>`
+          : `<div class="hg-val ${behind?'down':'up'}">${A.diff>=0?'+':'−'}${fmt(Math.abs(A.diff))}<small>件</small></div>
+             <div class="hg-sub">今日までに ${fmt(A.should)}件 → 実績 ${int(A.act)}件</div>
+             <div class="hg-bar"><i style="width:${Math.min(100,Math.abs(A.diff)/Math.max(1,A.bud)*100*3).toFixed(0)}%;background:${behind?'var(--crit)':'var(--good)'}"></i></div>
+             <div class="hg-note">${behind
+               ? `このままだと <b>${int(A.landing)}件</b> で着地（予算 ${A.bud}件）`
+               : `このペースなら <b>${int(A.landing)}件</b> で着地（予算 ${A.bud}件）`}</div>`}
+      </div>
+      <div class="hero-todo">
+        <div class="hg-lbl">残りをこなすペース</div>
+        ${A.remain>0
+          ? `<div class="hg-val">${fine(A.remain/Math.max(1,A.left))}<small>件/日</small></div>`
+          : `<div class="hg-val" style="font-size:22px;color:var(--good-text)">🎉 消化済み</div>`}
+        <div class="hg-sub">アポ残 ${int(A.remain)}件 ÷ ${A.future?'全':'残'}${Math.max(1,A.left)}営業日</div>
+        <div class="hg-note">${A.remain>0
+          ? `週あたり <b>${fine(A.remain/Math.max(1,A.left)*5)}件</b>／必要架電 約<b>${int(Math.ceil(A.remain/(S.settings.apptRateGoal||0.3)))}件</b>`
+          : `今月の予算はクリアしています`}</div>
+      </div>
+    </div>
+  </div>`;
+}
+function heroMetric(label, B, color){
+  const r = Math.min(100, B.ratio);
+  const should = Math.min(100, pct(B.should, B.bud||1));
+  return `<div class="hero-m">
+    <div class="hm-lbl">${label}</div>
+    <div class="hm-val" style="color:${color}">${int(B.act)}<small> / ${int(B.bud)}件</small></div>
+    <div class="hm-bar">
+      <i style="width:${r.toFixed(1)}%;background:${color}"></i>
+      <span class="mark" style="left:${should.toFixed(1)}%" title="本日時点であるべき位置"></span>
+    </div>
+    <div class="hm-sub">達成率 ${B.ratio.toFixed(0)}% ・ 残り ${int(B.remain)}件</div>
+  </div>`;
+}
+
+/* ---- 本日ストリップ：今日やるべき数と実績 ---- */
+function todayStrip(who){
+  // 「本日」は常に今月の予算で判定する（表示中の月に引きずられないように）
+  const A = budgetProgress(TODAY().slice(0,7), who, 'appts');
+  const T = agg(recs({...(who?{memberId:who}:{}), from:TODAY(), to:TODAY()}));
+  const need = A.bud>0 ? A.bud/A.total : 0;          // 1営業日あたりの予算
+  const todayNeed = isWorkday(TODAY()) ? Math.max(need, A.remain>0&&A.left>0? A.perDay:need) : 0;
+  const visitsToday = allAppointments(who?{memberId:who}:{}).filter(a=>a.apptAt && a.apptAt.slice(0,10)===TODAY());
+  const ok = T.appts >= todayNeed && todayNeed>0;
+  return `<div class="today" style="--st:${ok?'var(--good)':'var(--warn)'}">
+    <div class="td-day">
+      <div class="td-d">${+TODAY().slice(8)}</div>
+      <div class="td-m">${+TODAY().slice(5,7)}月${WD[d(TODAY()).getDay()]}曜</div>
+    </div>
+    <div class="td-cell"><div class="td-l">本日の実績</div>
+      <div class="td-v">🤝 ${int(T.appts)}<small>件</small> <span class="td-x">📞 ${int(T.calls)}件</span></div></div>
+    <div class="td-cell"><div class="td-l">本日やるべき数</div>
+      <div class="td-v">${todayNeed>0? fine(todayNeed):'—'}<small>件</small>
+        <span class="td-x">${!isWorkday(TODAY())?'休業日':ok?'✅ 達成':`あと ${fine(Math.max(0,todayNeed-T.appts))}件`}</span></div></div>
+    <div class="td-cell"><div class="td-l">本日の訪問予定</div>
+      <div class="td-v">${visitsToday.length}<small>件</small>
+        <span class="td-x">${visitsToday.length? esc(visitsToday.map(v=>v.company).join('、')) : '予定なし'}</span></div></div>
+    <div class="td-cell"><div class="td-l">今月の想定粗利</div>
+      <div class="td-v" style="font-size:20px">${moneyS(gross(A.act))}<span class="td-x">予算達成時 ${moneyS(gross(A.bud))}</span></div></div>
+  </div>`;
+}
+
+/* ---- ダッシュボード内カレンダー（日々の実績と訪問予定・週次の予実） ---- */
+function dashCalendar(ym, who, A){
+  const r = ymRange(ym);
+  const dayRec = new Map(byDate(recs({...(who?{memberId:who}:{}), from:r.from, to:r.to})).map(x=>[x.date,x]));
+  const dayPlan = new Map();
+  allAppointments(who?{memberId:who}:{}).forEach(a=>{
+    if(!a.apptAt) return; const dt=a.apptAt.slice(0,10);
+    if(dt<r.from||dt>r.to) return;
+    if(!dayPlan.has(dt)) dayPlan.set(dt,[]);
+    dayPlan.get(dt).push(a);
+  });
+  const [y,mo]=ym.split('-').map(Number);
+  const first=new Date(y,mo-1,1);
+  const lead=(first.getDay()+6)%7;
+  const cells=[]; for(let i=0;i<lead;i++) cells.push(null);
+  for(let dd=1; dd<=r.last; dd++) cells.push(`${ym}-${String(dd).padStart(2,'0')}`);
+  while(cells.length%7) cells.push(null);
+  const perDay = A.bud>0 ? A.bud/A.total : 0;
+
+  const weeks=[];
+  for(let i=0;i<cells.length;i+=7) weeks.push(cells.slice(i,i+7));
+
+  return `<div class="card" style="margin-top:14px">
+    <h2>🗓 ${y}年${mo}月<span class="spacer"></span>
+      <span class="pill">🤝 アポ ${int(A.act)}/${A.bud}件</span>
+      <span class="pill">1日あたり予算 ${fine(perDay)}件</span>
+      <button class="btn sec sm" onclick="go('cal')">カレンダー詳細</button></h2>
+    <div class="cal2">
+      ${['月','火','水','木','金','土','日'].map((w,i)=>`<div class="cal-h${i===5?' sat':i===6?' sun':''}">${w}</div>`).join('')}
+      <div class="cal-h">週計</div>
+      ${weeks.map(wk=>{
+        let wa=0, wd=0, started=false;
+        wk.forEach(dt=>{ if(!dt) return; const o=dayRec.get(dt); if(o) wa+=o.appts;
+          if(isWorkday(dt)) wd++; if(dt<=TODAY()) started=true; });
+        const wneed = perDay*wd;
+        const wok = wa>=wneed && wneed>0;
+        return wk.map(dt=>{
+          if(!dt) return `<div class="cal-c empty-c"></div>`;
+          const o=dayRec.get(dt), plans=dayPlan.get(dt)||[];
+          const dow=d(dt).getDay(), isToday=dt===TODAY();
+          const got=o?o.appts:0;
+          const heat = got>0 ? 0.14+0.42*Math.min(1,got/Math.max(1,perDay*2)) : 0;
+          return `<div class="cal-c${dow===6?' sat':dow===0?' sun':''}${isToday?' today':''}"
+            style="${heat?`background:color-mix(in srgb,var(--good) ${(heat*100).toFixed(0)}%,var(--surface))`:''}"
+            onclick="jumpTo('${dt}')">
+            <div class="cal-d">${+dt.slice(-2)}${isToday?'<span class="tdot">今日</span>':''}</div>
+            ${got>0? `<div class="cal-big">🤝${got}</div>`
+                   : (isWorkday(dt)&&dt<=TODAY()? `<div class="cal-v miss">0</div>`:'')}
+            ${plans.map(a=>`<div class="cal-p" title="${esc(a.company+' '+(a.contact||''))}">🚗${a.apptAt.slice(11)||''} ${esc(a.company)}</div>`).join('')}
+          </div>`;
+        }).join('') + `<div class="cal-w${wneed&&started? (wok?' ok':' ng'):''}">
+            <div class="cw-v">${int(wa)}<small>/${fine(wneed)}</small></div>
+            <div class="cw-l">${!wneed?'—':!started?'予定':wok?'達成':`▲${fine(wneed-wa)}`}</div>
+          </div>`;
+      }).join('')}
+    </div>
+    <div class="legend" style="margin-top:10px">
+      <span><i style="background:color-mix(in srgb,var(--good) 40%,var(--surface));border:1px solid var(--border)"></i>アポを獲得した日（濃いほど多い）</span>
+      <span><i style="background:var(--s4)"></i>🚗 訪問予定</span>
+      <span>右端は週の実績／週の予算</span>
+    </div>
+  </div>`;
+}
+
+/* ---- 月次の予実テーブル ---- */
+function budgetTable(who){
+  const yms=ymList();
+  let ca=0, cb=0;
+  let sa=0, sb=0;                      // 開始済みの月だけの合計（差の判定に使う）
+  const rows = yms.map(ym=>{
+    const A=budgetProgress(ym,who,'appts'), V=budgetProgress(ym,who,'visits');
+    ca+=A.act; cb+=A.bud;
+    if(!A.future){ sa+=A.act; sb+=A.bud; }
+    const s=BSTATE[A.state];
+    return `<tr>
+      <td>${+ym.slice(5)}月</td>
+      <td class="num">${int(A.bud)}</td><td class="num">${int(A.act)}</td>
+      <td class="num" style="color:${A.diff<0?'var(--crit)':'var(--good-text)'};font-weight:700">${
+        (!A.bud||A.future)?'<span style="color:var(--muted)">—</span>':(A.diff>=0?'+':'−')+fmt(Math.abs(A.diff))}</td>
+      <td class="num">${int(V.bud)}</td><td class="num">${int(V.act)}</td>
+      <td class="num">${A.bud? A.ratio.toFixed(0)+'%':'—'}</td>
+      <td><span class="pill ${s.p}">${A.bud?s.t:'—'}</span></td>
+      <td class="num">${moneyS(gross(A.act))}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="tablewrap"><table>
+    <thead><tr><th>月</th><th class="num">アポ予算</th><th class="num">アポ実績</th><th class="num">差</th>
+      <th class="num">訪問予算</th><th class="num">訪問実績</th><th class="num">達成率</th><th>状況</th><th class="num">想定粗利</th></tr></thead>
+    <tbody>${rows}
+    <tr style="font-weight:800;background:var(--surface-2)">
+      <td>合計</td><td class="num">${int(cb)}</td><td class="num">${int(ca)}</td>
+      <td class="num" style="color:${sa-sb<0?'var(--crit)':'var(--good-text)'}"
+          title="開始済みの月（${int(sb)}件）に対する差">${(sa-sb>=0?'+':'−')+fmt(Math.abs(sa-sb))}</td>
+      <td class="num">—</td><td class="num">—</td><td class="num">${pct(ca,cb).toFixed(0)}%</td><td></td>
+      <td class="num">${moneyS(gross(ca))}</td></tr>
+    </tbody></table></div>`;
 }
 /* ④ 初回オンボーディング：空データのときは次の一手を示す */
 function onboardingHTML(){
@@ -1012,12 +1268,121 @@ function seriesForRange(){
   return dates.map(dt=>({date:dt, calls:map.get(dt)?.calls||0, appts:map.get(dt)?.appts||0, has:map.has(dt)}));
 }
 function mountDash(){
+  const host=document.getElementById('burnAppt');
+  if(!host) return;                        // オンボーディング表示中はグラフなし
+  const who = dashMember==='all'? null : dashMember;
+  const ym = currentYm();
+  drawBurn(host, ym, who, 'appts', 'var(--s1)');
+  drawBurn(document.getElementById('burnVisit'), ym, who, 'visits', 'var(--s3)');
+}
+function mountTeam(){
   const hostD=document.getElementById('chartDaily');
-  if(!hostD) return;                       // オンボーディング表示中はグラフなし
+  if(!hostD) return;
   const data = seriesForRange();
   drawDaily(hostD, data);
   drawRate(document.getElementById('chartRate'), data);
-  drawCum(document.getElementById('chartCum'));
+}
+
+/* バーンアップ：予算ライン vs 実績。差分を塗って「ビハインド」を絵で見せる */
+function drawBurn(host, ym, who, metric, color){
+  if(!host) return;
+  const B = budgetProgress(ym, who, metric);
+  const r = ymRange(ym);
+  const days = dateRangeArr(r.from, r.to);
+  const wdTotal = B.total;
+
+  // 実績の累積（アポ=獲得日 / 訪問=アポ日時）
+  const inc = new Map();
+  if(metric==='appts'){
+    byDate(recs({...(who?{memberId:who}:{}), from:r.from, to:r.to})).forEach(x=>inc.set(x.date,x.appts));
+  } else {
+    allAppointments(who?{memberId:who}:{}).forEach(a=>{
+      if(!a.apptAt) return; const dt=a.apptAt.slice(0,10);
+      if(dt<r.from||dt>r.to) return; inc.set(dt,(inc.get(dt)||0)+1);
+    });
+  }
+  let cum=0, wd=0;
+  const pts = days.map(dt=>{
+    cum += inc.get(dt)||0;
+    if(isWorkday(dt)) wd++;
+    return {date:dt, cum, plan: B.bud*(wd/wdTotal), past: dt<=TODAY()};
+  });
+  const realPts = pts.filter(p=>p.past);
+  const last = realPts[realPts.length-1] || {cum:0, plan:0};
+
+  const W=560,H=250,ML=34,MR=14,MT=16,MB=28, iw=W-ML-MR, ih=H-MT-MB;
+  const top = Math.max(B.bud, cum, B.landing, 1)*1.12;
+  const x = i => ML + iw*i/Math.max(1,pts.length-1);
+  const y = v => MT + ih - (v/top)*ih;
+
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${metric==='appts'?'アポ獲得':'訪問商談'}の予算ラインと実績">`;
+  axisTicks(top,4).forEach(t=>{ if(t>top) return;
+    s+=`<line x1="${ML}" x2="${W-MR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/>
+        <text x="${ML-6}" y="${y(t)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${int(t)}</text>`; });
+
+  // 予算ライン到達点
+  if(B.bud>0){
+    s+=`<line x1="${ML}" x2="${W-MR}" y1="${y(B.bud)}" y2="${y(B.bud)}" stroke="var(--axis)" stroke-width="1.5" stroke-dasharray="2 3"/>
+        <text x="${W-MR}" y="${y(B.bud)-6}" text-anchor="end" font-size="10.5" font-weight="700" fill="var(--ink-2)">予算 ${B.bud}件</text>`;
+  }
+
+  // 予実の差分を塗る（実績が予算ラインを下回る＝ビハインド）
+  if(realPts.length>1 && !B.future){
+    const behind = last.cum < last.plan;
+    const fillC = behind? 'var(--crit)' : 'var(--good)';
+    const up = realPts.map((p,i)=>`${x(i).toFixed(1)},${y(p.plan).toFixed(1)}`).join(' ');
+    const dn = realPts.map((p,i)=>`${x(i).toFixed(1)},${y(p.cum).toFixed(1)}`).reverse().join(' ');
+    s+=`<polygon points="${up} ${dn}" fill="${fillC}" opacity="0.16"/>`;
+  }
+
+  // 予算ライン（斜め）
+  s+=`<path d="${pts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p.plan).toFixed(1)}`).join(' ')}"
+        fill="none" stroke="var(--axis)" stroke-width="2" stroke-dasharray="5 4"/>`;
+
+  if(B.future){
+    s+=`<text x="${ML+iw/2}" y="${MT+ih/2}" text-anchor="middle" font-size="12" fill="var(--muted)">${+ym.slice(5)}月はこれから（予算ライン表示中）</text>`;
+  }
+  // 実績
+  if(realPts.length && !B.future){
+    s+=`<path d="${realPts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p.cum).toFixed(1)}`).join(' ')}"
+          fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const li = realPts.length-1;
+    // この先の見通し（現ペースを延長）
+    if(li < pts.length-1 && B.pace>0){
+      let wdLeft=0;
+      const proj = pts.slice(li).map((p,k)=>{
+        if(k>0 && isWorkday(p.date)) wdLeft++;
+        return `${x(li+k).toFixed(1)},${y(Math.min(top,last.cum + B.pace*wdLeft)).toFixed(1)}`;
+      }).join(' ');
+      s+=`<polyline points="${proj}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="3 4"/>
+          <text x="${W-MR}" y="${Math.max(MT+12,y(Math.min(top,B.landing))-8).toFixed(1)}" text-anchor="end"
+                font-size="10.5" font-weight="700" fill="var(--muted)">見通し ${int(B.landing)}件</text>`;
+    }
+    s+=`<circle cx="${x(li).toFixed(1)}" cy="${y(last.cum).toFixed(1)}" r="5.5" fill="${color}" stroke="var(--surface)" stroke-width="2.5"/>
+        <text x="${(x(li)+9).toFixed(1)}" y="${(y(last.cum)-9).toFixed(1)}" font-size="12.5" font-weight="800" fill="var(--ink)">${int(last.cum)}件</text>`;
+    // ビハインド量の注記
+    const gap = last.cum - last.plan;
+    if(B.bud>0 && Math.abs(gap)>=0.5){
+      const my=(y(last.cum)+y(last.plan))/2;
+      s+=`<text x="${(x(li)-10).toFixed(1)}" y="${my.toFixed(1)}" text-anchor="end" font-size="11.5" font-weight="800"
+            fill="${gap<0?'var(--crit)':'var(--good-text)'}">${gap<0?'▼':'▲'}${fmt(Math.abs(gap))}件</text>`;
+    }
+  }
+  // 日付ラベル
+  pts.forEach((p,i)=>{ const dd=+p.date.slice(-2);
+    if(dd===1||dd%7===0) s+=`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${dd}</text>`; });
+  s+=`<line x1="${ML}" x2="${W-MR}" y1="${MT+ih}" y2="${MT+ih}" stroke="var(--axis)"/>`;
+  pts.forEach((p,i)=>{ s+=`<rect x="${(x(i)-iw/pts.length/2).toFixed(1)}" y="${MT}" width="${(iw/pts.length).toFixed(1)}" height="${ih}" fill="transparent" data-i="${i}"/>`; });
+  s+=`</svg>`;
+  host.innerHTML=s;
+  host.querySelectorAll('rect[data-i]').forEach(el=>{
+    el.addEventListener('mousemove',e=>{ const p=pts[+el.dataset.i];
+      showTT(`<b>${jpFull(p.date)}</b>
+        <div class="r"><span>実績（累計）</span><span>${p.past? int(p.cum)+' 件':'—'}</span></div>
+        <div class="r"><span>予算ライン</span><span>${fmt(p.plan)} 件</span></div>
+        <div class="r"><span>差</span><span>${p.past? (p.cum-p.plan>=0?'+':'−')+fmt(Math.abs(p.cum-p.plan))+' 件':'—'}</span></div>`,e); });
+    el.addEventListener('mouseleave',hideTT);
+  });
 }
 function axisTicks(max,n=4){
   if(max<=0) return [0,1];
@@ -1845,6 +2210,54 @@ function deleteRecord(id){
   S.records=S.records.filter(r=>r.id!==id); save(); toast('🗑 削除しました'); render();
 }
 
+/* ---------------- 実績・称号（ゲーム要素とファネル分析） ---------------- */
+function viewTeam(){
+  const who = dashMember==='all'? null : dashMember;
+  const RB = rangeBounds();
+  const memberChips = ['all',...activeMembers().map(m=>m.id)].map(id=>
+    `<button class="chip" aria-pressed="${dashMember===id}" onclick="dashMember='${id}';render()">${id==='all'?'👥 全員':esc(memberById(id).name)}</button>`).join('');
+  const rangeChips = [[14,'直近14日'],[30,'直近30日'],['month','今月'],['period','期間全体']].map(([k,l])=>
+    `<button class="chip" aria-pressed="${String(dashRange)===String(k)}" onclick="dashRange=${typeof k==='number'?k:`'${k}'`};render()">${l}</button>`).join('');
+
+  return `
+  <div class="row" style="margin:16px 0 10px">${memberChips}<span style="flex:1"></span>${rangeChips}</div>
+
+  <div class="card">
+    <h2>🔥 本日のクエスト<span class="spacer"></span><span class="pill">${questDone(who)}/3 達成</span></h2>
+    <div class="grid g3">${questsHTML(who)}</div>
+  </div>
+
+  ${funnelHTML(who, RB)}
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card chartbox">
+      <h2>📈 日次の架電数・アポ数（件）</h2>
+      <div id="chartDaily"></div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>架電数</span><span><i style="background:var(--s3)"></i>アポ数</span></div>
+    </div>
+    <div class="card chartbox">
+      <h2>🎯 日次アポ率と目標ライン（%）</h2>
+      <div id="chartRate"></div>
+      <div class="legend"><span><i style="background:var(--s2)"></i>アポ率</span><span><i style="background:var(--axis)"></i>目標 ${(S.settings.apptRateGoal*100).toFixed(0)}%</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>🏆 ランキング（${rangeLabel()}のアポ数）</h2>
+    ${rankHTML(RB)}
+  </div>
+
+  <div class="card">
+    <h2>🎖 称号コレクション（通算）<span class="spacer"></span><span class="pill">${badgeCount(who)}/${BADGES.length}</span></h2>
+    <div class="badges">${badgesHTML(who)}</div>
+  </div>
+
+  <div class="card">
+    <h2>🗓 月次サマリー（データ表）</h2>
+    ${monthTableHTML(who)}
+  </div>`;
+}
+
 /* ---------------- カレンダー ---------------- */
 let calMonth = TODAY().slice(0,7);
 let calMember = 'all';
@@ -2139,6 +2552,21 @@ function buildSummary(mode, who){
     out += `　📞 架電 ${int(tot.calls)}件 ／ 🤝 アポ ${int(tot.appts)}件（${pctS(tot.appts,tot.calls)}）\n`;
   }
 
+  // 今月の予算進捗
+  ensureBudgets();
+  const ym = TODAY().slice(0,7);
+  const BA = budgetProgress(ym, who, 'appts'), BV = budgetProgress(ym, who, 'visits');
+  if(BA.bud>0){
+    out += line+'\n';
+    out += `📅 ${+ym.slice(5)}月の予算進捗\n`;
+    out += `　🤝 アポ ${int(BA.act)} / ${BA.bud}件（${BA.ratio.toFixed(0)}%）\n`;
+    out += `　🚗 訪問 ${int(BV.act)} / ${BV.bud}件（${BV.ratio.toFixed(0)}%）\n`;
+    out += `　${BA.diff>=0?'✅':'🚨'} 本日時点の予定 ${fmt(BA.should)}件に対し ${BA.diff>=0?'+':'−'}${fmt(Math.abs(BA.diff))}件\n`;
+    out += BA.remain>0
+      ? `　📈 残${int(BA.remain)}件／残${BA.left}営業日 → 1日${fine(BA.perDay)}件ペース・このままだと${int(BA.landing)}件で着地\n`
+      : `　🎉 今月の予算は達成済みです\n`;
+  }
+
   // 累計パート
   const A = agg(recs(who?{memberId:who}:{}));
   const remain = Math.max(0, s.apptGoal - A.appts);
@@ -2226,6 +2654,26 @@ function viewSettings(){
   </div>
 
   <div class="card">
+    <h2>📅 月次予算（これだけアポを取る／これだけ訪問する）<span class="spacer"></span>
+      <button class="btn sec sm" onclick="autoBudget()">目標アポ数から自動配分</button></h2>
+    <div class="hint" style="margin:0 0 12px">ここで入れた数字がダッシュボードの予算ラインになります。営業日数に応じて1日あたりの必要数と、本日時点のビハインドが自動計算されます。</div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>月</th><th class="num">営業日数</th><th class="num">アポ獲得の予算</th><th class="num">訪問商談の予算</th><th class="num">1日あたり</th><th class="num">実績（アポ）</th></tr></thead>
+      <tbody>${ymList().map(ym=>{
+        const b=budgetOf(ym), wd=workdaysInMonth(ym), a=monthActual(ym,null);
+        return `<tr>
+          <td>${ym.replace('-','年')}月</td>
+          <td class="num">${wd}日</td>
+          <td class="num"><input type="number" min="0" value="${b.appts||0}" style="width:90px;text-align:right"
+              onchange="setBudget('${ym}','appts',+this.value)"></td>
+          <td class="num"><input type="number" min="0" value="${b.visits||0}" style="width:90px;text-align:right"
+              onchange="setBudget('${ym}','visits',+this.value)"></td>
+          <td class="num">${fine((b.appts||0)/wd)}件</td>
+          <td class="num">${int(a.appts)}件</td></tr>`;}).join('')}
+      </tbody></table></div>
+  </div>
+
+  <div class="card">
     <h2>🎯 KPI・目標設定</h2>
     <div class="grid g3">
       <div class="field"><label class="f">期間 開始日</label><input type="date" value="${s.periodStart}" onchange="S.settings.periodStart=this.value;save();render()"></div>
@@ -2267,6 +2715,16 @@ function viewSettings(){
     </div>
     <div class="hint">データはこの端末のブラウザ（localStorage）に保存されます。担当者ごとに別端末で入力する場合は、各自がJSONを書き出し、管理者側で読み込むと統合できます。</div>
   </div>`;
+}
+function setBudget(ym,k,v){
+  const b=S.settings.budgets;
+  b[ym]=b[ym]||{appts:0,visits:0};
+  b[ym][k]=Math.max(0,v||0);
+  save(); render();
+}
+function autoBudget(){
+  if(!confirm(`目標アポ数 ${S.settings.apptGoal}件を営業日数で各月に配分します。現在の予算は上書きされます。`)) return;
+  S.settings.budgets={}; ensureBudgets(); render(); toast('📅 月次予算を自動配分しました');
 }
 function toggleMission(i,on){
   S.members[i].mission = on
