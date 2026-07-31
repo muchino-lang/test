@@ -163,6 +163,47 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:8px}
 .legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
 
+/* appointment cards */
+.appt{border:1px solid var(--border);border-radius:13px;padding:13px;background:var(--surface-2);margin-bottom:10px}
+.appt .hd2{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.appt .no{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:800;background:var(--s3);color:#fff}
+.appt .hd2 b{flex:1;font-size:13px}
+.appt .grid{gap:10px}
+.appt .field{margin-bottom:0}
+.err{display:block;color:var(--crit);font-size:12.5px;font-weight:700;margin-top:6px}
+.err:empty{display:none}
+input.bad,textarea.bad{border-color:var(--crit);background:color-mix(in srgb,var(--crit) 8%,var(--surface-2))}
+.btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
+.onb{text-align:center;padding:34px 20px}
+.onb .e{font-size:46px}
+.onb h3{font-size:19px;margin:8px 0 6px}
+.onb p{color:var(--ink-2);font-size:14px;margin:0 auto 16px;max-width:460px}
+.steps{display:grid;gap:10px;max-width:520px;margin:0 auto 18px;text-align:left}
+.steps div{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink-2)}
+.steps b{display:grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px}
+
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.cal-h{text-align:center;font-size:12px;font-weight:700;color:var(--ink-2);padding:5px 0}
+.cal-h.sat{color:var(--s1)} .cal-h.sun{color:var(--crit)}
+.cal-c{min-height:88px;border:1px solid var(--border);border-radius:10px;padding:5px 6px;background:var(--surface);cursor:pointer;overflow:hidden;transition:box-shadow .15s}
+.cal-c:hover{box-shadow:0 0 0 2px var(--accent) inset}
+.cal-c.empty-c{background:transparent;border-color:transparent;cursor:default;min-height:0}
+.cal-c.sat{background:color-mix(in srgb,var(--s1) 5%,var(--surface))}
+.cal-c.sun{background:color-mix(in srgb,var(--crit) 5%,var(--surface))}
+.cal-c.today{border-color:var(--accent);border-width:2px}
+.cal-d{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:4px}
+.cal-d .tdot{font-size:9.5px;font-weight:800;background:var(--accent);color:#fff;border-radius:99px;padding:1px 6px}
+.cal-v{display:flex;gap:6px;font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--ink-2);margin-top:2px;flex-wrap:wrap}
+.cal-v .ap{color:var(--good-text);font-weight:800}
+.cal-v.miss{color:var(--muted);font-size:10.5px;font-style:italic}
+.cal-p{margin-top:3px;font-size:10.5px;font-weight:700;line-height:1.35;background:var(--s4);color:#1a1a19;border-radius:5px;padding:2px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:640px){
+  .cal{gap:3px}
+  .cal-c{min-height:66px;padding:3px 4px;border-radius:8px}
+  .cal-d{font-size:11px} .cal-v{font-size:10px;gap:3px} .cal-p{font-size:9px;padding:1px 3px}
+}
+
 /* summary text */
 pre.sum{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-word;font-family:var(--font);font-size:13.5px;line-height:1.75;margin:0}
 
@@ -224,12 +265,16 @@ const DEFAULTS = {
     workWeekend:false     // 土日を営業日に含めるか
   },
   members:[
-    {id:'m_kondo',   name:'近藤',        slot:1, dailyCall:5, dailyAppt:1, active:true,  kind:'社内'},
+    {id:'m_kondo',   name:'近藤',        slot:1, dailyCall:5, dailyAppt:1, active:true,  kind:'社内',
+     mission:{label:'訪問商談アポ', target:30, from:'2026-07-01', to:'2026-08-31'}},
     {id:'m_second',  name:'メンバー2',   slot:2, dailyCall:5, dailyAppt:1, active:false, kind:'社内'},
     {id:'m_partner', name:'パートナー営業', slot:3, dailyCall:0, dailyAppt:1, active:true,  kind:'パートナー'},
     {id:'m_self',    name:'自分',        slot:4, dailyCall:0, dailyAppt:0, active:false, kind:'社内'}
   ],
-  records:[],  // {id,date,memberId,calls,appts,detail,note}
+  // records: {id,date,memberId,calls,appts,note,appointments:[
+  //   {company, apptAt:'YYYY-MM-DDTHH:MM', contact, tel, email, content}
+  // ]}
+  records:[],
   meta:{maxLevelSeen:{}}
 };
 
@@ -242,11 +287,36 @@ function load(){
     return {
       settings:{...DEFAULTS.settings, ...(p.settings||{})},
       members: (p.members&&p.members.length)? p.members : structuredClone(DEFAULTS.members),
-      records: p.records||[],
+      records: (p.records||[]).map(migrateRecord),
       meta:{maxLevelSeen:{}, ...(p.meta||{})}
     };
   }catch(e){ console.warn(e); return structuredClone(DEFAULTS); }
 }
+/* 旧形式（アポ先をテキスト1行で保持）→ 構造化アポ情報へ移行 */
+function migrateRecord(r){
+  if(Array.isArray(r.appointments)) return r;
+  const lines = String(r.detail||'').split(/[\n\/／]/).map(s=>s.trim()).filter(Boolean);
+  const n = Math.max(+r.appts||0, 0);
+  const appointments = [];
+  for(let i=0;i<n;i++) appointments.push(blankAppt({company: lines[i]||''}));
+  delete r.detail;
+  return {...r, appointments};
+}
+function blankAppt(o={}){ return {company:'', apptAt:'', contact:'', tel:'', email:'', content:'', ...o}; }
+/* 全アポを1次元に展開（記録日・担当者つき） */
+function allAppointments(filter={}){
+  const out=[];
+  recs(filter).forEach(r=>(r.appointments||[]).forEach((a,i)=>{
+    out.push({...a, recId:r.id, idx:i, date:r.date, memberId:r.memberId});
+  }));
+  return out;
+}
+function apptLabel(a){
+  if(!a.apptAt) return '日時未定';
+  const [dt,tm] = a.apptAt.split('T');
+  return `${jp(dt)} ${tm||''}`.trim();
+}
+function isUpcoming(a){ return a.apptAt && a.apptAt.slice(0,10) >= TODAY(); }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
 
 /* ---------- 汎用ユーティリティ ---------- */
@@ -329,6 +399,58 @@ function apptStreak(memberId){
   return n;
 }
 
+/* ---------- ミッション（期限付きの個別目標） ---------- */
+function workdaysBetween(from,to){ return dateRangeArr(from,to).filter(isWorkday).length; }
+function missionStats(m){
+  const ms = m.mission;
+  if(!ms || !ms.target) return null;
+  const got = agg(recs({memberId:m.id, from:ms.from, to:ms.to})).appts;
+  const remain = Math.max(0, ms.target - got);
+  const today = TODAY();
+  const overdue = today > ms.to;
+  // 残営業日（今日を含む・期限まで）
+  const leftDays = overdue ? 0 : workdaysBetween(today < ms.from ? ms.from : today, ms.to);
+  const totalDays = workdaysBetween(ms.from, ms.to) || 1;
+  const elapsed = Math.min(totalDays, workdaysBetween(ms.from, today < ms.to ? today : ms.to));
+  const shouldHave = ms.target * (elapsed/totalDays);      // 今日時点であるべき件数
+  const perDay = leftDays>0 ? remain/leftDays : remain;
+  const perWeek = perDay * 5;
+  const needCalls = Math.ceil(remain / (S.settings.apptRateGoal||0.3));
+  return {...ms, got, remain, leftDays, totalDays, elapsed, shouldHave,
+          diff:got-shouldHave, perDay, perWeek, needCalls, overdue,
+          done:got>=ms.target, ratio:pct(got,ms.target)};
+}
+function missionCard(m){
+  const x = missionStats(m); if(!x) return '';
+  const state = x.done ? {c:'var(--good)', t:'🎉 達成！', p:'ok'}
+              : x.overdue ? {c:'var(--crit)', t:'⏰ 期限超過', p:'ng'}
+              : x.diff>=0 ? {c:'var(--good)', t:'✅ 予定どおり', p:'ok'}
+                          : {c:'var(--warn)', t:'⚠ 遅れ気味', p:'ng'};
+  return `<div class="card" style="margin-top:14px;border-color:${state.c}">
+    <h2>🎯 ${esc(m.name)}のミッション：${esc(x.label)} ${x.target}件<span class="spacer"></span>
+      <span class="pill ${state.p}">${state.t}</span>
+      <span class="pill">期限 ${jpFull(x.to)}</span></h2>
+    <div class="meter" style="height:16px;position:relative">
+      <i style="width:${Math.min(100,x.ratio).toFixed(1)}%;background:linear-gradient(90deg,var(--s1),${state.c})"></i>
+      <span style="position:absolute;left:${Math.min(99,pct(x.elapsed,x.totalDays)).toFixed(1)}%;top:-3px;width:2px;height:22px;background:var(--ink);opacity:.55" title="本日の想定ペース位置"></span>
+    </div>
+    <div class="grid g4" style="margin-top:14px">
+      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">獲得済み</div>
+        <div style="font-size:26px;font-weight:800">${int(x.got)}<small style="font-size:13px"> / ${x.target}件</small></div>
+        <div class="sub" style="font-size:12px;color:var(--ink-2)">達成率 ${x.ratio.toFixed(1)}%</div></div>
+      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">残り</div>
+        <div style="font-size:26px;font-weight:800">${int(x.remain)}<small style="font-size:13px">件</small></div>
+        <div class="sub" style="font-size:12px;color:var(--ink-2)">残 ${x.leftDays}営業日</div></div>
+      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">必要ペース</div>
+        <div style="font-size:26px;font-weight:800">${x.done?'—':fine(x.perDay)}<small style="font-size:13px">件/日</small></div>
+        <div class="sub" style="font-size:12px;color:var(--ink-2)">${x.done?'達成済み':`週 ${fine(x.perWeek)}件 ・ 架電 約${int(x.needCalls)}件`}</div></div>
+      <div><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600">ペース差</div>
+        <div style="font-size:26px;font-weight:800" class="${x.diff>=0?'up':'down'}">${x.diff>=0?'+':''}${fmt(x.diff)}<small style="font-size:13px">件</small></div>
+        <div class="sub" style="font-size:12px;color:var(--ink-2)">本日の想定 ${fmt(x.shouldHave)}件に対し</div></div>
+    </div>
+  </div>`;
+}
+
 /* ---------- XP / レベル ---------- */
 const XP_CALL = 10, XP_APPT = 250, XP_DAY_BONUS = 50, XP_QUEST = 100;
 function xpOf(memberId){
@@ -397,6 +519,8 @@ function badgeStats(memberId){
 const TABS = [
   ['dash','📊 ダッシュボード'],
   ['input','✍️ 実績入力'],
+  ['cal','🗓 カレンダー'],
+  ['appts','📅 アポ一覧'],
   ['history','📒 履歴・出力'],
   ['report','💬 レポート'],
   ['settings','⚙️ 設定']
@@ -410,7 +534,7 @@ function render(){
     `<button role="tab" aria-selected="${k===tab}" onclick="go('${k}')">${l}</button>`).join('');
   renderLevelBox();
   const v = document.getElementById('view');
-  v.innerHTML = ({dash:viewDash, input:viewInput, history:viewHistory, report:viewReport, settings:viewSettings})[tab]();
+  v.innerHTML = ({dash:viewDash, input:viewInput, cal:viewCal, appts:viewAppts, history:viewHistory, report:viewReport, settings:viewSettings})[tab]();
   if(tab==='dash') mountDash();
   if(tab==='input') mountInput();
   window.scrollTo({top:0});
@@ -437,10 +561,17 @@ function rangeBounds(){
   if(dashRange==='month'){ const t=TODAY().slice(0,7); return {from:t+'-01', to:t+'-31'}; }
   return {from:addDays(TODAY(),-(dashRange-1)), to:TODAY()};
 }
+function rangeLabel(){
+  return dashRange==='period' ? '期間全体' : dashRange==='month' ? '今月'
+       : `直近${dashRange}日`;
+}
 function viewDash(){
   const who = dashMember==='all'? null : dashMember;
+  if(!S.records.length) return onboardingHTML();
   const all = recs(who?{memberId:who}:{});                 // 期間全体（累計）
   const A = agg(all);
+  const RB = rangeBounds();
+  const R = agg(recs({...(who?{memberId:who}:{}), from:RB.from, to:RB.to}));  // 選択期間
   const todayList = recs({...(who?{memberId:who}:{}), from:TODAY(), to:TODAY()});
   const T = agg(todayList);
   const goal = S.settings.apptGoal;
@@ -474,8 +605,10 @@ function viewDash(){
     ${tile('本日の想定粗利', moneyS(T.gross), `成約 ${fmt(T.deals)}校 相当`, 4)}
   </div>
 
+  ${(who? [memberById(who)] : activeMembers()).map(missionCard).join('')}
+
   <div class="card" style="margin-top:14px">
-    <h2>🎯 目標アポ ${goal}件への進捗<span class="spacer"></span>
+    <h2>🎯 目標アポ ${goal}件への進捗（期間全体）<span class="spacer"></span>
       <span class="pill ${A.appts>=goal?'ok':''}">${int(A.appts)} / ${goal} 件</span></h2>
     <div class="meter" style="height:14px"><i style="width:${Math.min(100,pct(A.appts,goal)).toFixed(1)}%;background:linear-gradient(90deg,var(--s1),var(--s3))"></i></div>
     <div class="grid g4" style="margin-top:14px">
@@ -491,22 +624,25 @@ function viewDash(){
     </div>
   </div>
 
-  <div class="grid g4" style="margin-top:14px">
-    ${tile('累計 架電数', int(A.calls)+'<small>件</small>', `稼働 ${A.days}日`, 1)}
-    ${tile('累計 アポ数', int(A.appts)+'<small>件</small>', `1日平均 ${fmt(A.days? A.appts/A.days:0)}件`, 3)}
-    ${tile('累計 アポ率', A.calls? A.rate.toFixed(1)+'<small>%</small>':'—',
-        `目標 ${rateGoal.toFixed(0)}% <span class="${rateOK?'up':'down'}">${A.calls? (rateOK?'+':'')+ (A.rate-rateGoal).toFixed(1)+'pt':''}</span>`, 2)}
-    ${tile('累計 想定粗利', moneyS(A.gross), `想定成約 ${fmt(A.deals)}校 / 1アポ ${moneyS(grossPerAppt())}`, 4)}
-  </div>
-
   <div class="card" style="margin-top:14px">
     <h2>🔥 本日のクエスト<span class="spacer"></span><span class="pill">${questDone(who)}/3 達成</span></h2>
     <div class="grid g3" id="quests">${questsHTML(who)}</div>
   </div>
 
-  <div class="row" style="margin:18px 0 10px">${rangeChips}</div>
+  <div class="row" style="margin:20px 0 10px">
+    <span style="font-size:13px;font-weight:700;color:var(--ink-2);margin-right:4px">集計期間</span>${rangeChips}
+    <span class="hint" style="margin:0">↓ 以下の数値・グラフ・ランキングがこの期間に連動します</span>
+  </div>
 
-  <div class="grid g2">
+  <div class="grid g4">
+    ${tile(`${rangeLabel()} 架電数`, int(R.calls)+'<small>件</small>', `稼働 ${R.days}日（累計 ${int(A.calls)}件）`, 1)}
+    ${tile(`${rangeLabel()} アポ数`, int(R.appts)+'<small>件</small>', `1日平均 ${fmt(R.days? R.appts/R.days:0)}件（累計 ${int(A.appts)}件）`, 3)}
+    ${tile(`${rangeLabel()} アポ率`, R.calls? R.rate.toFixed(1)+'<small>%</small>':'—',
+        `目標 ${rateGoal.toFixed(0)}% <span class="${R.rate>=rateGoal?'up':'down'}">${R.calls? (R.rate>=rateGoal?'+':'')+ (R.rate-rateGoal).toFixed(1)+'pt':''}</span>（累計 ${pctS(A.appts,A.calls)}）`, 2)}
+    ${tile(`${rangeLabel()} 想定粗利`, moneyS(R.gross), `想定成約 ${fmt(R.deals)}校（累計 ${moneyS(A.gross)}）`, 4)}
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
     <div class="card chartbox">
       <h2>📈 日次の架電数・アポ数（件）</h2>
       <div id="chartDaily"></div>
@@ -526,19 +662,61 @@ function viewDash(){
       <div class="legend"><span><i style="background:var(--s1)"></i>累計アポ（実績）</span><span><i style="background:var(--axis)"></i>目標ペース</span></div>
     </div>
     <div class="card">
-      <h2>🏆 ランキング（累計アポ数）</h2>
-      <div id="rankList">${rankHTML()}</div>
+      <h2>🏆 ランキング（${rangeLabel()}のアポ数）</h2>
+      <div id="rankList">${rankHTML(RB)}</div>
     </div>
   </div>
 
+  ${upcomingHTML(who)}
+
   <div class="card" style="margin-top:14px">
-    <h2>🎖 称号コレクション<span class="spacer"></span><span class="pill">${badgeCount(who)}/${BADGES.length}</span></h2>
+    <h2>🎖 称号コレクション（通算）<span class="spacer"></span><span class="pill">${badgeCount(who)}/${BADGES.length}</span></h2>
     <div class="badges">${badgesHTML(who)}</div>
   </div>
 
   <div class="card" style="margin-top:14px">
     <h2>🗓 月次サマリー（データ表）</h2>
     ${monthTableHTML(who)}
+  </div>`;
+}
+/* ④ 初回オンボーディング：空データのときは次の一手を示す */
+function onboardingHTML(){
+  const s=S.settings, ms=activeMembers();
+  return `<div class="card" style="margin-top:16px"><div class="onb">
+    <div class="e">🚀</div>
+    <h3>ようこそ！まずは今日の架電数を登録しましょう</h3>
+    <p>実績を1件登録すると、アポ率・想定粗利・目標達成率・グラフ・称号がすべて自動で動き出します。</p>
+    <div class="steps">
+      <div><b>1</b><span><strong>「✍️ 実績入力」</strong>で今日の架電数を入れる（アポが取れていればアポ数も）</span></div>
+      <div><b>2</b><span>アポ数を1以上にすると<strong>会社名・アポ日時・先方担当者・電話・メール</strong>の入力欄が出ます</span></div>
+      <div><b>3</b><span><strong>「💬 レポート」</strong>でチャット報告用の文章をコピーして共有</span></div>
+      <div><b>4</b><span>設定タブで目標（現在：アポ${s.apptGoal}件／アポ率${(s.apptRateGoal*100).toFixed(0)}%）とメンバーを調整</span></div>
+    </div>
+    <div class="row" style="justify-content:center">
+      <button class="btn" onclick="go('input')">✍️ 今日の実績を入力する</button>
+      <button class="btn sec" onclick="go('settings')">⚙️ 目標・メンバー設定</button>
+    </div>
+    <div class="hint">現在のメンバー：${ms.length? ms.map(m=>esc(m.name)).join('・') : '未設定'}</div>
+  </div></div>`;
+}
+/* 今後のアポ予定 */
+function upcomingHTML(who){
+  const up = allAppointments(who?{memberId:who}:{}).filter(isUpcoming)
+              .sort((a,b)=>a.apptAt<b.apptAt?-1:1);
+  const tbd = allAppointments(who?{memberId:who}:{}).filter(a=>!a.apptAt && a.company);
+  if(!up.length && !tbd.length) return '';
+  const card = a=>{ const m=memberById(a.memberId);
+    return `<div class="quest">
+      <div class="ic">${isUpcoming(a)?'📅':'❓'}</div>
+      <div class="tx"><b>${esc(a.company||'(未入力)')}</b>
+        <span>${esc(apptLabel(a))}${a.contact?` ／ ${esc(a.contact)}`:''}</span></div>
+      <span class="pill"><span class="swatch" style="background:${slotVar(m.slot)}"></span>${esc(m.name)}</span>
+    </div>`;};
+  return `<div class="card" style="margin-top:14px">
+    <h2>📅 今後のアポ予定<span class="spacer"></span>
+      <span class="pill">${up.length}件${tbd.length?` ・日時未定 ${tbd.length}件`:''}</span>
+      <button class="btn sec sm" onclick="go('appts')">一覧を見る</button></h2>
+    <div class="grid g2">${[...up.slice(0,6), ...tbd.slice(0,2)].map(card).join('')}</div>
   </div>`;
 }
 function tile(lbl,val,sub,slot){
@@ -580,9 +758,9 @@ function badgesHTML(who){
     return `<div class="badge ${on?'on':''}" title="${esc(b.d)}"><div class="e">${b.e}</div><b>${b.n}</b><span>${esc(b.d)}</span></div>`;}).join('');
 }
 function badgeCount(who){ const st=badgeStats(who); return BADGES.filter(b=>b.f(st)).length; }
-function rankHTML(){
+function rankHTML(rb){
   const rows = activeMembers().map(m=>{
-    const a = agg(recs({memberId:m.id}));
+    const a = agg(recs({memberId:m.id, ...(rb?{from:rb.from,to:rb.to}:{})}));
     return {m, ...a, xp:xpOf(m.id), st:streak(m.id)};
   }).sort((a,b)=> b.appts-a.appts || b.calls-a.calls);
   if(!rows.length) return `<div class="empty">設定タブでメンバーを有効にしてください</div>`;
@@ -632,8 +810,10 @@ function seriesForRange(){
   return dates.map(dt=>({date:dt, calls:map.get(dt)?.calls||0, appts:map.get(dt)?.appts||0, has:map.has(dt)}));
 }
 function mountDash(){
+  const hostD=document.getElementById('chartDaily');
+  if(!hostD) return;                       // オンボーディング表示中はグラフなし
   const data = seriesForRange();
-  drawDaily(document.getElementById('chartDaily'), data);
+  drawDaily(hostD, data);
   drawRate(document.getElementById('chartRate'), data);
   drawCum(document.getElementById('chartCum'));
 }
@@ -759,10 +939,20 @@ function drawCum(host){
 /* ---------------- 実績入力 ---------------- */
 let inputDate = TODAY();
 let inputMember = null;
+let apptDraft = [];        // 入力中のアポ明細
+let draftKey = '';         // 日付+担当者。変わったらドラフトを読み直す
+function loadDraft(){
+  const key = inputDate+'|'+inputMember;
+  if(key===draftKey) return;
+  draftKey = key;
+  const ex = S.records.find(r=>r.date===inputDate && r.memberId===inputMember);
+  apptDraft = (ex?.appointments||[]).map(a=>({...a}));
+}
 function viewInput(){
   const ms = activeMembers();
   if(!inputMember || !ms.find(m=>m.id===inputMember)) inputMember = ms[0]?.id || '';
   if(!ms.length) return `<div class="card" style="margin-top:16px"><div class="empty">⚙️ 設定タブでメンバーを有効にしてください。</div></div>`;
+  loadDraft();
   const ex = S.records.find(r=>r.date===inputDate && r.memberId===inputMember);
   return `
   <div class="card" style="margin-top:16px">
@@ -783,31 +973,42 @@ function viewInput(){
     </div>
 
     <div class="grid g2">
-      <div class="field"><label class="f">📞 架電数</label>
-        <div class="stepper"><button type="button" onclick="step('iCalls',-1)">−</button>
-          <input type="number" id="iCalls" min="0" value="${ex?ex.calls:0}" oninput="liveCalc()">
-          <button type="button" onclick="step('iCalls',1)">＋</button></div>
-        <div class="row" style="margin-top:8px">${[5,10,20].map(n=>`<button class="chip" onclick="bump('iCalls',${n})">+${n}</button>`).join('')}</div>
+      <div class="field"><label class="f" for="iCalls">📞 架電数</label>
+        <div class="stepper"><button type="button" tabindex="-1" onclick="step('iCalls',-1)">−</button>
+          <input type="number" id="iCalls" min="0" inputmode="numeric" autofocus
+                 value="${ex?ex.calls:0}" oninput="liveCalc()" onfocus="this.select()"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('iAppts').focus()}">
+          <button type="button" tabindex="-1" onclick="step('iCalls',1)">＋</button></div>
+        <div class="row" style="margin-top:8px">${[5,10,20].map(n=>`<button class="chip" tabindex="-1" onclick="bump('iCalls',${n})">+${n}</button>`).join('')}</div>
       </div>
-      <div class="field"><label class="f">🤝 アポ獲得数</label>
-        <div class="stepper"><button type="button" onclick="step('iAppts',-1)">−</button>
-          <input type="number" id="iAppts" min="0" value="${ex?ex.appts:0}" oninput="liveCalc()">
-          <button type="button" onclick="step('iAppts',1)">＋</button></div>
+      <div class="field"><label class="f" for="iAppts">🤝 アポ獲得数</label>
+        <div class="stepper"><button type="button" tabindex="-1" onclick="step('iAppts',-1)">−</button>
+          <input type="number" id="iAppts" min="0" inputmode="numeric"
+                 value="${ex?ex.appts:apptDraft.length}" oninput="syncApptCount()" onfocus="this.select()"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();focusFirstAppt()}">
+          <button type="button" tabindex="-1" onclick="step('iAppts',1)">＋</button></div>
+        <span class="err" id="errAppts"></span>
       </div>
     </div>
 
     <div class="card" style="background:var(--surface-2);margin:4px 0 14px" id="liveCard"></div>
 
-    <div class="field"><label class="f">アポ先・場所（1行1件で入力するとレポートに載ります）</label>
-      <textarea id="iDetail" placeholder="例）大阪産業大学／京都◯◯高校 — 8/5 14:00 訪問">${esc(ex?.detail||'')}</textarea></div>
+    <div class="sec-title" style="margin-top:0">📋 アポ内容（レポート・アポ一覧に反映されます）</div>
+    <div id="apptCards"></div>
+    <div class="row" style="margin-bottom:14px">
+      <button class="btn sec sm" type="button" onclick="addAppt()">＋ アポを1件追加</button>
+      <span class="hint">件数はアポ獲得数と自動で連動します</span>
+    </div>
+
     <div class="field"><label class="f">メモ・所感（任意）</label>
       <input type="text" id="iNote" value="${esc(ex?.note||'')}" placeholder="例）担当不在が多い。午前より15時以降が繋がりやすい"></div>
 
     <div class="row">
-      <button class="btn" onclick="saveRecord()">${ex?'💾 更新する':'💾 保存する'}</button>
+      <button class="btn" id="saveBtn" onclick="saveRecord()">${ex?'💾 更新する':'💾 保存する'}</button>
       ${ex?`<button class="btn sec" onclick="deleteRecord('${ex.id}')">削除</button>`:''}
       <span class="hint">保存はこの端末のブラウザに残ります（履歴タブからバックアップ可）</span>
     </div>
+    <span class="err" id="errSave"></span>
   </div>
 
   <div class="card">
@@ -815,12 +1016,128 @@ function viewInput(){
     ${recentGrid(inputMember)}
   </div>`;
 }
-function mountInput(){ liveCalc(); }
-function step(id,n){ const el=document.getElementById(id); el.value=Math.max(0,(+el.value||0)+n); liveCalc(); }
+function mountInput(){
+  renderApptCards(); liveCalc();
+  // innerHTML で差し込んだ要素には autofocus が効かないので明示的に当てる
+  const el=document.getElementById('iCalls');
+  // スマホ・タブレットでは勝手にキーボードが出ないよう当てない
+  if(el && !matchMedia('(hover:none), (pointer:coarse)').matches){ el.focus(); el.select(); }
+}
+function step(id,n){
+  const el=document.getElementById(id); el.value=Math.max(0,(+el.value||0)+n);
+  if(id==='iAppts') syncApptCount(); else liveCalc();
+}
 function bump(id,n){ step(id,n); }
+
+/* ---- アポ明細カード ---- */
+const APPT_FIELDS = [
+  ['company','会社・学校名','text','例）大阪産業大学',true],
+  ['apptAt','アポ日時','datetime-local','',false],
+  ['contact','先方担当者名','text','例）情報システム課 田中様',false],
+  ['tel','連絡先（電話）','tel','例）06-1234-5678',false],
+  ['email','メールアドレス','email','例）tanaka@example.ac.jp',false],
+  ['content','商談内容・メモ','text','例）PC40台の更新時期。次回デモ希望',false]
+];
+function syncApptDraftFromDOM(){
+  document.querySelectorAll('#apptCards [data-ai]').forEach(el=>{
+    const i=+el.dataset.ai, k=el.dataset.ak;
+    if(apptDraft[i]) apptDraft[i][k]=el.value;
+  });
+}
+function renderApptCards(){
+  const host=document.getElementById('apptCards'); if(!host) return;
+  if(!apptDraft.length){
+    host.innerHTML=`<div class="empty" style="border:1px dashed var(--border);border-radius:12px;padding:18px">
+      アポ獲得数を1以上にすると、アポ内容の入力欄が出ます。</div>`;
+    return;
+  }
+  host.innerHTML = apptDraft.map((a,i)=>`
+    <div class="appt">
+      <div class="hd2"><span class="no">${i+1}</span><b>アポ ${i+1}件目</b>
+        <button class="btn sec sm" type="button" tabindex="-1" onclick="removeAppt(${i})">削除</button></div>
+      <div class="grid g2">
+        ${APPT_FIELDS.map(([k,label,type,ph,req])=>`
+          <div class="field"${k==='content'?' style="grid-column:1/-1"':''}>
+            <label class="f">${label}${req?' <span style="color:var(--crit)">*</span>':''}</label>
+            <input type="${type}" data-ai="${i}" data-ak="${k}" value="${esc(a[k]||'')}"
+                   placeholder="${ph}" oninput="onApptInput()">
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function onApptInput(){ syncApptDraftFromDOM(); validate(); }
+function addAppt(){
+  syncApptDraftFromDOM();
+  apptDraft.push(blankAppt());
+  document.getElementById('iAppts').value = apptDraft.length;
+  renderApptCards(); liveCalc(); focusAppt(apptDraft.length-1);
+}
+function removeAppt(i){
+  syncApptDraftFromDOM();
+  const a=apptDraft[i];
+  const filled = a && Object.values(a).some(v=>String(v||'').trim());
+  if(filled && !confirm(`${a.company||`${i+1}件目`} の入力内容を削除しますか？`)) return;
+  apptDraft.splice(i,1);
+  document.getElementById('iAppts').value = apptDraft.length;
+  renderApptCards(); liveCalc();
+}
+function syncApptCount(){
+  syncApptDraftFromDOM();
+  const n = Math.max(0, +document.getElementById('iAppts').value||0);
+  if(n > apptDraft.length){ while(apptDraft.length<n) apptDraft.push(blankAppt()); }
+  else if(n < apptDraft.length){
+    // 末尾から減らす。入力済みのカードを消す場合だけ確認する
+    while(apptDraft.length>n){
+      const a=apptDraft[apptDraft.length-1];
+      if(Object.values(a).some(v=>String(v||'').trim()) &&
+         !confirm(`入力済みの「${a.company||'未入力のアポ'}」を削除して ${n}件にしますか？`)){
+        document.getElementById('iAppts').value = apptDraft.length; break;
+      }
+      apptDraft.pop();
+    }
+  }
+  renderApptCards(); liveCalc();
+}
+function focusAppt(i){ document.querySelector(`#apptCards [data-ai="${i}"][data-ak="company"]`)?.focus(); }
+function focusFirstAppt(){ if(apptDraft.length) focusAppt(0); else document.getElementById('iNote')?.focus(); }
+
+/* ---- インラインバリデーション ---- */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function validate(){
+  const c=+document.getElementById('iCalls')?.value||0;
+  const a=+document.getElementById('iAppts')?.value||0;
+  const errs=[];
+  const eA=document.getElementById('errAppts'), eS=document.getElementById('errSave');
+  const iA=document.getElementById('iAppts');
+  if(!eA) return true;
+
+  // ① アポ数 > 架電数
+  let msg='';
+  if(a>c){ msg=`架電数（${c}件）より多いアポ数は入力できません`; errs.push(msg); }
+  eA.textContent=msg; iA.classList.toggle('bad', !!msg);
+
+  // ② 必須項目・形式チェック
+  document.querySelectorAll('#apptCards [data-ai]').forEach(el=>{
+    const k=el.dataset.ak, v=el.value.trim(); let bad=false;
+    if(k==='company' && !v){ bad=true; }
+    if(k==='email' && v && !EMAIL_RE.test(v)){ bad=true; }
+    el.classList.toggle('bad', bad);
+  });
+  const noName = apptDraft.some(x=>!String(x.company||'').trim());
+  if(noName) errs.push('アポの「会社・学校名」は必須です');
+  const badMail = apptDraft.find(x=>x.email && !EMAIL_RE.test(x.email));
+  if(badMail) errs.push(`メールアドレスの形式を確認してください（${badMail.email}）`);
+
+  eS.textContent = errs.length ? '⚠ '+errs.join(' / ') : '';
+  const btn=document.getElementById('saveBtn');
+  if(btn) btn.disabled = errs.length>0;
+  return errs.length===0;
+}
+
 function liveCalc(){
   const c=+document.getElementById('iCalls')?.value||0, a=+document.getElementById('iAppts')?.value||0;
   const box=document.getElementById('liveCard'); if(!box) return;
+  validate();
   const g=S.settings.apptRateGoal*100, r=pct(a,c);
   const m=memberById(inputMember);
   const xp=c*XP_CALL+a*XP_APPT+XP_DAY_BONUS+((c>0&&r>=g)?XP_QUEST:0);
@@ -853,17 +1170,18 @@ function recentGrid(mid){
   <div class="hint">表示は「架電数/アポ数」。クリックでその日の入力に切り替わります。</div>`;
 }
 function saveRecord(){
+  syncApptDraftFromDOM();
+  if(!validate()){ document.getElementById('errSave').scrollIntoView({block:'center'}); return; }
   const calls=+document.getElementById('iCalls').value||0;
   const appts=+document.getElementById('iAppts').value||0;
-  const detail=document.getElementById('iDetail').value.trim();
   const note=document.getElementById('iNote').value.trim();
-  if(appts>calls && calls>0 && !confirm('アポ数が架電数を上回っています。このまま保存しますか？')) return;
+  const appointments = apptDraft.map(a=>({...blankAppt(), ...a}));
 
   const beforeXp = xpOf(inputMember), beforeLv = levelOf(beforeXp).level;
   const ex = S.records.find(r=>r.date===inputDate && r.memberId===inputMember);
-  if(ex){ Object.assign(ex,{calls,appts,detail,note,updatedAt:Date.now()}); }
-  else { S.records.push({id:uid(),date:inputDate,memberId:inputMember,calls,appts,detail,note,createdAt:Date.now()}); }
-  save();
+  if(ex){ Object.assign(ex,{calls,appts,note,appointments,updatedAt:Date.now()}); }
+  else { S.records.push({id:uid(),date:inputDate,memberId:inputMember,calls,appts,note,appointments,createdAt:Date.now()}); }
+  save(); draftKey='';
 
   const afterLv = levelOf(xpOf(inputMember)).level;
   if(appts>0) confetti();
@@ -881,6 +1199,160 @@ function deleteRecord(id){
   S.records=S.records.filter(r=>r.id!==id); save(); toast('🗑 削除しました'); render();
 }
 
+/* ---------------- カレンダー ---------------- */
+let calMonth = TODAY().slice(0,7);
+let calMember = 'all';
+function shiftMonth(n){
+  const [y,m]=calMonth.split('-').map(Number);
+  const t=new Date(y, m-1+n, 1);
+  calMonth = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}`;
+  render();
+}
+function viewCal(){
+  const who = calMember==='all'? null : calMember;
+  const [y,mo] = calMonth.split('-').map(Number);
+  const first = new Date(y,mo-1,1), last = new Date(y,mo,0);
+  const from = `${calMonth}-01`, to = `${calMonth}-${String(last.getDate()).padStart(2,'0')}`;
+
+  const dayRec = new Map();   // 日付 → {calls,appts}
+  recs({...(who?{memberId:who}:{}), from, to}).forEach(r=>{
+    const o=dayRec.get(r.date)||{calls:0,appts:0,members:new Set()};
+    o.calls+=+r.calls||0; o.appts+=+r.appts||0; o.members.add(r.memberId); dayRec.set(r.date,o);
+  });
+  const dayPlan = new Map(); // 訪問予定日 → [appt]
+  allAppointments(who?{memberId:who}:{}).forEach(a=>{
+    if(!a.apptAt) return; const dt=a.apptAt.slice(0,10);
+    if(dt<from||dt>to) return;
+    (dayPlan.get(dt)||dayPlan.set(dt,[]).get(dt)).push(a);
+  });
+
+  const monthAgg = agg(recs({...(who?{memberId:who}:{}), from, to}));
+  const maxA = Math.max(1, ...[...dayRec.values()].map(o=>o.appts));
+
+  // セル生成（月曜始まり）
+  const lead = (first.getDay()+6)%7;
+  const cells=[];
+  for(let i=0;i<lead;i++) cells.push(null);
+  for(let dd=1; dd<=last.getDate(); dd++) cells.push(`${calMonth}-${String(dd).padStart(2,'0')}`);
+  while(cells.length%7) cells.push(null);
+
+  const memberChips = ['all',...activeMembers().map(m=>m.id)].map(id=>
+    `<button class="chip" aria-pressed="${calMember===id}" onclick="calMember='${id}';render()">${id==='all'?'👥 全員':esc(memberById(id).name)}</button>`).join('');
+
+  const missions = (who? [memberById(who)] : activeMembers()).map(missionCard).join('');
+
+  return `
+  <div class="row" style="margin:16px 0 10px">${memberChips}</div>
+  ${missions}
+
+  <div class="card" style="margin-top:14px">
+    <h2>
+      <button class="iconbtn" onclick="shiftMonth(-1)">←</button>
+      <span style="font-size:17px;color:var(--ink);font-weight:800">${y}年${mo}月</span>
+      <button class="iconbtn" onclick="shiftMonth(1)">→</button>
+      <button class="btn sec sm" onclick="calMonth='${TODAY().slice(0,7)}';render()">今月</button>
+      <span class="spacer"></span>
+      <span class="pill">📞 ${int(monthAgg.calls)}件</span>
+      <span class="pill">🤝 ${int(monthAgg.appts)}件</span>
+      <span class="pill">${pctS(monthAgg.appts,monthAgg.calls)}</span>
+      <span class="pill">💰 ${moneyS(monthAgg.gross)}</span>
+    </h2>
+
+    <div class="cal">
+      ${['月','火','水','木','金','土','日'].map((w,i)=>
+        `<div class="cal-h${i===5?' sat':i===6?' sun':''}">${w}</div>`).join('')}
+      ${cells.map(dt=>{
+        if(!dt) return `<div class="cal-c empty-c"></div>`;
+        const o = dayRec.get(dt), plans = dayPlan.get(dt)||[];
+        const dow = d(dt).getDay();
+        const isToday = dt===TODAY();
+        const heat = o&&o.appts>0 ? 0.10+0.45*(o.appts/maxA) : 0;
+        return `<div class="cal-c${dow===6?' sat':dow===0?' sun':''}${isToday?' today':''}"
+             style="${heat?`background:color-mix(in srgb,var(--s3) ${(heat*100).toFixed(0)}%,var(--surface))`:''}"
+             onclick="jumpTo('${dt}')" title="クリックでこの日の実績入力へ">
+          <div class="cal-d">${+dt.slice(-2)}${isToday?'<span class="tdot">今日</span>':''}</div>
+          ${o? `<div class="cal-v"><span>📞${o.calls}</span><span class="${o.appts?'ap':''}">🤝${o.appts}</span></div>`
+             : (isWorkday(dt) && dt<=TODAY() ? `<div class="cal-v miss">未入力</div>` : '')}
+          ${plans.map(a=>`<div class="cal-p" title="${esc((a.contact||'')+' '+(a.content||''))}">
+              ${a.apptAt.slice(11)||''} ${esc(a.company||'(未入力)')}</div>`).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="legend" style="margin-top:12px">
+      <span><i style="background:color-mix(in srgb,var(--s3) 45%,var(--surface));border:1px solid var(--border)"></i>色が濃いほどアポ獲得数が多い日</span>
+      <span><i style="background:var(--s4)"></i>📅 帯は訪問予定（アポ日時）</span>
+      <span>📞 架電数 ／ 🤝 アポ獲得数</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 ${y}年${mo}月の記録（データ表）</h2>
+    ${calTable(from,to,who)}
+  </div>`;
+}
+function calTable(from,to,who){
+  const list = byDate(recs({...(who?{memberId:who}:{}), from, to}));
+  if(!list.length) return `<div class="empty">この月の実績はまだありません。カレンダーの日付をクリックすると入力画面に移動します。</div>`;
+  let cum=0;
+  return `<div class="tablewrap"><table>
+    <thead><tr><th>日付</th><th class="num">架電</th><th class="num">アポ</th><th class="num">アポ率</th><th class="num">月内累計アポ</th><th>訪問予定</th></tr></thead>
+    <tbody>${list.map(x=>{ cum+=x.appts;
+      const plans = allAppointments(who?{memberId:who}:{}).filter(a=>a.date===x.date);
+      return `<tr><td>${jpFull(x.date)}</td><td class="num">${int(x.calls)}</td><td class="num">${int(x.appts)}</td>
+        <td class="num">${pctS(x.appts,x.calls)}</td><td class="num">${int(cum)}</td>
+        <td style="white-space:normal">${plans.map(a=>esc(a.company||'(未入力)')+(a.apptAt?` <span style="color:var(--ink-2)">${esc(apptLabel(a))}</span>`:'')).join('、')}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+function jumpTo(dt){ inputDate=dt; if(calMember!=='all') inputMember=calMember; draftKey=''; go('input'); }
+
+/* ---------------- アポ一覧 ---------------- */
+let apFilter='all', apMember='all';
+function viewAppts(){
+  let list = allAppointments(apMember==='all'?{}:{memberId:apMember});
+  const up = list.filter(isUpcoming).sort((a,b)=>a.apptAt<b.apptAt?-1:1);
+  const done = list.filter(a=>a.apptAt && !isUpcoming(a)).sort((a,b)=>a.apptAt<b.apptAt?1:-1);
+  const tbd = list.filter(a=>!a.apptAt);
+  const shown = apFilter==='up'? up : apFilter==='done'? done : apFilter==='tbd'? tbd
+              : [...up, ...tbd, ...done];
+
+  const memberChips = ['all',...activeMembers().map(m=>m.id)].map(id=>
+    `<button class="chip" aria-pressed="${apMember===id}" onclick="apMember='${id}';render()">${id==='all'?'👥 全員':esc(memberById(id).name)}</button>`).join('');
+  const fchips = [['all',`すべて (${list.length})`],['up',`📅 今後の予定 (${up.length})`],['done',`実施済 (${done.length})`],['tbd',`日時未定 (${tbd.length})`]].map(([k,l])=>
+    `<button class="chip" aria-pressed="${apFilter===k}" onclick="apFilter='${k}';render()">${l}</button>`).join('');
+
+  if(!list.length) return `<div class="card" style="margin-top:16px"><div class="onb">
+      <div class="e">📅</div><h3>まだアポの記録がありません</h3>
+      <p>アポを獲得したら「実績入力」でアポ獲得数を1以上にすると、会社名・アポ日時・先方担当者・連絡先を記録できます。</p>
+      <button class="btn" onclick="go('input')">✍️ 実績入力へ</button></div></div>`;
+
+  return `
+  <div class="row" style="margin:16px 0 10px">${memberChips}</div>
+  <div class="row" style="margin-bottom:12px">${fchips}</div>
+
+  <div class="card">
+    <h2>📅 アポイント一覧<span class="spacer"></span><span class="pill">${shown.length}件表示</span></h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>状態</th><th>アポ日時</th><th>会社・学校名</th><th>先方担当者</th><th>電話</th><th>メール</th><th>商談内容</th><th>担当</th><th>獲得日</th><th></th></tr></thead>
+      <tbody>${shown.map(a=>{
+        const m=memberById(a.memberId);
+        const st = !a.apptAt ? `<span class="pill">日時未定</span>`
+                 : isUpcoming(a) ? `<span class="pill ok">📅 予定</span>` : `<span class="pill">実施済</span>`;
+        return `<tr>
+          <td>${st}</td>
+          <td style="font-variant-numeric:tabular-nums;font-weight:${isUpcoming(a)?'700':'400'}">${esc(apptLabel(a))}</td>
+          <td style="font-weight:700">${esc(a.company||'(未入力)')}</td>
+          <td>${esc(a.contact||'')}</td>
+          <td>${a.tel?`<a href="tel:${esc(a.tel)}">${esc(a.tel)}</a>`:''}</td>
+          <td>${a.email?`<a href="mailto:${esc(a.email)}">${esc(a.email)}</a>`:''}</td>
+          <td style="white-space:normal;min-width:200px;color:var(--ink-2)">${esc(a.content||'')}</td>
+          <td><span class="swatch" style="background:${slotVar(m.slot)}"></span> ${esc(m.name)}</td>
+          <td>${jp(a.date)}</td>
+          <td><button class="btn sec sm" onclick="editRec('${a.recId}')">編集</button></td>
+        </tr>`;}).join('')}</tbody></table></div>
+    <div class="hint">電話番号・メールはタップで発信／メール作成できます。</div>
+  </div>`;
+}
+
 /* ---------------- 履歴・出力 ---------------- */
 let hFilterMember='all', hFilterMonth='all';
 function viewHistory(){
@@ -894,11 +1366,12 @@ function viewHistory(){
     <h2>📤 データ出力・バックアップ</h2>
     <div class="row">
       <button class="btn" onclick="exportXLSX()">📊 Excel（.xlsx）で出力</button>
-      <button class="btn sec" onclick="exportCSV()">📄 CSV で出力</button>
+      <button class="btn sec" onclick="exportCSV('detail')">📄 日次明細 CSV</button>
+      <button class="btn sec" onclick="exportCSV('appt')">📄 アポ一覧 CSV</button>
       <button class="btn sec" onclick="exportJSON()">💾 バックアップ（JSON）</button>
       <label class="btn sec" style="cursor:pointer;margin:0">📥 JSON読込<input type="file" accept="application/json" style="display:none" onchange="importJSON(this)"></label>
     </div>
-    <div class="hint">Excel出力には「明細」「日次集計」「メンバー別」「月次」の4シートが入ります。JSONはメンバー間でデータを統合するときに使います（同じ日付・同じ担当者は新しい方で上書き）。</div>
+    <div class="hint">Excel出力には「明細」「アポ一覧」「日次集計」「メンバー別」「月次」の5シートが入ります。JSONはメンバー間でデータを統合するときに使います（同じ日付・同じ担当者は新しい方で上書き）。</div>
   </div>
 
   <div class="card">
@@ -921,14 +1394,15 @@ function viewHistory(){
         <td><span class="swatch" style="background:${slotVar(m.slot)}"></span> ${esc(m.name)}</td>
         <td class="num">${int(r.calls)}</td><td class="num">${int(r.appts)}</td>
         <td class="num">${pctS(r.appts,r.calls)}</td><td class="num">${moneyS(gross(r.appts))}</td>
-        <td style="white-space:normal;min-width:180px">${esc(r.detail||'')}</td>
+        <td style="white-space:normal;min-width:200px">${(r.appointments||[]).map(a=>
+            `${esc(a.company||'(未入力)')}${a.apptAt?`<span style="color:var(--ink-2)"> ${esc(apptLabel(a))}</span>`:''}`).join('<br>')}</td>
         <td style="white-space:normal;min-width:150px;color:var(--ink-2)">${esc(r.note||'')}</td>
         <td><button class="btn sec sm" onclick="editRec('${r.id}')">編集</button></td></tr>`;}).join('')}
       </tbody></table></div>` : `<div class="empty">まだ実績がありません。</div>`}
   </div>`;
 }
 function editRec(id){ const r=S.records.find(x=>x.id===id); if(!r) return;
-  inputDate=r.date; inputMember=r.memberId; go('input'); }
+  inputDate=r.date; inputMember=r.memberId; draftKey=''; go('input'); }
 
 /* ---------------- レポート ---------------- */
 let repMember='all', repMode='today';
@@ -986,8 +1460,20 @@ function buildSummary(mode, who){
     out += `　🎯 アポ率 ${pctS(p.appts,p.calls)}（目標${rateGoal}%）${p.calls? (p.rate>=+rateGoal?' ✅達成':' ⚠未達'):''}\n`;
     if(mode==='today' && dayT) out += `　📋 日次目標 ${dayT}件 → ${p.calls>=dayT?'達成 ✅':`あと${dayT-p.calls}件`}\n`;
     const st=streak(p.m.id); if(st>1) out += `　🔥 ${st}営業日連続で稼働中\n`;
-    const det = recs({memberId:p.m.id, from, to}).map(r=>r.detail).filter(Boolean).join(' / ');
-    if(det) out += `　📍 ${det}\n`;
+    const mx = missionStats(p.m);
+    if(mx){
+      out += `　🎯 ${mx.label} ${int(mx.got)}/${mx.target}件（${mx.ratio.toFixed(0)}%）期限 ${jpFull(mx.to)}\n`;
+      out += mx.done ? `　　└ 🎉 達成済み\n`
+           : mx.overdue ? `　　└ ⏰ 期限超過・残${int(mx.remain)}件\n`
+           : `　　└ 残${int(mx.remain)}件／残${mx.leftDays}営業日 → 1日${fine(mx.perDay)}件ペース（${mx.diff>=0?'✅予定どおり':`⚠${fmt(Math.abs(mx.diff))}件ビハインド`}）\n`;
+    }
+    allAppointments({memberId:p.m.id, from, to}).forEach(a=>{
+      const bits=[a.company||'(社名未入力)'];
+      if(a.apptAt) bits.push(`📅 ${apptLabel(a)}`);
+      if(a.contact) bits.push(a.contact);
+      out += `　📍 ${bits.join(' ／ ')}\n`;
+      if(a.content) out += `　　└ ${a.content}\n`;
+    });
   });
   if(per.length>1){
     out += line+'\n【チーム合計】\n';
@@ -1007,6 +1493,13 @@ function buildSummary(mode, who){
   out += `　${r.emoji} Lv.${L.level} ${r.name}（${int(xp)}XP）\n`;
   const nb = BADGES.filter(b=>b.f(badgeStats(who)));
   if(nb.length) out += `　🎖 称号 ${nb.length}/${BADGES.length}：${nb.slice(-3).map(b=>b.e+b.n).join(' ')}\n`;
+
+  const up = allAppointments(who?{memberId:who}:{}).filter(isUpcoming)
+              .sort((a,b)=>a.apptAt<b.apptAt?-1:1).slice(0,5);
+  if(up.length){
+    out += line+'\n📅 今後のアポ予定\n';
+    up.forEach(a=>{ out += `　${apptLabel(a)}　${a.company}${a.contact?`（${a.contact}）`:''}\n`; });
+  }
   return out;
 }
 function copySummary(){
@@ -1036,6 +1529,30 @@ function viewSettings(){
         <td>${S.records.some(r=>r.memberId===m.id)?'<span class="hint">実績あり</span>':`<button class="btn sec sm" onclick="removeMember(${i})">削除</button>`}</td>
       </tr>`).join('')}</tbody></table></div>
     <div class="row" style="margin-top:10px"><button class="btn sec sm" onclick="addMember()">＋ メンバーを追加</button></div>
+  </div>
+
+  <div class="card">
+    <h2>🎯 個別ミッション（期限つきの特命目標）</h2>
+    <div class="hint" style="margin:0 0 12px">通常のKPIとは別に、メンバーごとの「いつまでに何件」を設定します。ダッシュボードとカレンダーに進捗バーと必要ペースが出ます。</div>
+    ${S.members.map((m,i)=>{
+      const ms=m.mission||{label:'訪問商談アポ',target:0,from:S.settings.periodStart,to:S.settings.periodEnd};
+      const on=!!(m.mission&&m.mission.target);
+      return `<div class="appt">
+        <div class="hd2"><span class="no" style="background:${slotVar(m.slot)}">${i+1}</span><b>${esc(m.name)}</b>
+          <label style="font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" style="width:auto" ${on?'checked':''} onchange="toggleMission(${i},this.checked)">ミッションを設定する</label></div>
+        ${on?`<div class="grid g4">
+          <div class="field"><label class="f">ミッション名</label>
+            <input type="text" value="${esc(ms.label||'')}" onchange="setMission(${i},'label',this.value)"></div>
+          <div class="field"><label class="f">目標件数</label>
+            <input type="number" min="1" value="${ms.target}" onchange="setMission(${i},'target',+this.value)"></div>
+          <div class="field"><label class="f">開始日</label>
+            <input type="date" value="${ms.from}" onchange="setMission(${i},'from',this.value)"></div>
+          <div class="field"><label class="f">期限</label>
+            <input type="date" value="${ms.to}" onchange="setMission(${i},'to',this.value)"></div>
+        </div>
+        <div class="hint" style="margin:0">${missionHint(m)}</div>`:''}
+      </div>`;}).join('')}
   </div>
 
   <div class="card">
@@ -1081,6 +1598,17 @@ function viewSettings(){
     <div class="hint">データはこの端末のブラウザ（localStorage）に保存されます。担当者ごとに別端末で入力する場合は、各自がJSONを書き出し、管理者側で読み込むと統合できます。</div>
   </div>`;
 }
+function toggleMission(i,on){
+  S.members[i].mission = on
+    ? {label:'訪問商談アポ', target:30, from:S.settings.periodStart, to:S.settings.periodEnd}
+    : null;
+  save(); render();
+}
+function setMission(i,k,v){ S.members[i].mission[k]=v; save(); render(); }
+function missionHint(m){
+  const x=missionStats(m); if(!x) return '';
+  return `現在 ${int(x.got)}/${x.target}件 ・ 残り${int(x.remain)}件を${x.leftDays}営業日で → 1日 ${fine(x.perDay)}件（架電 約${int(x.needCalls)}件）が必要です。`;
+}
 function addMember(){
   S.members.push({id:'m_'+Date.now().toString(36), name:'新規メンバー', slot:(S.members.length%4)+1, dailyCall:5, dailyAppt:1, active:true, kind:'社内'});
   save(); render();
@@ -1102,11 +1630,21 @@ function dl(blob,name){
 function stamp(){ return new Date().toISOString().slice(0,10).replace(/-/g,''); }
 
 function tableDetail(){
-  const rows=[['日付','曜日','担当者','区分','架電数','アポ数','アポ率(%)','想定成約数','想定粗利(円)','アポ先・場所','メモ']];
+  const rows=[['日付','曜日','担当者','区分','架電数','アポ数','アポ率(%)','想定成約数','想定粗利(円)','アポ先','メモ']];
   [...S.records].sort((a,b)=>a.date<b.date?-1:1).forEach(r=>{
     const m=memberById(r.memberId);
+    const names=(r.appointments||[]).map(a=>a.company||'(未入力)').join(' / ');
     rows.push([r.date, WD[d(r.date).getDay()], m.name, m.kind||'', +r.calls||0, +r.appts||0,
-      +(pct(r.appts,r.calls).toFixed(1)), +deals(r.appts).toFixed(2), Math.round(gross(r.appts)), r.detail||'', r.note||'']);
+      +(pct(r.appts,r.calls).toFixed(1)), +deals(r.appts).toFixed(2), Math.round(gross(r.appts)), names, r.note||'']);
+  });
+  return rows;
+}
+function tableAppts(){
+  const rows=[['獲得日','担当者','会社・学校名','アポ日時','先方担当者名','電話','メールアドレス','商談内容・メモ','ステータス']];
+  allAppointments().sort((a,b)=> (a.apptAt||a.date) < (b.apptAt||b.date) ? -1 : 1).forEach(a=>{
+    rows.push([a.date, memberById(a.memberId).name, a.company||'', (a.apptAt||'').replace('T',' '),
+      a.contact||'', a.tel||'', a.email||'', a.content||'',
+      !a.apptAt ? '日時未定' : (isUpcoming(a) ? '予定' : '実施済')]);
   });
   return rows;
 }
@@ -1134,10 +1672,13 @@ function tableMonthly(){
   rows.push(['合計',t.d,t.c,t.p,+(pct(t.p,t.c).toFixed(1)),+deals(t.p).toFixed(2),Math.round(gross(t.p))]);
   return rows;
 }
-function exportCSV(){
-  const rows=tableDetail();
-  const csv=rows.map(r=>r.map(c=>{ const s=String(c??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(',')).join('\r\n');
-  dl(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}), `テレアポKPI_明細_${stamp()}.csv`);
+function toCSV(rows){
+  return rows.map(r=>r.map(c=>{ const s=String(c??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(',')).join('\r\n');
+}
+function exportCSV(kind){
+  const appt = kind==='appt';
+  dl(new Blob(['﻿'+toCSV(appt?tableAppts():tableDetail())],{type:'text/csv;charset=utf-8'}),
+     `テレアポKPI_${appt?'アポ一覧':'明細'}_${stamp()}.csv`);
   toast('📄 CSVを書き出しました');
 }
 function exportJSON(){
@@ -1216,6 +1757,7 @@ function sheetXML(rows){
 function exportXLSX(){
   const sheets=[
     {name:'明細',     rows:tableDetail()},
+    {name:'アポ一覧', rows:tableAppts()},
     {name:'日次集計', rows:tableDaily()},
     {name:'メンバー別',rows:tableMember()},
     {name:'月次',     rows:tableMonthly()}
