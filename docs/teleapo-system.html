@@ -1,0 +1,645 @@
+<title>テレアポ・フローチャートシステム｜リユースPC × 大学</title>
+
+<style>
+:root{
+  --paper:#f1f3f6;
+  --surface:#ffffff;
+  --surface-2:#e9ecf1;
+  --ink:#121a26;
+  --ink-2:#4a566a;
+  --ink-3:#78849a;
+  --line:#d7dce4;
+  --line-strong:#b9c2cf;
+  --accent:#2f5d9e;
+  --accent-ink:#1e3f6e;
+  --accent-wash:#e5ecf7;
+  --on-accent:#ffffff;
+  --go-ink:#1f6b4d;
+  --go-wash:#e2f0e9;
+  --warn-ink:#8d5c10;
+  --warn-wash:#f6edda;
+  --stop-ink:#9c3d38;
+  --stop-wash:#f7e6e4;
+
+  --step:clamp(1.35rem,1.1rem + .9vw,1.9rem);
+  --h2:clamp(1.15rem,1rem + .55vw,1.5rem);
+  --body:1rem;
+  --small:.86rem;
+  --micro:.74rem;
+
+  --serif:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Songti SC","Noto Serif JP",serif;
+  --sans:"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0e131a;--surface:#161d27;--surface-2:#1d2531;
+    --ink:#e7ebf2;--ink-2:#a9b4c4;--ink-3:#7d8899;
+    --line:#28313d;--line-strong:#3a4553;
+    --accent:#7fa8e6;--accent-ink:#a8c4f0;--accent-wash:#1b2634;--on-accent:#0e131a;
+    --go-ink:#63c39a;--go-wash:#15271f;
+    --warn-ink:#d7a555;--warn-wash:#2a2114;
+    --stop-ink:#e0837c;--stop-wash:#2b1917;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e131a;--surface:#161d27;--surface-2:#1d2531;
+  --ink:#e7ebf2;--ink-2:#a9b4c4;--ink-3:#7d8899;
+  --line:#28313d;--line-strong:#3a4553;
+  --accent:#7fa8e6;--accent-ink:#a8c4f0;--accent-wash:#1b2634;--on-accent:#0e131a;
+  --go-ink:#63c39a;--go-wash:#15271f;
+  --warn-ink:#d7a555;--warn-wash:#2a2114;
+  --stop-ink:#e0837c;--stop-wash:#2b1917;
+}
+:root[data-theme="light"]{
+  --paper:#f1f3f6;--surface:#ffffff;--surface-2:#e9ecf1;
+  --ink:#121a26;--ink-2:#4a566a;--ink-3:#78849a;
+  --line:#d7dce4;--line-strong:#b9c2cf;
+  --accent:#2f5d9e;--accent-ink:#1e3f6e;--accent-wash:#e5ecf7;--on-accent:#ffffff;
+  --go-ink:#1f6b4d;--go-wash:#e2f0e9;
+  --warn-ink:#8d5c10;--warn-wash:#f6edda;
+  --stop-ink:#9c3d38;--stop-wash:#f7e6e4;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:var(--body);line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1020px;margin:0 auto;padding:0 clamp(1rem,3vw,2.25rem) 6rem}
+
+/* ---------- header ---------- */
+.masthead{border-bottom:1px solid var(--line);padding:clamp(2rem,5vw,3.5rem) 0 1.5rem;margin-bottom:2rem}
+.eyebrow{
+  font-family:var(--mono);font-size:var(--micro);letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 .9rem
+}
+h1{
+  font-family:var(--serif);font-weight:600;line-height:1.3;text-wrap:balance;
+  font-size:clamp(1.7rem,1.2rem + 2vw,2.7rem);margin:0 0 .7rem;letter-spacing:.01em;
+}
+.lede{max-width:60ch;color:var(--ink-2);margin:0}
+
+/* ---------- track switch ---------- */
+.trackbar{
+  position:sticky;top:0;z-index:20;background:var(--paper);
+  border-bottom:1px solid var(--line);
+  padding:.7rem 0;margin-bottom:2.5rem;
+  display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;
+}
+.trackbar .label{font-family:var(--mono);font-size:var(--micro);letter-spacing:.1em;color:var(--ink-3)}
+.switch{display:flex;gap:.35rem;background:var(--surface-2);padding:.25rem;border-radius:2px;border:1px solid var(--line)}
+.switch button{
+  font:inherit;font-size:var(--small);font-weight:600;
+  padding:.4rem .95rem;border:0;border-radius:1px;cursor:pointer;
+  background:transparent;color:var(--ink-2);transition:background .15s,color .15s;
+}
+.switch button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.switch button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.trackhint{font-size:var(--small);color:var(--ink-3);flex:1 1 16rem;min-width:0}
+
+/* ---------- sections ---------- */
+section{margin-bottom:3.5rem;scroll-margin-top:5rem}
+h2{
+  font-family:var(--serif);font-size:var(--h2);font-weight:600;
+  margin:0 0 .3rem;letter-spacing:.02em;
+}
+.sec-note{color:var(--ink-3);font-size:var(--small);margin:0 0 1.5rem;max-width:62ch}
+
+/* ---------- triage ---------- */
+.triage{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+.triage>div{background:var(--surface);padding:1.15rem 1.25rem}
+.triage h3{margin:0 0 .4rem;font-size:var(--small);font-family:var(--mono);letter-spacing:.08em;color:var(--accent-ink)}
+.triage p{margin:0;font-size:var(--small);color:var(--ink-2)}
+.triage .verdict{margin-top:.7rem;font-weight:700;font-size:var(--small);color:var(--ink)}
+
+/* ---------- flow ---------- */
+.flow{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0}
+.stepwrap{position:relative;padding-left:clamp(2.6rem,5vw,3.6rem)}
+.stepwrap::before{
+  content:"";position:absolute;left:clamp(.95rem,1.9vw,1.35rem);top:0;bottom:0;
+  width:1px;background:var(--line-strong);
+}
+.stepwrap:last-child::before{bottom:auto;height:2.2rem}
+.stepnum{
+  position:absolute;left:0;top:1.4rem;width:clamp(1.9rem,3.8vw,2.7rem);height:clamp(1.9rem,3.8vw,2.7rem);
+  display:grid;place-items:center;border-radius:50%;
+  background:var(--surface);border:1px solid var(--line-strong);
+  font-family:var(--mono);font-size:var(--small);font-weight:600;color:var(--accent-ink);
+  font-variant-numeric:tabular-nums;
+}
+.step{background:var(--surface);border:1px solid var(--line);margin:1rem 0;padding:1.3rem clamp(1rem,2.5vw,1.6rem)}
+.step-head{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:baseline;margin-bottom:.15rem}
+.step-title{font-family:var(--serif);font-size:var(--step);font-weight:600;margin:0;letter-spacing:.02em}
+.goal{
+  font-size:var(--micro);font-family:var(--mono);letter-spacing:.08em;
+  color:var(--go-ink);background:var(--go-wash);padding:.2rem .55rem;white-space:nowrap;
+}
+.step>p.aim{margin:.2rem 0 1.1rem;color:var(--ink-2);font-size:var(--small)}
+
+.saylabel{
+  font-family:var(--mono);font-size:var(--micro);letter-spacing:.12em;
+  color:var(--ink-3);text-transform:uppercase;margin:0 0 .45rem;
+}
+.script{
+  border-left:3px solid var(--accent);background:var(--accent-wash);
+  padding:.9rem 1.05rem;margin:0 0 1rem;font-size:.97rem;line-height:1.85;
+}
+.script p{margin:0 0 .6rem}
+.script p:last-child{margin:0}
+.script em{font-style:normal;background:color-mix(in srgb,var(--accent) 22%,transparent);padding:0 .2em;border-radius:1px}
+
+.branches{display:grid;gap:.6rem;margin-top:.4rem}
+details.branch{border:1px solid var(--line);background:var(--surface-2)}
+details.branch>summary{
+  cursor:pointer;list-style:none;padding:.6rem .9rem;font-size:var(--small);
+  font-weight:600;display:flex;gap:.6rem;align-items:center;
+}
+details.branch>summary::-webkit-details-marker{display:none}
+details.branch>summary::after{content:"＋";margin-left:auto;color:var(--ink-3);font-family:var(--mono)}
+details.branch[open]>summary::after{content:"−"}
+details.branch>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tag{
+  font-family:var(--mono);font-size:var(--micro);letter-spacing:.06em;
+  padding:.12rem .45rem;white-space:nowrap;
+}
+.tag.y{background:var(--go-wash);color:var(--go-ink)}
+.tag.n{background:var(--warn-wash);color:var(--warn-ink)}
+.tag.x{background:var(--stop-wash);color:var(--stop-ink)}
+.branch-body{padding:0 .9rem 1rem;font-size:var(--small);color:var(--ink-2)}
+.branch-body .say{
+  background:var(--surface);border:1px solid var(--line);padding:.7rem .85rem;
+  color:var(--ink);margin:.5rem 0 0;
+}
+.branch-body .why{margin:.6rem 0 0;color:var(--ink-3);font-size:var(--micro)}
+
+/* ---------- objection library ---------- */
+.tools{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.2rem;align-items:center}
+input[type="search"]{
+  font:inherit;font-size:var(--small);padding:.5rem .75rem;flex:1 1 14rem;min-width:0;
+  background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);border-radius:0;
+}
+input[type="search"]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chip{
+  font:inherit;font-size:var(--micro);font-family:var(--mono);letter-spacing:.06em;
+  padding:.4rem .7rem;border:1px solid var(--line-strong);background:var(--surface);
+  color:var(--ink-2);cursor:pointer;
+}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.cards{display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+.card{background:var(--surface);padding:1.05rem 1.2rem}
+.card h3{margin:0 0 .1rem;font-size:1rem;font-weight:700;letter-spacing:.01em}
+.card .cat{font-family:var(--mono);font-size:var(--micro);letter-spacing:.08em;color:var(--ink-3);display:block;margin-bottom:.5rem}
+.card .say{background:var(--accent-wash);border-left:3px solid var(--accent);padding:.7rem .85rem;font-size:var(--small);line-height:1.8}
+.card .why{margin:.55rem 0 0;font-size:var(--micro);color:var(--ink-3)}
+.empty{padding:1.5rem;background:var(--surface);color:var(--ink-3);font-size:var(--small)}
+
+/* ---------- rewrite table ---------- */
+.tablewrap{overflow-x:auto;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:34rem;background:var(--surface);font-size:var(--small)}
+th,td{text-align:left;padding:.7rem .95rem;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{
+  background:var(--surface-2);font-family:var(--mono);font-size:var(--micro);
+  letter-spacing:.09em;color:var(--ink-3);text-transform:uppercase;font-weight:600;
+}
+tbody tr:last-child td{border-bottom:0}
+td.bad{color:var(--stop-ink)}
+td.good{color:var(--ink);font-weight:600}
+
+/* ---------- checklist ---------- */
+.check{list-style:none;padding:0;margin:0;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+.check li{background:var(--surface)}
+.check label{display:flex;gap:.75rem;align-items:flex-start;padding:.75rem 1rem;cursor:pointer;font-size:var(--small)}
+.check input{margin-top:.4rem;accent-color:var(--accent);width:1rem;height:1rem;flex:none}
+.check input:checked+span{color:var(--ink-3);text-decoration:line-through}
+.progress{font-family:var(--mono);font-size:var(--small);color:var(--ink-2);margin:.9rem 0 0;font-variant-numeric:tabular-nums}
+.resetbtn{font:inherit;font-size:var(--micro);font-family:var(--mono);background:none;border:0;color:var(--accent);cursor:pointer;padding:0 .3rem;text-decoration:underline}
+
+footer{border-top:1px solid var(--line);padding-top:1.2rem;color:var(--ink-3);font-size:var(--micro);line-height:1.9}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Reuse PC × 大学BYOD ／ 架電オペレーション</p>
+  <h1>迷わないテレアポ・フローチャート</h1>
+  <p class="lede">実際のロープレ2本（大学本体／大学の事業会社）から抽出した勝ち筋を、そのまま読み上げられる台本と分岐に落としたものです。上の切替で相手のタイプを選ぶと、全ステップの文言がそのタイプ用に入れ替わります。</p>
+</header>
+
+<div class="trackbar">
+  <span class="label">相手タイプ</span>
+  <div class="switch" role="group" aria-label="相手タイプの切替">
+    <button type="button" data-track="univ" aria-pressed="true">大学本体（情シス）</button>
+    <button type="button" data-track="biz" aria-pressed="false">大学の事業会社</button>
+  </div>
+  <span class="trackhint" id="trackhint">学生・保護者の負担軽減という「教育的視点」で語るモード。</span>
+</div>
+
+<section id="triage">
+  <h2>ステップ0｜架けるまえの3秒判定</h2>
+  <p class="sec-note">誰にかけているかで刺さる言葉が完全に変わります。サイトを見て、どちらかに必ず振り分けてから受話器を取ってください。</p>
+  <div class="triage">
+    <div>
+      <h3>A / 大学法人そのもの</h3>
+      <p>情報システム部・情報センター・教務。BYOD推奨スペックのページを出している主体。利益ではなく<strong>学生と保護者と、自分たちの運用負荷</strong>で動く。</p>
+      <p class="verdict">→「大学本体」モードで架電</p>
+    </div>
+    <div>
+      <h3>B / 大学の事業会社・生協・関連会社</h3>
+      <p>「◯◯大学サービス株式会社」等。PC販売を収益事業として持っている。<strong>売上・手数料・工数・クレームリスク</strong>で動く。</p>
+      <p class="verdict">→「事業会社」モードで架電</p>
+    </div>
+    <div>
+      <h3>判別がつかないとき</h3>
+      <p>サイトに「生協」「株式会社」「取扱商品」があれば B。なければ A。迷ったら A で入り、「販売は事業会社様が担当ですか？」と確認して橋渡ししてもらう。</p>
+      <p class="verdict">→ A で入って B に繋いでもらう</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>本編｜5ステップの流れ</h2>
+  <p class="sec-note">上から順に。各ステップの「相手の反応」を開くと、その場で読む切り返しが出ます。台本はそのまま読める文体で書いてあります。</p>
+
+  <ol class="flow">
+
+    <li class="stepwrap">
+      <span class="stepnum">1</span>
+      <div class="step">
+        <div class="step-head">
+          <h3 class="step-title">フロント突破</h3>
+          <span class="goal">GOAL 担当部署に繋がる</span>
+        </div>
+        <p class="aim">受付は「誰に取り次げばいいか」を判断したいだけ。部署を<strong>こちらから指定</strong>すれば、判断コストがゼロになって通ります。</p>
+
+        <p class="saylabel">読み上げる</p>
+        <div class="script" data-track="univ">
+          <p>お世話になっております。リユースパソコンを全国50校以上の大学様に導入しておりますリングローと申します。</p>
+          <p>御校のサイトを拝見しまして、<em>BYODを所管されている情報システム部様</em>にお繋ぎいただきたくご連絡いたしました。学生様向けのパソコンのご案内でございます。</p>
+        </div>
+        <div class="script" data-track="biz" hidden>
+          <p>お世話になっております。リユースパソコンを全国50校以上の大学様に導入しております、リングローと申します。</p>
+          <p>御社のサイトを拝見しまして、<em>学生様向けのパソコン販売のご担当者様</em>にお繋ぎいただきたくご連絡いたしました。御社の事業のプラスになるご提案でございます。</p>
+        </div>
+
+        <div class="branches">
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「どちらのご用件でしょうか／営業ですか」</summary>
+            <div class="branch-body">
+              <p class="say">はい、学生様向けパソコンのご提案でございます。新品の価格高騰を受けて、全国50校以上の大学様でご採用いただいている選択肢がございまして、御校でも同じお話が出ていないか伺いたくご連絡いたしました。</p>
+              <p class="why">営業だと認めたうえで「50校」を先に置く。隠すと切られる。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「担当は不在です」</summary>
+            <div class="branch-body">
+              <p class="say">承知しました。であれば改めます。ご担当は情報システム部の◯◯様でお間違いないでしょうか。何時ごろお戻りかだけ伺えますと助かります。</p>
+              <p class="why">不在は失敗ではなく<strong>名前と時間を取る機会</strong>。次回「◯◯様お願いします」で受付を飛ばせる。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag x">反応</span>「そういうお電話はお断りしています」</summary>
+            <div class="branch-body">
+              <p class="say">失礼いたしました。では資料だけお送りしてもよろしいでしょうか。ご担当部署のお名前だけ頂戴できれば、そちら宛にお送りいたします。</p>
+              <p class="why">粘らない。<strong>部署名だけ</strong>回収して撤退し、後日その部署を名指しで架け直す。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag y">反応</span>取り次いでもらえた</summary>
+            <div class="branch-body"><p>→ ステップ2へ。担当者には<strong>もう一度ゼロから</strong>名乗り直す。受付が伝えた内容はほぼ伝わっていない前提で。</p></div>
+          </details>
+        </div>
+      </div>
+    </li>
+
+    <li class="stepwrap">
+      <span class="stepnum">2</span>
+      <div class="step">
+        <div class="step-head">
+          <h3 class="step-title">背景と課題の提示</h3>
+          <span class="goal">GOAL 「うちの話だ」と思わせる</span>
+        </div>
+        <p class="aim">自社の説明ではなく、<strong>相手がすでに困っていること</strong>から入る。共感が取れないまま商品説明に進むと、その時点で聞く姿勢が消えます。</p>
+
+        <p class="saylabel">読み上げる</p>
+        <div class="script" data-track="univ">
+          <p>昨今、新品のパソコンが値上がりしておりまして、大学様の推奨スペックですと<em>20万円から30万円</em>という価格帯になってきております。</p>
+          <p>入学金や授業料と重なる時期でもございますので、<em>ご家庭によっては負担が大きい</em>というお声を、他校様からも多くいただいております。御校ではそういったお話は出ておりませんでしょうか。</p>
+        </div>
+        <div class="script" data-track="biz" hidden>
+          <p>昨今、新品のパソコンが値上がりしておりまして、推奨スペックですと20万円から30万円という価格帯になってきております。</p>
+          <p>そうしたなかで、リユースパソコンの取扱いを始められた大学様では、<em>PC販売全体の3割から5割</em>がリユースに動いております。それだけ需要が顕在化しているという状況でございまして、御社でも収益の柱を一つ増やせないかと思いご連絡いたしました。</p>
+        </div>
+
+        <div class="branches">
+          <details class="branch">
+            <summary><span class="tag y">反応</span>「たしかに高いという声はある」</summary>
+            <div class="branch-body">
+              <p class="say">やはりそうでしたか。他校様もまったく同じ状況でして、そのうえで選択肢を一つ増やされたところが増えております。</p>
+              <p class="why">共感が取れたら<strong>間を置かずステップ3</strong>へ。ここが一番前のめりになる瞬間。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「特に困っていない／指定販売で足りている」</summary>
+            <div class="branch-body">
+              <p class="say">さようでございますか。既存の新品の枠はそのままで問題ございません。あくまで<strong>経済的に厳しいご家庭向けの「第2の選択肢」</strong>として並べていただくだけのお話でして、いま入っている商社様と競合するものではございません。</p>
+              <p class="why">乗り換えを迫らない。<strong>並列に置くだけ</strong>と言い切ると心理的ハードルが一気に下がる。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「うちは大学が決めることなので」</summary>
+            <div class="branch-body">
+              <p class="say">承知しました。であれば情報システム部様にもご案内すべき内容かと存じます。ご担当部署をお教えいただけますでしょうか。あわせて御社側のメリットもございますので、そのときにご一緒に伺えればと思っております。</p>
+              <p class="why">たらい回しにされず、<strong>両方に会う口実</strong>に変換する。</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </li>
+
+    <li class="stepwrap">
+      <span class="stepnum">3</span>
+      <div class="step">
+        <div class="step-head">
+          <h3 class="step-title">実績とスキームの提示</h3>
+          <span class="goal">GOAL 信用を渡す</span>
+        </div>
+        <p class="aim">相手の頭にあるのは「怪しくないか」。数字で潰します。大学本体には<strong>品質と保証</strong>、事業会社には<strong>儲かる仕組みとノーリスク</strong>を。</p>
+
+        <p class="saylabel">読み上げる</p>
+        <div class="script" data-track="univ">
+          <p>弊社は全国50校以上の大学様に導入いただいておりまして、大学向けリユースパソコンではトップシェアをいただいております。</p>
+          <p>もちろん<em>御校の推奨スペックはクリア</em>したものをご用意いたしますし、中古ではございますが<em>4年間の長期保証</em>をお付けしております。ご在学中は保証が切れない形でございます。</p>
+        </div>
+        <div class="script" data-track="biz" hidden>
+          <p>スキームとしましては、御社にご負担いただくものがほとんどございません。</p>
+          <p><em>古物商の資格は不要</em>で、<em>ECサイトの構築も運営も弊社</em>が行います。御社は学生様にご紹介いただくだけで、<em>1台あたり1万円以上</em>——新品の手数料より高い水準——を紹介料としてお支払いしております。在庫も仕入れもございません。</p>
+        </div>
+
+        <div class="branches">
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「中古はちょっと…」</summary>
+            <div class="branch-body">
+              <p class="say">おっしゃる通りのご懸念かと思います。だからこそ弊社は4年保証をお付けしておりまして、実際<strong>2,700台お納めして、クレームは年に1、2件</strong>という水準でございます。品質面はそこで担保できているとお考えいただければと思います。</p>
+              <p class="why">否定せず一度受ける →<strong>数字</strong>で返す。反論ではなく事実で上書きする。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「実績のある大学はどこですか」</summary>
+            <div class="branch-body">
+              <p class="say">具体的な校名も含めまして、実際の運用の仕方をご紹介できます。ただ他校様のお名前が出る話でもございますので、お伺いした際に資料をお見せしながらご説明させていただければと存じます。</p>
+              <p class="why">全部電話で答えない。<strong>会う理由を1つ残す</strong>のがクロージングの布石。</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </li>
+
+    <li class="stepwrap">
+      <span class="stepnum">4</span>
+      <div class="step">
+        <div class="step-head">
+          <h3 class="step-title">懸念の先回り</h3>
+          <span class="goal">GOAL 断る理由を消す</span>
+        </div>
+        <p class="aim">相手が口に出す前に、こちらから不安を挙げて潰す。<strong>言われてから答えると言い訳に聞こえ、先に言うと誠実に聞こえます。</strong></p>
+
+        <p class="saylabel">読み上げる</p>
+        <div class="script" data-track="univ">
+          <p>中古と申しますと、まずバッテリーをご心配されるかと思います。こちらは<em>容量が50%を下回った場合、無制限で交換・修理</em>をいたしますので、そこはご安心いただける形かと存じます。</p>
+          <p>加えて次年度は、<em>発火しない純固体式のモバイルバッテリー</em>の付属も検討しております。学内でお預かりいただくサポートのお手間も、弊社の4年保証ですべて巻き取れる形でございます。</p>
+        </div>
+        <div class="script" data-track="biz" hidden>
+          <p>御社側で一番ご心配かと思いますのが、問い合わせ対応と初期不良のクレームかと存じます。</p>
+          <p>学生様やご家庭からの<em>お問い合わせは、すべて弊社が窓口として対応</em>いたします。御社に工数は発生いたしません。実績としましても<em>2,700台のうちクレームは年に1、2件</em>でございますので、御社の業務を圧迫することはないかと存じます。</p>
+        </div>
+
+        <div class="branches">
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「対応する人手がない／手間がかかりそう」</summary>
+            <div class="branch-body">
+              <p class="say">そこはまさに弊社が引き受ける部分でございます。窓口も保証対応も弊社が持ちますので、御社（御校）側でしていただくのは学生様へのご案内だけでございます。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「既に付き合いのある商社がある」</summary>
+            <div class="branch-body">
+              <p class="say">既存の新品の枠はそのままで結構でございます。弊社は<strong>その隣に置いていただく第2の受け皿</strong>という位置づけでして、既存のお取引を動かしていただく必要はございません。</p>
+              <p class="why">「置き換え」ではなく「並列」。乗り換えコストの話にしない。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag y">反応</span>懸念が出尽くした</summary>
+            <div class="branch-body"><p>→ 沈黙が来たら即クロージング。「では——」で繋いでステップ5へ。</p></div>
+          </details>
+        </div>
+      </div>
+    </li>
+
+    <li class="stepwrap">
+      <span class="stepnum">5</span>
+      <div class="step">
+        <div class="step-head">
+          <h3 class="step-title">クロージング</h3>
+          <span class="goal">GOAL 日時を確定させる</span>
+        </div>
+        <p class="aim">「いつがよろしいですか」は禁止。<strong>日時をこちらから1点指定</strong>し、相手を「手帳を見るだけ」の状態にします。加えて、電話では完結しない理由を必ず添える。</p>
+
+        <p class="saylabel">読み上げる</p>
+        <div class="script" data-track="univ">
+          <p>こういったものは<em>実機を見てみないとわからない</em>かと存じますので、実際の端末をお持ちして、他校様の事例とあわせてご覧いただければと思っております。</p>
+          <p>ちょうど<em>来月そちら方面へ出張の機会</em>がございまして、<em>23日の10時</em>はいかがでしょうか。</p>
+        </div>
+        <div class="script" data-track="biz" hidden>
+          <p>細かい条件のところは、ディスカッションさせていただいたほうが早いかと存じます。実機と他校様の実績資料をお持ちいたします。</p>
+          <p>ちょうど<em>来月そちら方面へ出張の機会</em>がございまして、<em>8月24日の11時</em>はいかがでしょうか。</p>
+        </div>
+
+        <div class="branches">
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「その日は難しい」</summary>
+            <div class="branch-body">
+              <p class="say">承知しました。では<strong>翌日の同じ時間</strong>、25日の11時ではいかがでしょうか。</p>
+              <p class="why">断られても<strong>もう1点だけ指定</strong>する。ここで「ではご都合のよい日を」と投げると流れる。2回外れたら初めて相手に委ねる。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「まず資料を送ってください」</summary>
+            <div class="branch-body">
+              <p class="say">かしこまりました、本日中にお送りいたします。ただ<strong>実機の質感は資料では伝わりにくい</strong>部分でございますので、出張の折に5分でも10分でも、現物だけお持ちしてもよろしいでしょうか。</p>
+              <p class="why">資料送付は断りの定型。断らずに受け、<strong>時間を短く区切って</strong>訪問を重ねる。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag n">反応</span>「検討して連絡します」</summary>
+            <div class="branch-body">
+              <p class="say">ありがとうございます。こちらからも進捗を伺ってしまうかと存じますので、<strong>再来週あたりに一度お電話</strong>してもよろしいでしょうか。◯日ごろでいかがでしょう。</p>
+              <p class="why">連絡は来ない前提。<strong>次の架電日を約束</strong>に変える。</p>
+            </div>
+          </details>
+          <details class="branch">
+            <summary><span class="tag y">反応</span>日程が取れた</summary>
+            <div class="branch-body">
+              <p class="say">ありがとうございます。では◯月◯日◯時に伺います。当日は実機と、他校様の事例資料をお持ちいたします。念のため、お名刺情報をいただけますでしょうか。当日は何名様でご覧いただけますか。</p>
+              <p class="why">確定直後に<strong>同席者を増やす</strong>。決裁者が入れば商談が一段飛ぶ。</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </li>
+
+  </ol>
+</section>
+
+<section id="library">
+  <h2>切り返しライブラリ</h2>
+  <p class="sec-note">電話中に検索して読める形にしてあります。相手のひとことを打ち込むか、カテゴリで絞ってください。</p>
+  <div class="tools">
+    <input type="search" id="q" placeholder="相手の言葉で検索（例：高い、中古、資料）" aria-label="切り返しを検索">
+    <button type="button" class="chip" data-cat="all" aria-pressed="true">すべて</button>
+    <button type="button" class="chip" data-cat="受付" aria-pressed="false">受付</button>
+    <button type="button" class="chip" data-cat="不信" aria-pressed="false">不信</button>
+    <button type="button" class="chip" data-cat="価格" aria-pressed="false">価格</button>
+    <button type="button" class="chip" data-cat="社内" aria-pressed="false">社内事情</button>
+    <button type="button" class="chip" data-cat="先送り" aria-pressed="false">先送り</button>
+  </div>
+  <div class="cards" id="cards"></div>
+</section>
+
+<section id="rewrite">
+  <h2>言い換え表｜1文を短く切る</h2>
+  <p class="sec-note">熱が入ると「〜というところで」「〜という形で」が1文に何度も入り、電話越しに聞き取れなくなります。左を口にしそうになったら右に置き換えてください。<strong>言い切るほど自信があるように聞こえます。</strong></p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th scope="col">つい言ってしまう</th><th scope="col">言い切る</th></tr></thead>
+      <tbody>
+        <tr><td class="bad">ご相談できないかなというようなところでご連絡をさせていただいたというところでございますが</td><td class="good">ご相談したく、ご連絡いたしました。いかがでしょうか。</td></tr>
+        <tr><td class="bad">〜させていただいているというところでして</td><td class="good">〜しております。</td></tr>
+        <tr><td class="bad">〜かなと思っておりまして、ですので</td><td class="good">〜と考えております。</td></tr>
+        <tr><td class="bad">〜という形になっておりまして</td><td class="good">〜でございます。</td></tr>
+        <tr><td class="bad">お時間よろしいでしょうか、あの、大丈夫でしょうか</td><td class="good">2分だけお時間よろしいでしょうか。</td></tr>
+        <tr><td class="bad">いつ頃がご都合よろしいでしょうか</td><td class="good">23日の10時はいかがでしょうか。</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="check">
+  <h2>通話後30秒チェック</h2>
+  <p class="sec-note">切った直後に。取りこぼしがあれば、その日のうちに追いの一本を入れられます。</p>
+  <ul class="check" id="checklist">
+    <li><label><input type="checkbox"><span>相手のタイプ（大学本体／事業会社）に合わせた訴求軸で話せた</span></label></li>
+    <li><label><input type="checkbox"><span>実績（全国50校・トップシェア）を最初の30秒で出した</span></label></li>
+    <li><label><input type="checkbox"><span>中古への不安を、相手が言う前にこちらから潰した</span></label></li>
+    <li><label><input type="checkbox"><span>相手自身のメリット（担当者の手間削減／会社の利益）に触れた</span></label></li>
+    <li><label><input type="checkbox"><span>既存の新品商社とは「並列」だと明言した</span></label></li>
+    <li><label><input type="checkbox"><span>日時をこちらから1点指定した（「いつがよいか」と聞かなかった）</span></label></li>
+    <li><label><input type="checkbox"><span>担当者の氏名・部署・直通番号を取った</span></label></li>
+    <li><label><input type="checkbox"><span>アポが取れなかった場合、次の架電日を約束した</span></label></li>
+  </ul>
+  <p class="progress"><span id="pcount">0 / 8</span> 　<button type="button" class="resetbtn" id="reset">リセット</button></p>
+</section>
+
+<footer>
+  出典：大学本体（情報システム部）向け／大学の事業会社向け、テレアポ文字起こし2本の分析。数字（全国50校、2,700台、クレーム年1〜2件、紹介料1台1万円以上、シェア3〜5割）は当該トーク内の発言に基づくため、架電前に最新の実績値をご確認ください。
+</footer>
+
+</div>
+
+<script>
+(function(){
+  /* --- track switching --- */
+  var hints = {
+    univ:"学生・保護者の負担軽減という「教育的視点」で語るモード。",
+    biz:"手間なく利益が出るという「ビジネス的視点」で語るモード。"
+  };
+  var buttons = document.querySelectorAll('.switch button');
+  function setTrack(t){
+    buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.track === t)); });
+    document.querySelectorAll('[data-track]').forEach(function(el){
+      if (el.tagName === 'BUTTON') return;
+      el.hidden = (el.dataset.track !== t);
+    });
+    document.getElementById('trackhint').textContent = hints[t];
+  }
+  buttons.forEach(function(b){ b.addEventListener('click', function(){ setTrack(b.dataset.track); }); });
+  setTrack('univ');
+
+  /* --- objection library --- */
+  var data = [
+    {cat:"受付", q:"「ご用件は何でしょうか」", a:"学生様向けパソコンのご提案でございます。新品の価格高騰を受けて、全国50校以上の大学様でご採用いただいている内容でして、御校でも同じお話が出ていないか伺いたくご連絡いたしました。", why:"営業だと認めたうえで実績を先に置く。"},
+    {cat:"受付", q:"「担当者は席を外しています」", a:"承知しました。ご担当は情報システム部の◯◯様でお間違いないでしょうか。何時ごろお戻りか伺えますと助かります。", why:"名前と時間を取れば、次回は受付を飛ばせる。"},
+    {cat:"受付", q:"「営業のお電話はお断りしています」", a:"失礼いたしました。では資料だけお送りしたく、ご担当部署のお名前だけ頂戴できますでしょうか。", why:"粘らず部署名だけ回収して撤退。"},
+    {cat:"不信", q:"「中古はちょっと…」", a:"おっしゃる通りのご懸念かと思います。だからこそ4年保証をお付けしておりまして、2,700台お納めしてクレームは年に1、2件という水準でございます。", why:"一度受けてから数字で上書きする。"},
+    {cat:"不信", q:"「バッテリーがすぐ駄目になるのでは」", a:"容量が50%を下回った場合、無制限で交換・修理をいたします。ご在学中の4年間、保証が切れない形でございます。", why:"最頻出の不安。聞かれる前に出すのが理想。"},
+    {cat:"不信", q:"「スペックが授業に足りるのか」", a:"御校の推奨スペックをクリアしたものをご用意いたします。要件を頂戴できれば、それに合わせた構成でお見積りいたします。", why:"抽象論にせず、相手の推奨スペック表を軸にする。"},
+    {cat:"不信", q:"「聞いたことのない会社ですが」", a:"リユースパソコンの分野では大学様向けでトップシェアをいただいておりまして、全国50校以上に導入しております。実際の導入校の運用も、お伺いした際にご紹介できます。", why:"知名度の話を実績の話にすり替える。"},
+    {cat:"価格", q:"「いくらぐらいですか」", a:"構成にもよりますが、新品が20万〜30万円のところ、その半分以下の水準でご提供しております。御校の推奨スペックを伺えれば、具体的なお見積りをお持ちいたします。", why:"即答で終わらせず、見積りを訪問理由に変える。"},
+    {cat:"価格", q:"「安いのには理由があるのでは」", a:"法人様のリース満了品を大量に仕入れ、自社工場で整備しているためでございます。品質は4年保証で担保しております。", why:"安さの理由を仕組みで説明すると疑いが消える。"},
+    {cat:"社内", q:"「既に取引のある商社があります」", a:"既存の新品の枠はそのままで結構でございます。経済的に厳しいご家庭向けの第2の選択肢として、隣に並べていただくだけのお話でございます。", why:"乗り換えを迫らない。並列に置くだけ、と言い切る。"},
+    {cat:"社内", q:"「対応する人手がありません」", a:"学生様からのお問い合わせはすべて弊社が窓口として対応いたします。御社側に工数は発生いたしません。", why:"事業会社が最も恐れるのは工数の増加。"},
+    {cat:"社内", q:"「私では決められません」", a:"承知しました。ご決裁の方にもご覧いただいたほうが早いかと存じますので、ご一緒にご同席いただける日程でお伺いできればと思います。", why:"決裁者不在は、同席させる口実にする。"},
+    {cat:"社内", q:"「古物商の許可などが必要では」", a:"必要ございません。販売主体は弊社で、ECサイトの構築も運営も弊社が行います。御社はご紹介いただくだけでございます。", why:"法的ハードルを最初に消すと一気に前向きになる。"},
+    {cat:"社内", q:"「クレームが来たら誰が対応するのですか」", a:"すべて弊社でございます。実績としても2,700台のうち年に1、2件という水準でして、御社の業務を圧迫することはございません。", why:"「誰が」と「どれくらい」の両方を答える。"},
+    {cat:"先送り", q:"「資料を送ってください」", a:"かしこまりました、本日中にお送りいたします。ただ実機の質感は資料では伝わりにくい部分でございますので、出張の折に5分だけ現物をお持ちしてもよろしいでしょうか。", why:"断らずに受けたうえで、時間を短く区切って訪問を重ねる。"},
+    {cat:"先送り", q:"「検討してこちらから連絡します」", a:"ありがとうございます。こちらからも進捗を伺ってしまうかと存じますので、再来週あたりに一度お電話してもよろしいでしょうか。", why:"連絡は来ない前提で、次の架電日を約束に変える。"},
+    {cat:"先送り", q:"「今は忙しいので」", a:"失礼いたしました。2分だけ頂戴できればと存じますが、改めたほうがよろしければ、明日の午前と午後、どちらがご都合よろしいでしょうか。", why:"引くときも二択で次を取る。"},
+    {cat:"先送り", q:"「来年度の話なので今は動けません」", a:"承知しております。だからこそ選定が始まる前に、選択肢の一つとして頭の片隅に置いていただければと存じます。実機だけ先にご覧いただけますでしょうか。", why:"時期が早いのは断りではなく、先行者になれる理由。"}
+  ];
+
+  var cards = document.getElementById('cards');
+  var q = document.getElementById('q');
+  var chips = document.querySelectorAll('.chip');
+  var cat = 'all';
+
+  function render(){
+    var term = q.value.trim();
+    var list = data.filter(function(d){
+      var okCat = (cat === 'all' || d.cat === cat);
+      var okTerm = !term || (d.q + d.a + d.why + d.cat).indexOf(term) !== -1;
+      return okCat && okTerm;
+    });
+    if (!list.length){
+      cards.innerHTML = '<p class="empty">該当する切り返しがありません。別の言葉で検索するか、カテゴリを「すべて」に戻してください。</p>';
+      return;
+    }
+    cards.innerHTML = list.map(function(d){
+      return '<article class="card">' +
+        '<h3>' + d.q + '</h3>' +
+        '<span class="cat">' + d.cat + '</span>' +
+        '<p class="say">' + d.a + '</p>' +
+        '<p class="why">' + d.why + '</p>' +
+      '</article>';
+    }).join('');
+  }
+  q.addEventListener('input', render);
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){
+      cat = c.dataset.cat;
+      chips.forEach(function(o){ o.setAttribute('aria-pressed', String(o === c)); });
+      render();
+    });
+  });
+  render();
+
+  /* --- checklist --- */
+  var boxes = document.querySelectorAll('#checklist input');
+  var pcount = document.getElementById('pcount');
+  function count(){
+    var n = 0;
+    boxes.forEach(function(b){ if (b.checked) n++; });
+    pcount.textContent = n + ' / ' + boxes.length;
+  }
+  boxes.forEach(function(b){ b.addEventListener('change', count); });
+  document.getElementById('reset').addEventListener('click', function(){
+    boxes.forEach(function(b){ b.checked = false; });
+    count();
+  });
+  count();
+})();
+</script>
