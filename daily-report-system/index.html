@@ -137,6 +137,17 @@ textarea{resize:vertical;min-height:56px}
 .catchip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 10px;font-size:11px;color:var(--sub);transition:.15s}
 .catchip:hover{border-color:var(--brand);color:var(--brand)}
 .catchip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+/* 業務内容リスト（1件＝1行に収め、件数が増えても一覧性を保つ） */
+.tkhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+#taskBox{display:grid;gap:4px}
+#taskBox.scroll{max-height:330px;overflow-y:auto;padding-right:4px;
+  border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--panel2)}
+.tkrow{display:flex;gap:5px;align-items:center;flex-wrap:nowrap}
+.tkrow .idx{flex:none;width:19px;text-align:right;font-size:10.5px;color:var(--sub);
+  font-variant-numeric:tabular-nums}
+.tkrow input.tk{flex:1;min-width:0;width:auto;padding:6px 10px}
+.tkrow .iconbtn{flex:none;padding:3px 6px;font-size:12px;line-height:1.4}
+.tkrow .mgjbtn.has{color:var(--brand);background:rgba(79,70,229,.1)}
 .chipbtn{border:1px dashed var(--brand);background:transparent;color:var(--brand);border-radius:999px;
   padding:3px 11px;font-size:11px;font-weight:700;white-space:nowrap;transition:.15s}
 .chipbtn:hover{background:var(--brand);color:#fff;border-style:solid}
@@ -266,7 +277,11 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
       </div>
 
       <label class="f">■ 1. 今日の業務内容 <span style="color:var(--bad)">*</span></label>
-      <div id="taskBox" style="display:grid;gap:6px"></div>
+      <div class="tkhead">
+        <span class="xs muted" id="taskCount"></span>
+        <span class="xs muted">Enterで次の行／🔬でモ・ゲ・ジョ分析</span>
+      </div>
+      <div id="taskBox"></div>
       <button class="btn dz sm" id="btnAddTask" style="margin-top:6px">＋ 業務内容の行を追加</button>
 
       <div style="margin-top:14px">
@@ -651,11 +666,20 @@ $('#btnReroll').onclick=()=>{rerollSeed++;renderFocus();toast('別の3項目を�
 let editing=null; // 編集中の日報ID
 
 function taskRow(v=''){
-  const d=document.createElement('div');d.className='row';d.style.gap='6px';
-  d.innerHTML=`<input type="text" class="tk" placeholder="業務内容を入力" value="${esc(v)}">
+  const d=document.createElement('div');d.className='tkrow';
+  d.innerHTML=`<span class="idx"></span>
+    <input type="text" class="tk" placeholder="業務内容を入力" value="${esc(v)}">
     <button class="iconbtn mgjbtn" title="この業務をモ・ゲ・ジョ分析する">🔬</button>
     <button class="iconbtn del" title="削除">✕</button>`;
-  d.querySelector('.del').onclick=()=>{d.remove(); if(!$$('.tk').length) $('#taskBox').appendChild(taskRow());};
+  d.querySelector('.del').onclick=()=>{d.remove(); if(!$$('.tk').length) $('#taskBox').appendChild(taskRow()); renumberTasks();};
+  // Enter で下に1行足して連続入力できるようにする
+  d.querySelector('.tk').addEventListener('keydown',e=>{
+    if(e.key!=='Enter') return;
+    e.preventDefault();
+    const rows=$$('#taskBox .tkrow'), i=rows.indexOf(d), next=rows[i+1];
+    if(next && !next.querySelector('.tk').value.trim()){ next.querySelector('.tk').focus(); return; }
+    const r=taskRow(); d.after(r); renumberTasks(); r.querySelector('.tk').focus();
+  });
   // 業務内容をそのままモ・ゲ・ジョ分析のテーマに展開する
   d.querySelector('.mgjbtn').onclick=()=>{
     const v=d.querySelector('.tk').value.trim();
@@ -668,7 +692,19 @@ function taskRow(v=''){
   };
   return d;
 }
-$('#btnAddTask').onclick=()=>{$('#taskBox').appendChild(taskRow());$$('.tk').pop().focus();};
+// 行番号・件数の更新と、件数が多いときのスクロール化
+function renumberTasks(){
+  const rows=$$('#taskBox .tkrow');
+  rows.forEach((r,i)=>r.querySelector('.idx').textContent=(i+1)+'.');
+  const filled=rows.filter(r=>r.querySelector('.tk').value.trim()).length;
+  $('#taskCount').textContent = filled? `全${filled}件` : '';
+  $('#taskBox').classList.toggle('scroll', rows.length>9);
+  // すでにモ・ゲ・ジョ分析があるものは 🔬 を色付きにする
+  const titles=new Set($$('#topicBox .tp-title').map(t=>t.value.trim()).filter(Boolean));
+  rows.forEach(r=>r.querySelector('.mgjbtn').classList.toggle('has',titles.has(r.querySelector('.tk').value.trim())));
+}
+$('#taskBox').addEventListener('input',renumberTasks);
+$('#btnAddTask').onclick=()=>{const r=taskRow();$('#taskBox').appendChild(r);renumberTasks();r.querySelector('.tk').focus();};
 
 function topicBlock(t={}){
   const d=document.createElement('div');d.className='topic';
@@ -714,7 +750,7 @@ function topicBlock(t={}){
   };
   return d;
 }
-function renumberTopics(){ $$('#topicBox .topic .tlabel').forEach((e,i)=>e.textContent='分析 '+(i+1)); }
+function renumberTopics(){ $$('#topicBox .topic .tlabel').forEach((e,i)=>e.textContent='分析 '+(i+1)); renumberTasks(); }
 // モ・ゲ・ジョは必須ではないが、1件も無いときは声かけを出す
 function renderTopicNotice(){
   const n=$$('#topicBox .topic').length;
@@ -996,7 +1032,7 @@ function clearForm(keepDate){
   editing=null; $('#editNote').textContent='';
   if(!keepDate) $('#fDate').value=today();
   $('#fName').value=DB.settings.name||'';
-  $('#taskBox').innerHTML=''; $('#taskBox').appendChild(taskRow());
+  $('#taskBox').innerHTML=''; $('#taskBox').appendChild(taskRow()); renumberTasks();
   $('#fInsight').value=''; $('#evBox').innerHTML=''; renderEvEmpty(); renderEvPins();
   $('#topicBox').innerHTML=''; renderTopicNotice(); $('#outBox').style.display='none';
   $$('.err').forEach(e=>e.classList.remove('err'));
@@ -1005,7 +1041,7 @@ function loadReport(id){
   const r=DB.reports.find(x=>x.id===id); if(!r) return;
   editing=id;
   $('#fDate').value=r.date; $('#fName').value=r.name||'';
-  $('#taskBox').innerHTML=''; (r.tasks.length?r.tasks:['']).forEach(t=>$('#taskBox').appendChild(taskRow(t)));
+  $('#taskBox').innerHTML=''; (r.tasks.length?r.tasks:['']).forEach(t=>$('#taskBox').appendChild(taskRow(t))); renumberTasks();
   $('#fInsight').value=r.insight||'';
   $('#evBox').innerHTML='';
   (r.ev||[]).forEach(e=>{ addEv(e.sid); const row=$(`#evBox [data-sid="${e.sid}"]`); if(row) row.querySelector('.ev-t').value=e.text||''; });
@@ -1100,6 +1136,7 @@ $('#btnSample').onclick=()=>{
   $('#taskBox').innerHTML='';
   ['学内展示会（2日間）の来場者アンケート集計（回答87件・当日申込9件）','展示什器および持ち込み機の返却手配','展示会レポートの下書き作成']
     .forEach(t=>$('#taskBox').appendChild(taskRow(t)));
+  renumberTasks();
   $('#fInsight').value='アンケートで「価格が決め手」と答えたのは約2割にとどまり、大半は「入学後の使い方をイメージできるか」を重視していた。一方で当日の説明は価格・スペック中心で、来場者の関心とズレが生じていた。';
   const pick=[SKILLS.find(s=>s.name.includes('課題設定')),SKILLS.find(s=>s.name.includes('事実と解釈')),SKILLS.find(s=>s.name.includes('仮説を立てて'))].filter(Boolean);
   const txt=['来場者アンケートの自由記述を読み込み、「価格が課題」という現場の思い込みに対して、実際の不安は利用イメージの不足であると整理して上長に共有した。',
