@@ -137,6 +137,23 @@ textarea{resize:vertical;min-height:56px}
 .catchip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 10px;font-size:11px;color:var(--sub);transition:.15s}
 .catchip:hover{border-color:var(--brand);color:var(--brand)}
 .catchip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+/* 実績のワンタップ候補 */
+.sugrow{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:7px}
+.sugrow>.lb{font-size:10.5px;font-weight:700;color:var(--sub);flex:none;padding-top:3px}
+.sug{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 12px;
+  font-size:12px;font-weight:700;color:var(--ink);max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;transition:.13s;display:inline-flex;align-items:center;gap:5px}
+.sug:hover{border-color:var(--brand);background:rgba(79,70,229,.09);transform:translateY(-1px)}
+.sug::before{content:'＋';color:var(--brand);font-weight:700}
+.sug.used{opacity:.38;text-decoration:line-through}
+.sug.used::before{content:'✓';color:var(--ok)}
+.sug.pin{border-color:var(--amber);background:rgba(245,158,11,.09)}
+.sug.focus{border-color:var(--brand);background:rgba(79,70,229,.08)}
+.sughint{font-size:11.5px;color:var(--sub);padding:9px 11px;border:1px dashed var(--line);border-radius:9px;background:var(--panel)}
+.evtasks{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;align-items:center}
+.evtasks .tkchip{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:2px 7px;
+  font-size:10.5px;color:var(--sub);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evtasks .tkchip:hover{border-color:var(--brand);color:var(--brand)}
 /* 業務内容リスト（1件＝1行に収め、件数が増えても一覧性を保つ） */
 .tkhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
 #taskBox{display:grid;gap:4px}
@@ -301,7 +318,7 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
             <button class="btn sm" id="btnPick">＋ 手動で選ぶ</button>
           </div>
         </div>
-        <div class="pinquick" id="evPins"></div>
+        <div id="evSuggest"></div>
         <div id="evBox"></div>
       </div>
 
@@ -623,7 +640,7 @@ $$('.tab').forEach(b=>b.onclick=()=>{
 function goTab(v){ $(`.tab[data-v="${v}"]`).click(); }
 
 /* ============ 今日の重点3項目 ============ */
-let rerollSeed=0;
+let rerollSeed=0, focusIds=[];
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0)/4294967295;}
 function renderFocus(){
   const ix=evIndex();
@@ -646,6 +663,7 @@ function renderFocus(){
     ranked.push(pool.shift());
   }
 
+  focusIds = ranked.map(x=>x.s.id);
   $('#focusGrid').innerHTML = ranked.map(({s,n,last})=>`
     <div class="fcard">
       <div class="meta">
@@ -660,7 +678,7 @@ function renderFocus(){
       <button class="btn sm" onclick="addEv('${s.id}',true)">✅ 今日これに該当する事象があった</button>
     </div>`).join('');
 }
-$('#btnReroll').onclick=()=>{rerollSeed++;renderFocus();toast('別の3項目を出しました');};
+$('#btnReroll').onclick=()=>{rerollSeed++;renderFocus();renderEvPins();toast('別の3項目を出しました');};
 
 /* ============ 日報フォーム ============ */
 let editing=null; // 編集中の日報ID
@@ -703,7 +721,8 @@ function renumberTasks(){
   const titles=new Set($$('#topicBox .tp-title').map(t=>t.value.trim()).filter(Boolean));
   rows.forEach(r=>r.querySelector('.mgjbtn').classList.toggle('has',titles.has(r.querySelector('.tk').value.trim())));
 }
-$('#taskBox').addEventListener('input',renumberTasks);
+$('#taskBox').addEventListener('input',()=>{renumberTasks();scheduleSuggest();$$('#evBox .evrow').forEach(fillEvTasks);});
+$('#fInsight').addEventListener('input',scheduleSuggest);
 $('#btnAddTask').onclick=()=>{const r=taskRow();$('#taskBox').appendChild(r);renumberTasks();r.querySelector('.tk').focus();};
 
 function topicBlock(t={}){
@@ -761,6 +780,21 @@ function renderTopicNotice(){
 $('#btnAddTopic').onclick=()=>{$('#topicBox').appendChild(topicBlock());renumberTopics();renderTopicNotice();};
 
 /* ---- 実績（エビデンス）行 ---- */
+// 今日の業務内容をワンタップで書き出しに使えるようにする
+function fillEvTasks(row){
+  const box=row.querySelector('.evtasks'); if(!box) return;
+  const tasks=$$('.tk').map(i=>i.value.trim()).filter(Boolean);
+  box.innerHTML = tasks.length
+    ? `<span class="xs muted">業務内容から：</span>`+
+      tasks.map(t=>`<button type="button" class="tkchip" title="${esc(t)}">${esc(t)}</button>`).join('')
+    : '';
+  box.querySelectorAll('.tkchip').forEach((b,i)=>b.onclick=()=>{
+    const ta=row.querySelector('.ev-t'), v=ta.value.trim();
+    ta.value = v ? v+'\n'+tasks[i] : tasks[i]+'　';
+    ta.classList.remove('err'); ta.focus();
+    ta.setSelectionRange(ta.value.length,ta.value.length);
+  });
+}
 function addEv(sid,jump){
   if($$(`#evBox [data-sid="${sid}"]`).length){ toast('その項目はすでに追加済みです'); return; }
   const s=SMAP[sid]; if(!s) return;
@@ -779,27 +813,53 @@ function addEv(sid,jump){
       <button class="iconbtn" title="外す">✕</button>
     </div>
     <div class="xs muted" style="margin-bottom:5px">基準：${esc(s.std)}</div>
+    <div class="evtasks"></div>
     <textarea class="ev-t" rows="2" placeholder="この項目に対して、今日どういう事象があったか（誰に・何を・どうした・結果どうなった）"></textarea>`;
   d.querySelector('.iconbtn').onclick=()=>{d.remove(); renderEvEmpty(); renderEvPins();};
+  fillEvTasks(d);
   $('#evBox').appendChild(d);
   if(jump){ goTab('today'); d.scrollIntoView({behavior:'smooth',block:'center'}); d.querySelector('.ev-t').focus(); }
   renderEvEmpty(); renderEvPins();
 }
-// ピン止め項目のワンクリック追加行（日報入力欄）
+// 実績のワンタップ候補（モーダルを開かずにここで選び終われるようにする）
+function freqTop(n){
+  const c={};
+  DB.reports.forEach(r=>(r.ev||[]).forEach(e=>{c[e.sid]=(c[e.sid]||0)+1;}));
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([id])=>SMAP[id]).filter(Boolean);
+}
 function renderEvPins(){
   const has=new Set($$('#evBox .evrow').map(e=>e.dataset.sid));
-  const pins=DB.pins.map(id=>SMAP[id]).filter(Boolean);
-  $('#evPins').innerHTML = pins.length
-    ? `<span class="xs muted" style="align-self:center">📌 ピン止め：</span>`+
-      pins.map(s=>`<button type="button" class="pq ${has.has(s.id)?'used':''}" data-add="${s.id}" title="${esc(s.std)}">${esc(s.name)}</button>`).join('')
-    : '';
-  $$('#evPins .pq').forEach(b=>b.onclick=()=>addEv(b.dataset.add));
+  const used=new Set();
+  const chip=(s,cls)=>{
+    used.add(s.id);
+    return `<button type="button" class="sug ${cls} ${has.has(s.id)?'used':''}" data-add="${s.id}" title="${esc(s.std)}">${esc(s.name)}</button>`;
+  };
+  const row=(label,items,cls)=>items.length
+    ? `<div class="sugrow"><span class="lb">${label}</span>${items.map(s=>chip(s,cls)).join('')}</div>` : '';
+
+  let html='';
+  html += row('📌 ピン止め', DB.pins.map(id=>SMAP[id]).filter(Boolean), 'pin');
+  html += row('🎯 今日の重点', focusIds.map(id=>SMAP[id]).filter(s=>s&&!used.has(s.id)), 'focus');
+
+  const sug=suggestScores();
+  if(sug){
+    const cand=SKILLS.filter(s=>!used.has(s.id)).sort((a,b)=>sug[b.id]-sug[a.id]).slice(0,6);
+    html += row('💡 今日の業務から', cand, '');
+  }
+  html += row('🔁 よく書いている', freqTop(12).filter(s=>!used.has(s.id)).slice(0,4), '');
+
+  if(!sug) html += `<div class="sughint">💡 上の「今日の業務内容」を書くと、それに近い候補がここに自動で並びます。ピンとめ・重点項目からも選べます。</div>`;
+  $('#evSuggest').innerHTML=html;
+  $$('#evSuggest .sug').forEach(b=>b.onclick=()=>{ if(!b.classList.contains('used')) addEv(b.dataset.add); });
 }
+// 業務内容や気づきを書き換えたら候補も追従させる
+let sugTimer=null;
+function scheduleSuggest(){ clearTimeout(sugTimer); sugTimer=setTimeout(renderEvPins,400); }
 function renderEvEmpty(){
   const box=$('#evBox');
   const ph=box.querySelector('.emptymsg');
   if(box.querySelectorAll('.evrow').length){ ph&&ph.remove(); }
-  else if(!ph) box.innerHTML='<div class="emptymsg">まだ選ばれていません。上の「＋ 項目を選ぶ」か、重点3項目のボタンから追加してください。</div>';
+  else if(!ph) box.innerHTML='<div class="emptymsg">👆 上の候補から、今日それっぽいものをタップするだけでOKです（あとで文章を書きます）</div>';
 }
 
 /* ---- 日報本文からの候補スコアリング（オフライン簡易マッチ） ---- */
@@ -1437,7 +1497,7 @@ function initUI(){
   $('#setName').value=DB.settings.name||'';
   $('#setTheme').value=DB.settings.theme||'auto';
   clearForm();
-  refreshKpi(); renderStatus(); renderFocus(); renderMap(); renderHist(); renderReview();
+  refreshKpi(); renderStatus(); renderFocus(); renderEvPins(); renderMap(); renderHist(); renderReview();
 }
 initUI();
 </script>
