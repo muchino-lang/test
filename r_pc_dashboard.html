@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R∞PC 生産・入荷管理ダッシュボード</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Glassmorphism effects */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        /* Transitions */
+        .transition-all-custom {
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white font-bold text-xl flex items-center justify-center w-10 h-10 shadow-inner">
+                    R∞
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide">R∞PC 生産・入荷管理ダッシュボード</h1>
+                    <p class="text-xs text-slate-400">大学向けリユースPC 進捗・歩留まり集計システム</p>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="flex items-center space-x-2">
+                <button onclick="openModal('importExportModal')" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span class="hidden sm:inline">入出力・バックアップ</span>
+                </button>
+                <button onclick="resetToSampleData()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 flex items-center space-x-1.5 transition" title="サンプルデータを再読み込み">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span class="hidden sm:inline">データリセット</span>
+                </button>
+                <button onclick="openAddModal()" class="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-sm flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>新規ロット登録</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- SECTION 1: Summary Area (KPI Cards) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Card 1: Total Received -->
+            <div class="glass-card rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">入荷済 総台数</p>
+                        <h3 class="text-2xl font-bold text-slate-900 mt-1" id="kpi-total-received">0 <span class="text-sm font-normal text-slate-500">台</span></h3>
+                    </div>
+                    <div class="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
+                        <i class="fa-solid fa-boxes-stacked text-lg"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-center text-xs text-slate-500">
+                    <span id="kpi-received-lots-count">0 ロット</span>
+                </div>
+            </div>
+
+            <!-- Card 2: Estimated RPC -->
+            <div class="glass-card rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">RPC 見込み総台数</p>
+                        <h3 class="text-2xl font-bold text-amber-600 mt-1" id="kpi-total-estimated">0 <span class="text-sm font-normal text-slate-500">台</span></h3>
+                    </div>
+                    <div class="p-2.5 bg-amber-50 text-amber-600 rounded-lg">
+                        <i class="fa-solid fa-calculator text-lg"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-center text-xs text-slate-500">
+                    <span>見込み平均歩留まり: </span>
+                    <span id="kpi-estimated-rate" class="ml-1 font-semibold text-slate-700">0%</span>
+                </div>
+            </div>
+
+            <!-- Card 3: Completed RPC -->
+            <div class="glass-card rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">RPC 確定(生産完了)</p>
+                        <h3 class="text-2xl font-bold text-emerald-600 mt-1" id="kpi-total-completed">0 <span class="text-sm font-normal text-slate-500">台</span></h3>
+                    </div>
+                    <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                        <i class="fa-solid fa-circle-check text-lg"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-center text-xs text-slate-500">
+                    <span>見込みに対する進捗: </span>
+                    <span id="kpi-progress-percent" class="ml-1 font-semibold text-slate-700">0%</span>
+                </div>
+            </div>
+
+            <!-- Card 4: Weighted Yield Rate -->
+            <div class="glass-card rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">実績 歩留まり率</p>
+                        <h3 class="text-2xl font-bold text-indigo-600 mt-1" id="kpi-overall-yield">0.0 <span class="text-sm font-normal text-slate-500">%</span></h3>
+                    </div>
+                    <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <i class="fa-solid fa-chart-line text-lg"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-center text-xs text-slate-500">
+                    <span>確定台数 ÷ 入荷済台数</span>
+                </div>
+            </div>
+
+            <!-- Card 5: Allocated to Projects -->
+            <div class="glass-card rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">大学PJ 割当済</p>
+                        <h3 class="text-2xl font-bold text-purple-600 mt-1" id="kpi-total-allocated">0 <span class="text-sm font-normal text-slate-500">台</span></h3>
+                    </div>
+                    <div class="p-2.5 bg-purple-50 text-purple-600 rounded-lg">
+                        <i class="fa-solid fa-graduation-cap text-lg"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-center text-xs text-slate-500">
+                    <span>未割当(余剰在庫): </span>
+                    <span id="kpi-unallocated-stock" class="ml-1 font-semibold text-slate-700">0台</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: Multi-view Analysis Area (Model, Project, Lot) -->
+        <section class="glass-card rounded-xl p-5 shadow-sm border border-slate-200">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-indigo-600"></i>
+                        内訳・分析サマリー
+                    </h2>
+                    <p class="text-xs text-slate-500">機種・割り当て大学プロジェクト・ロット単位での状況分析</p>
+                </div>
+                <!-- View Switch Tabs -->
+                <div class="flex bg-slate-100 p-1 rounded-lg text-xs font-medium self-start sm:self-auto">
+                    <button id="tab-btn-model" onclick="switchBreakdownTab('model')" class="px-3 py-1.5 rounded-md transition shadow-sm bg-white text-indigo-600 font-bold">
+                        <i class="fa-solid fa-laptop mr-1"></i> 機種別
+                    </button>
+                    <button id="tab-btn-project" onclick="switchBreakdownTab('project')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-graduation-cap mr-1"></i> プロジェクト(大学)別
+                    </button>
+                    <button id="tab-btn-lot" onclick="switchBreakdownTab('lot')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-boxes-stacked mr-1"></i> ロット別カード
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 1: Model Breakdown Summary -->
+            <div id="tab-content-model" class="block">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-slate-500">全 <span id="model-count" class="font-bold text-slate-800">0</span> 機種の入荷・確定集計</span>
+                </div>
+                <div id="model-summary-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Dynamically populated via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 2: Project (University) Allocation Breakdown -->
+            <div id="tab-content-project" class="hidden space-y-3">
+                <div class="flex items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-filter text-indigo-500"></i>
+                        <label class="font-semibold text-slate-700">表示プロジェクト絞り込み:</label>
+                        <select id="project-select-filter" onchange="renderProjectSummary()" class="px-2 py-1 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="ALL">すべてのプロジェクト（大学）</option>
+                        </select>
+                    </div>
+                    <span id="project-summary-count" class="text-slate-500 font-medium">全 0 件</span>
+                </div>
+                <div id="project-summary-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamically populated via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 3: Lot Breakdown View -->
+            <div id="tab-content-lot" class="hidden space-y-3">
+                <div class="flex items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-filter text-indigo-500"></i>
+                        <label class="font-semibold text-slate-700">ステータス絞り込み:</label>
+                        <select id="lot-card-status-filter" onchange="renderLotCardSummary()" class="px-2 py-1 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="ALL">すべてのステータス</option>
+                            <option value="入荷予定">入荷予定</option>
+                            <option value="未着手">未着手</option>
+                            <option value="生産中">生産中</option>
+                            <option value="生産完了">生産完了</option>
+                        </select>
+                    </div>
+                    <span id="lot-card-count" class="text-slate-500 font-medium">全 0 ロット</span>
+                </div>
+                <div id="lot-card-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamically populated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Chart Area -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Monthly Bar Chart (2 cols) -->
+            <div class="lg:col-span-2 glass-card rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-indigo-600"></i>
+                            月別 入荷台数 vs RPC見込み vs RPC確定台数
+                        </h2>
+                        <p class="text-xs text-slate-500">8月以降の計画および実績の比較推移</p>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">月次比較</span>
+                </div>
+                <div class="relative w-full h-72">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Status Distribution Donut Chart (1 col) -->
+            <div class="glass-card rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-amber-500"></i>
+                            生産ステータス割合
+                        </h2>
+                        <p class="text-xs text-slate-500">全ロットの進行ステータス分布</p>
+                    </div>
+                </div>
+                <div class="relative w-full h-56 flex items-center justify-center">
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <!-- Status Legend Info -->
+                <div id="status-legend" class="grid grid-cols-3 gap-1 pt-3 mt-2 border-t border-slate-100 text-center text-xs">
+                    <div>
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-400 mr-1"></span>未着手
+                        <p class="font-bold text-slate-700 mt-0.5" id="status-unstarted-val">0台</p>
+                    </div>
+                    <div>
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 mr-1"></span>生産中
+                        <p class="font-bold text-slate-700 mt-0.5" id="status-in-progress-val">0台</p>
+                    </div>
+                    <div>
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1"></span>完了
+                        <p class="font-bold text-slate-700 mt-0.5" id="status-completed-val">0台</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Lot Data Table Area -->
+        <section class="glass-card rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Table Controls & Header -->
+            <div class="p-5 border-b border-slate-200 space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-slate-700"></i>
+                            入荷ロット管理テーブル
+                        </h2>
+                        <p class="text-xs text-slate-500">各入荷ロットの進捗、歩留まり、生産予定、大学PJ紐付けを一覧管理</p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportToCSV()" class="px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-file-csv"></i> CSV出力
+                        </button>
+                        <button onclick="openAddModal()" class="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-sm flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-plus"></i> 新規ロット追加
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters & Search Bar -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input type="text" id="filter-search" oninput="applyFilters()" placeholder="ロットID / 機種 / 備考を検索..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                    </div>
+
+                    <!-- Month Filter -->
+                    <div>
+                        <select id="filter-month" onchange="applyFilters()" class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                            <option value="">すべての入荷月</option>
+                            <option value="2026-08">2026年8月</option>
+                            <option value="2026-09">2026年9月</option>
+                            <option value="2026-10">2026年10月</option>
+                            <option value="2026-11">2026年11月</option>
+                            <option value="2026-12">2026年12月</option>
+                            <option value="2027-01">2027年1月</option>
+                            <option value="2027-02">2027年2月</option>
+                            <option value="2027-03">2027年3月</option>
+                        </select>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div>
+                        <select id="filter-status" onchange="applyFilters()" class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                            <option value="">すべてのステータス</option>
+                            <option value="入荷予定">入荷予定</option>
+                            <option value="未着手">未着手</option>
+                            <option value="生産中">生産中</option>
+                            <option value="生産完了">生産完了</option>
+                        </select>
+                    </div>
+
+                    <!-- Sort Filter -->
+                    <div>
+                        <select id="filter-sort" onchange="applyFilters()" class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                            <option value="month-asc">入荷月 (昇順)</option>
+                            <option value="month-desc">入荷月 (降順)</option>
+                            <option value="yield-desc">歩留まり率 (高い順)</option>
+                            <option value="yield-asc">歩留まり率 (低い順)</option>
+                            <option value="qty-desc">入荷台数 (多い順)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Responsive Table Container -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100/80 text-slate-600 text-[11px] font-semibold uppercase tracking-wider border-b border-slate-200">
+                            <th class="py-3 px-4">ロットID / 入荷月</th>
+                            <th class="py-3 px-4">機種名 / 調達元</th>
+                            <th class="py-3 px-4 text-center">ステータス</th>
+                            <th class="py-3 px-4 text-right">入荷台数</th>
+                            <th class="py-3 px-4 text-right">RPC見込み</th>
+                            <th class="py-3 px-4 text-right">RPC確定</th>
+                            <th class="py-3 px-4 text-center">歩留まり率</th>
+                            <th class="py-3 px-4">完了予定日</th>
+                            <th class="py-3 px-4">割当プロジェクト</th>
+                            <th class="py-3 px-4 text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lot-table-body" class="divide-y divide-slate-200 text-xs text-slate-700">
+                        <!-- Table rows injected via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer Stats -->
+            <div class="p-4 bg-slate-50/50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500 gap-2">
+                <div>
+                    表示件数: <span id="displayed-count" class="font-bold text-slate-800">0</span> / <span id="total-count">0</span> 件
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block"></span> 未着手</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> 生産中</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> 生産完了</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: Add/Edit Lot Modal -->
+    <div id="lotModal" role="dialog" aria-modal="true" class="modal-root fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 overflow-hidden border border-slate-100 transform scale-95 transition-transform duration-200" id="lotModalContent">
+            <!-- Modal Header -->
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2" id="modalTitle">
+                    <i class="fa-solid fa-box text-indigo-400"></i>
+                    <span>ロット情報の登録・更新</span>
+                </h3>
+                <button onclick="closeModal('lotModal')" class="text-slate-400 hover:text-white transition text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form -->
+            <form id="lotForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="form-id">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Lot ID -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">ロットID <span class="text-red-500">*</span></label>
+                        <input type="text" id="form-lotId" required placeholder="例: LOT-2026-08-01" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Arrival Month -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">入荷月 <span class="text-red-500">*</span></label>
+                        <input type="month" id="form-arrivalMonth" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Model Name -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">機種名 <span class="text-red-500">*</span></label>
+                        <input type="text" id="form-modelName" required placeholder="例: Let's note CF-SV" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Supplier -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">調達元（仕入先）</label>
+                        <input type="text" id="form-supplier" placeholder="例: ○○リース" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Received Qty -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">入荷台数 (総数) <span class="text-red-500">*</span></label>
+                        <input type="number" id="form-receivedQty" min="0" required oninput="calculateYieldOnForm()" placeholder="例: 1000" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- RPC Estimate Qty -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">RPC 見込み台数</label>
+                        <input type="number" id="form-rpcEstimateQty" min="0" oninput="calculateYieldOnForm()" placeholder="例: 500" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- RPC Confirmed Qty -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">RPC 確定台数 (実績)</label>
+                        <input type="number" id="form-rpcConfirmedQty" min="0" oninput="calculateYieldOnForm()" placeholder="生産完了後に入力" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Yield Rate Auto-Calculated -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">実績歩留まり率 (自動計算)</label>
+                        <div class="px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700" id="form-yieldDisplay">
+                            -- %
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">ステータス <span class="text-red-500">*</span></label>
+                        <select id="form-status" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="入荷予定">入荷予定</option>
+                            <option value="未着手">未着手 (入荷済)</option>
+                            <option value="生産中">生産中</option>
+                            <option value="生産完了">生産完了</option>
+                        </select>
+                    </div>
+
+                    <!-- Completion Expected Date -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">生産完了予定日</label>
+                        <input type="date" id="form-expectedCompletionDate" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Linked Project (University) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">紐付けプロジェクト（大学案件）</label>
+                        <input type="text" id="form-project" placeholder="例: 朝日大学 / 法政HU" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Allocated Quantity -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">プロジェクト割当台数</label>
+                        <input type="number" id="form-allocatedQty" min="0" placeholder="例: 450" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">備考</label>
+                    <textarea id="form-remarks" rows="2" placeholder="自由記述 (検品状況、特記事項など)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-200">
+                    <button type="button" onclick="closeModal('lotModal')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">
+                        キャンセル
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> 保存する
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Import / Export Backup Modal -->
+    <div id="importExportModal" role="dialog" aria-modal="true" class="modal-root fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 overflow-hidden border border-slate-100">
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-database text-indigo-400"></i>
+                    <span>データ保存・バックアップ管理</span>
+                </h3>
+                <button onclick="closeModal('importExportModal')" class="text-slate-400 hover:text-white transition text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Export Section -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">1. データのエクスポート (ダウンロード)</h4>
+                    <p class="text-xs text-slate-500 mb-3">現在のすべてのロットデータをJSONファイルで保存します。</p>
+                    <div class="flex gap-2">
+                        <button onclick="exportToJSON()" class="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs border border-indigo-200 rounded-lg flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-download"></i> JSONバックアップ出力
+                        </button>
+                        <button onclick="exportToCSV()" class="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs border border-emerald-200 rounded-lg flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-file-csv"></i> CSV形式出力
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="border-slate-200">
+
+                <!-- Import Section -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">2. データのインポート (復元)</h4>
+                    <p class="text-xs text-slate-500 mb-3">バックアップしたJSONファイルを指定してデータを読み込みます。</p>
+                    <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="handleJSONImport(event)">
+                    <button onclick="document.getElementById('jsonFileInput').click()" class="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-lg flex items-center justify-center gap-2 transition shadow-sm">
+                        <i class="fa-solid fa-upload"></i> JSONファイルを選択して読み込み
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 text-right">
+                <button onclick="closeModal('importExportModal')" class="px-4 py-1.5 text-xs font-medium bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 transition">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Delete Confirmation Dialog -->
+    <div id="deleteModal" role="dialog" aria-modal="true" class="modal-root fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 border border-slate-100 text-center">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900">ロットデータの削除</h3>
+            <p class="text-xs text-slate-500 mt-2">この操作は取り消せません。削除してもよろしいですか？</p>
+            <p class="text-xs font-bold text-slate-800 mt-1" id="deleteTargetLotId"></p>
+
+            <div class="flex justify-center space-x-3 mt-6">
+                <button onclick="closeModal('deleteModal')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">
+                    キャンセル
+                </button>
+                <button id="confirmDeleteBtn" class="px-4 py-2 text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg shadow transition">
+                    削除を実行する
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script>
+        // Default Sample Data (2026-2027 Season Data for R∞PC)
+        const SAMPLE_LOTS = [
+            {
+                id: "LOT-2026-08-01",
+                arrivalMonth: "2026-08",
+                status: "生産完了",
+                receivedQty: 1000,
+                rpcEstimateQty: 500,
+                rpcConfirmedQty: 480,
+                modelName: "Let's note CF-SV",
+                supplier: "オリックス・レンテック",
+                expectedCompletionDate: "2026-09-15",
+                project: "朝日大学",
+                allocatedQty: 450,
+                remarks: "Aランク状態良好。キーボード交換数台あり。"
+            },
+            {
+                id: "LOT-2026-08-02",
+                arrivalMonth: "2026-08",
+                status: "生産完了",
+                receivedQty: 800,
+                rpcEstimateQty: 400,
+                rpcConfirmedQty: 420,
+                modelName: "ThinkPad X1 Carbon",
+                supplier: "東京センチュリー",
+                expectedCompletionDate: "2026-09-20",
+                project: "法政大学HU",
+                allocatedQty: 400,
+                remarks: "歩留まり想定以上。外観きれいです。"
+            },
+            {
+                id: "LOT-2026-09-01",
+                arrivalMonth: "2026-09",
+                status: "生産中",
+                receivedQty: 1200,
+                rpcEstimateQty: 600,
+                rpcConfirmedQty: 300,
+                modelName: "Let's note CF-SV",
+                supplier: "三井住友ファイナンス",
+                expectedCompletionDate: "2026-10-15",
+                project: "立命館大学",
+                allocatedQty: 500,
+                remarks: "現在クリーニングおよびパーツ交換作業中。"
+            },
+            {
+                id: "LOT-2026-09-02",
+                arrivalMonth: "2026-09",
+                status: "生産中",
+                receivedQty: 900,
+                rpcEstimateQty: 450,
+                rpcConfirmedQty: 150,
+                modelName: "Dynabook G83",
+                supplier: "三菱HCキャピタル",
+                expectedCompletionDate: "2026-10-30",
+                project: "未定",
+                allocatedQty: 0,
+                remarks: "液晶ムラロットの検品進める。"
+            },
+            {
+                id: "LOT-2026-10-01",
+                arrivalMonth: "2026-10",
+                status: "未着手",
+                receivedQty: 1500,
+                rpcEstimateQty: 750,
+                rpcConfirmedQty: 0,
+                modelName: "Latitude 5300",
+                supplier: "オリックス・レンテック",
+                expectedCompletionDate: "2026-11-20",
+                project: "近畿大学",
+                allocatedQty: 700,
+                remarks: "10月初旬入荷済み。11月頭より生産開始予定。"
+            },
+            {
+                id: "LOT-2026-11-01",
+                arrivalMonth: "2026-11",
+                status: "入荷予定",
+                receivedQty: 2000,
+                rpcEstimateQty: 1000,
+                rpcConfirmedQty: 0,
+                modelName: "Let's note CF-SV",
+                supplier: "昭和リース",
+                expectedCompletionDate: "2026-12-15",
+                project: "明治大学",
+                allocatedQty: 800,
+                remarks: "主力入荷ロット第1弾"
+            },
+            {
+                id: "LOT-2026-12-01",
+                arrivalMonth: "2026-12",
+                status: "入荷予定",
+                receivedQty: 1800,
+                rpcEstimateQty: 900,
+                rpcConfirmedQty: 0,
+                modelName: "ThinkPad L13",
+                supplier: "東京センチュリー",
+                expectedCompletionDate: "2027-01-20",
+                project: "東洋大学",
+                allocatedQty: 600,
+                remarks: "年末最終入荷枠"
+            }
+        ];
+
+        // Shared Constants
+        const STORAGE_KEY = 'rpc_dashboard_data_v1';
+        const STATUSES = ['入荷予定', '未着手', '生産中', '生産完了'];
+        const STATUS_ICONS = { '入荷予定': '🚚', '未着手': '⏳', '生産中': '⚙️', '生産完了': '✅' };
+        const STATUS_BADGE_CLASS = {
+            '生産完了': 'bg-emerald-100 text-emerald-800 font-bold',
+            '生産中': 'bg-amber-100 text-amber-800 font-bold',
+            '入荷予定': 'bg-blue-100 text-blue-800',
+            default: 'bg-slate-100 text-slate-700'
+        };
+        const UNASSIGNED_PROJECT = '未割り当て';
+
+        // Global State
+        let lotsData = [];
+        let monthlyChartInstance = null;
+        let statusChartInstance = null;
+        let deleteTargetId = null;
+        let activeBreakdownTab = 'model';
+
+        // Initialize App on DOM Loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInitialData();
+            bindGlobalEvents();
+            initCharts();
+            renderDashboard();
+        });
+
+        // Delegated handlers for dynamically rendered rows/cards.
+        // Keeps generated markup free of inline JS, so a lot ID containing
+        // a quote can never break out into executable code.
+        function bindGlobalEvents() {
+            document.addEventListener('click', (event) => {
+                const trigger = event.target.closest('[data-action]');
+                if (!trigger || trigger.tagName === 'SELECT') return;
+
+                const id = trigger.dataset.id;
+                switch (trigger.dataset.action) {
+                    case 'duplicate': duplicateLot(id); break;
+                    case 'edit': openEditModal(id); break;
+                    case 'delete': promptDelete(id); break;
+                }
+            });
+
+            document.addEventListener('change', (event) => {
+                const select = event.target.closest('select[data-action="status"]');
+                if (select) changeLotStatusDirectly(select.dataset.id, select.value);
+            });
+
+            // Close the topmost open modal with Escape / backdrop click
+            document.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') return;
+                const open = document.querySelector('.modal-root:not(.hidden)');
+                if (open) closeModal(open.id);
+            });
+
+            document.querySelectorAll('.modal-root').forEach(modal => {
+                modal.addEventListener('mousedown', (event) => {
+                    if (event.target === modal) closeModal(modal.id);
+                });
+            });
+        }
+
+        // Coerce an arbitrary record (localStorage / imported JSON) into a valid lot
+        function normalizeLot(raw) {
+            const text = (v) => (v === null || v === undefined) ? '' : String(v).trim();
+            const num = (v) => {
+                const n = Number(v);
+                return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+            };
+            const status = text(raw.status);
+
+            return {
+                id: text(raw.id),
+                arrivalMonth: /^\d{4}-\d{2}$/.test(text(raw.arrivalMonth)) ? text(raw.arrivalMonth) : '',
+                modelName: text(raw.modelName),
+                supplier: text(raw.supplier),
+                receivedQty: num(raw.receivedQty),
+                rpcEstimateQty: num(raw.rpcEstimateQty),
+                rpcConfirmedQty: num(raw.rpcConfirmedQty),
+                status: STATUSES.includes(status) ? status : '入荷予定',
+                expectedCompletionDate: text(raw.expectedCompletionDate),
+                project: text(raw.project),
+                allocatedQty: num(raw.allocatedQty),
+                remarks: text(raw.remarks)
+            };
+        }
+
+        // Normalize a list and drop entries without a usable ID / duplicate IDs
+        function normalizeLots(list) {
+            const seen = new Set();
+            return list
+                .filter(item => item && typeof item === 'object')
+                .map(normalizeLot)
+                .filter(lot => {
+                    if (!lot.id || seen.has(lot.id)) return false;
+                    seen.add(lot.id);
+                    return true;
+                });
+        }
+
+        // Load data from LocalStorage or Sample
+        function loadInitialData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) {
+                lotsData = normalizeLots(SAMPLE_LOTS);
+                saveToLocalStorage();
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(stored);
+                if (!Array.isArray(parsed)) throw new Error('stored data is not an array');
+                lotsData = normalizeLots(parsed);
+            } catch (e) {
+                console.error("Failed to parse local storage data", e);
+                lotsData = normalizeLots(SAMPLE_LOTS);
+            }
+        }
+
+        // Save data to LocalStorage
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(lotsData));
+            } catch (e) {
+                console.error("Failed to persist data", e);
+                showToast("データの保存に失敗しました（保存領域の上限の可能性があります）", "error");
+            }
+        }
+
+        // Reset to sample data
+        function resetToSampleData() {
+            lotsData = normalizeLots(SAMPLE_LOTS);
+            saveToLocalStorage();
+            renderDashboard();
+            showToast("サンプルデータにリセットしました", "info");
+        }
+
+        // Helper: "2026-08" -> "2026年8月"
+        function formatMonth(month) {
+            if (!/^\d{4}-\d{2}$/.test(month || '')) return '-';
+            const [year, mm] = month.split('-');
+            return `${year}年${Number(mm)}月`;
+        }
+
+        // Helper: local (not UTC) date/month strings, so filenames and month
+        // defaults match the user's calendar rather than jumping a day in JST.
+        function todayISO() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function currentMonthISO() {
+            return todayISO().slice(0, 7);
+        }
+
+        // Helper: confirmed yield when available, otherwise the estimate
+        function yieldLabel(lot) {
+            if (lot.receivedQty > 0 && lot.rpcConfirmedQty > 0) {
+                return `${((lot.rpcConfirmedQty / lot.receivedQty) * 100).toFixed(1)}%`;
+            }
+            if (lot.receivedQty > 0 && lot.rpcEstimateQty > 0) {
+                return `(見込 ${((lot.rpcEstimateQty / lot.receivedQty) * 100).toFixed(0)}%)`;
+            }
+            return '--';
+        }
+
+        // Tab Switch Logic for Breakdown Area
+        function switchBreakdownTab(tabName) {
+            activeBreakdownTab = tabName;
+            
+            ['model', 'project', 'lot'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (t === tabName) {
+                    btn.className = "px-3 py-1.5 rounded-md transition shadow-sm bg-white text-indigo-600 font-bold";
+                    content.classList.remove('hidden');
+                    content.classList.add('block');
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900";
+                    content.classList.remove('block');
+                    content.classList.add('hidden');
+                }
+            });
+
+            if (tabName === 'project') {
+                populateProjectDropdown();
+                renderProjectSummary();
+            } else if (tabName === 'lot') {
+                renderLotCardSummary();
+            } else {
+                updateModelSummary();
+            }
+        }
+
+        // Main Rendering pipeline
+        function renderDashboard() {
+            updateKPICards();
+            updateModelSummary();
+            populateProjectDropdown();
+            renderProjectSummary();
+            renderLotCardSummary();
+            updateCharts();
+            applyFilters();
+        }
+
+        // Populate Project Dropdown
+        function populateProjectDropdown() {
+            const select = document.getElementById('project-select-filter');
+            if (!select) return;
+
+            const currentVal = select.value;
+            select.innerHTML = `<option value="ALL">すべてのプロジェクト（大学）</option>`;
+
+            const projectsSet = new Set();
+            lotsData.forEach(l => {
+                const pjName = l.project.trim() || UNASSIGNED_PROJECT;
+                projectsSet.add(pjName);
+            });
+
+            Array.from(projectsSet).sort().forEach(pj => {
+                const opt = document.createElement('option');
+                opt.value = pj;
+                opt.textContent = pj;
+                select.appendChild(opt);
+            });
+
+            if (Array.from(select.options).some(o => o.value === currentVal)) {
+                select.value = currentVal;
+            }
+        }
+
+        // Render Project (University Allocation) Summary
+        function renderProjectSummary() {
+            const container = document.getElementById('project-summary-container');
+            const countBadge = document.getElementById('project-summary-count');
+            const filterVal = document.getElementById('project-select-filter')?.value || 'ALL';
+
+            if (!container) return;
+
+            const projectMap = {};
+
+            lotsData.forEach(lot => {
+                const pj = lot.project.trim() || UNASSIGNED_PROJECT;
+                if (!projectMap[pj]) {
+                    projectMap[pj] = {
+                        allocatedQty: 0,
+                        confirmedQty: 0,
+                        estimateQty: 0,
+                        lots: [],
+                        models: new Set()
+                    };
+                }
+                projectMap[pj].allocatedQty += Number(lot.allocatedQty) || 0;
+                projectMap[pj].confirmedQty += Number(lot.rpcConfirmedQty) || 0;
+                projectMap[pj].estimateQty += Number(lot.rpcEstimateQty) || 0;
+                projectMap[pj].lots.push(lot);
+                if (lot.modelName) projectMap[pj].models.add(lot.modelName);
+            });
+
+            let pjList = Object.keys(projectMap);
+            if (filterVal !== 'ALL') {
+                pjList = pjList.filter(p => p === filterVal);
+            }
+
+            countBadge.innerText = `表示: ${pjList.length} 件`;
+
+            if (pjList.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-6 text-xs text-slate-400">プロジェクトデータがありません</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            pjList.sort((a, b) => projectMap[b].allocatedQty - projectMap[a].allocatedQty);
+
+            pjList.forEach(pjName => {
+                const data = projectMap[pjName];
+                const isUnassigned = pjName === UNASSIGNED_PROJECT;
+                const modelsStr = Array.from(data.models).join(', ') || '未設定';
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border transition-all ${isUnassigned ? 'bg-amber-50/50 border-amber-200' : 'bg-white border-slate-200 hover:border-indigo-300 shadow-sm'}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <h4 class="font-bold text-sm text-slate-900 truncate pr-2 flex items-center gap-1.5">
+                            <i class="fa-solid ${isUnassigned ? 'fa-triangle-exclamation text-amber-500' : 'fa-graduation-cap text-purple-600'}"></i>
+                            ${escapeHTML(pjName)}
+                        </h4>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium shrink-0">
+                            ${data.lots.length} ロット
+                        </span>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500 mt-1 truncate" title="${escapeHTML(modelsStr)}">
+                        対象機種: <span class="font-medium text-slate-700">${escapeHTML(modelsStr)}</span>
+                    </p>
+
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">割当台数</span>
+                            <span class="font-bold text-sm text-purple-700">${data.allocatedQty.toLocaleString()} <span class="text-[10px] text-slate-500">台</span></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">紐付RPC確定台数</span>
+                            <span class="font-bold text-sm text-emerald-600">${data.confirmedQty.toLocaleString()} <span class="text-[10px] text-slate-500">台</span></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span class="text-slate-500 text-[11px]">紐付けロット一覧:</span>
+                        <div class="flex flex-wrap gap-1 justify-end max-w-[65%]">
+                            ${data.lots.map(l => `<span class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-medium" title="${escapeHTML(l.modelName)}">${escapeHTML(l.id)}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Render Lot-by-Lot Detail Card Summary
+        function renderLotCardSummary() {
+            const container = document.getElementById('lot-card-container');
+            const countBadge = document.getElementById('lot-card-count');
+            const statusFilter = document.getElementById('lot-card-status-filter')?.value || 'ALL';
+
+            if (!container) return;
+
+            let filteredLots = [...lotsData];
+            if (statusFilter !== 'ALL') {
+                filteredLots = filteredLots.filter(l => l.status === statusFilter);
+            }
+
+            countBadge.innerText = `表示: ${filteredLots.length} / ${lotsData.length} ロット`;
+
+            if (filteredLots.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-6 text-xs text-slate-400">該当するロットがありません</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            filteredLots.forEach(lot => {
+                const statusBadge = STATUS_BADGE_CLASS[lot.status] || STATUS_BADGE_CLASS.default;
+                const yieldRate = yieldLabel(lot);
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow transition space-y-2.5";
+                
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <span class="font-bold text-xs text-slate-900 block">${escapeHTML(lot.id)}</span>
+                            <span class="text-[10px] text-slate-400">${formatMonth(lot.arrivalMonth)} 入荷</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] ${statusBadge}">${escapeHTML(lot.status)}</span>
+                    </div>
+
+                    <div>
+                        <h5 class="font-semibold text-xs text-slate-800">${escapeHTML(lot.modelName || '機種未設定')}</h5>
+                        <p class="text-[10px] text-slate-400">仕入先: ${escapeHTML(lot.supplier || '未記載')}</p>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-1 bg-slate-50 p-2 rounded text-center border border-slate-100">
+                        <div>
+                            <span class="text-[9px] text-slate-400 block">入荷数</span>
+                            <span class="font-bold text-xs text-slate-800">${(lot.receivedQty || 0).toLocaleString()}</span>
+                        </div>
+                        <div>
+                            <span class="text-[9px] text-slate-400 block">見込み</span>
+                            <span class="font-bold text-xs text-amber-600">${(lot.rpcEstimateQty || 0).toLocaleString()}</span>
+                        </div>
+                        <div>
+                            <span class="text-[9px] text-slate-400 block">確定(実績)</span>
+                            <span class="font-bold text-xs text-emerald-600">${lot.rpcConfirmedQty ? lot.rpcConfirmedQty.toLocaleString() : '-'}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] pt-1">
+                        <span class="text-slate-500">歩留まり: <strong class="text-indigo-600">${yieldRate}</strong></span>
+                        <span class="text-slate-500">割当PJ: <strong class="text-purple-700">${escapeHTML(lot.project || '未割当')}</strong> (${lot.allocatedQty || 0}台)</span>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-[10px] text-slate-400"><i class="fa-regular fa-calendar-check mr-1"></i>完了予定: ${escapeHTML(lot.expectedCompletionDate) || '未定'}</span>
+                        <div class="flex items-center space-x-1">
+                            <button type="button" data-action="duplicate" data-id="${escapeHTML(lot.id)}" class="px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-100 rounded" title="複製">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                            <button type="button" data-action="edit" data-id="${escapeHTML(lot.id)}" class="px-1.5 py-0.5 text-[10px] text-indigo-600 hover:bg-indigo-50 rounded" title="編集">
+                                <i class="fa-solid fa-pen"></i> 編集
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Calculate and Render Model (Device) Breakdown Summary
+        function updateModelSummary() {
+            const container = document.getElementById('model-summary-container');
+            const modelCountBadge = document.getElementById('model-count');
+            
+            if (!container) return;
+
+            // Aggregate data by modelName
+            const modelMap = {};
+
+            lotsData.forEach(lot => {
+                const model = (lot.modelName && lot.modelName.trim()) ? lot.modelName.trim() : '未設定・その他';
+                if (!modelMap[model]) {
+                    modelMap[model] = {
+                        receivedQty: 0,
+                        rpcEstimateQty: 0,
+                        rpcConfirmedQty: 0,
+                        lotCount: 0
+                    };
+                }
+                modelMap[model].receivedQty += Number(lot.receivedQty) || 0;
+                modelMap[model].rpcEstimateQty += Number(lot.rpcEstimateQty) || 0;
+                modelMap[model].rpcConfirmedQty += Number(lot.rpcConfirmedQty) || 0;
+                modelMap[model].lotCount += 1;
+            });
+
+            const modelNames = Object.keys(modelMap);
+            modelCountBadge.innerText = modelNames.length;
+
+            if (modelNames.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-slate-400">登録された機種データがありません</div>`;
+                return;
+            }
+
+            // Sort by received quantity descending
+            modelNames.sort((a, b) => modelMap[b].receivedQty - modelMap[a].receivedQty);
+
+            container.innerHTML = '';
+
+            modelNames.forEach(model => {
+                const data = modelMap[model];
+                const yieldRate = yieldLabel(data);
+
+                const progressPercent = data.rpcEstimateQty > 0 
+                    ? Math.min(100, Math.round((data.rpcConfirmedQty / data.rpcEstimateQty) * 100)) 
+                    : 0;
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200 rounded-lg p-3.5 transition-all";
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <h4 class="font-bold text-xs text-slate-900 truncate pr-2" title="${escapeHTML(model)}">
+                            <i class="fa-solid fa-computer text-indigo-500 mr-1.5"></i>${escapeHTML(model)}
+                        </h4>
+                        <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-medium shrink-0">${data.lotCount} ロット</span>
+                    </div>
+
+                    <div class="mt-2.5 grid grid-cols-3 gap-1 text-center bg-white p-2 rounded-md border border-slate-100 shadow-sm">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">入荷総数</span>
+                            <span class="font-bold text-xs text-slate-800">${data.receivedQty.toLocaleString()}<span class="text-[9px] font-normal text-slate-500">台</span></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">RPC見込</span>
+                            <span class="font-bold text-xs text-amber-600">${data.rpcEstimateQty.toLocaleString()}<span class="text-[9px] font-normal text-slate-500">台</span></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">RPC確定</span>
+                            <span class="font-bold text-xs text-emerald-600">${data.rpcConfirmedQty.toLocaleString()}<span class="text-[9px] font-normal text-slate-500">台</span></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-500">歩留まり率: <strong class="text-indigo-700">${yieldRate}</strong></span>
+                        <span class="text-slate-500">進捗: <strong class="text-emerald-700">${progressPercent}%</strong></span>
+                    </div>
+
+                    <!-- Mini Progress Bar -->
+                    <div class="w-full bg-slate-200 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                        <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Change Status Directly from Table Select Dropdown
+        function changeLotStatusDirectly(lotId, newStatus) {
+            const lot = lotsData.find(l => l.id === lotId);
+            if (!lot || !STATUSES.includes(newStatus) || lot.status === newStatus) return;
+
+            lot.status = newStatus;
+
+            saveToLocalStorage();
+            renderDashboard();
+
+            showToast(`ロット「${lotId}」のステータスを「${newStatus}」に変更しました`, "success");
+        }
+
+        // Calculate and Render KPI Metrics
+        function updateKPICards() {
+            // Received total (Only received status: 未着手, 生産中, 生産完了)
+            const receivedLots = lotsData.filter(l => l.status !== "入荷予定");
+            const totalReceived = receivedLots.reduce((sum, l) => sum + (Number(l.receivedQty) || 0), 0);
+            
+            // Total Estimate (All lots)
+            const totalEstimated = lotsData.reduce((sum, l) => sum + (Number(l.rpcEstimateQty) || 0), 0);
+            
+            // Total Confirmed
+            const totalConfirmed = lotsData.reduce((sum, l) => sum + (Number(l.rpcConfirmedQty) || 0), 0);
+            
+            // Overall Weighted Yield Rate = totalConfirmed / totalReceived
+            const overallYield = totalReceived > 0 ? ((totalConfirmed / totalReceived) * 100).toFixed(1) : "0.0";
+
+            // Estimated Yield Rate
+            const totalAllReceived = lotsData.reduce((sum, l) => sum + (Number(l.receivedQty) || 0), 0);
+            const estYieldRate = totalAllReceived > 0 ? ((totalEstimated / totalAllReceived) * 100).toFixed(1) : "0";
+
+            // Progress towards estimate
+            const progressPercent = totalEstimated > 0 ? ((totalConfirmed / totalEstimated) * 100).toFixed(1) : "0";
+
+            // Allocated to Projects
+            const totalAllocated = lotsData.reduce((sum, l) => sum + (Number(l.allocatedQty) || 0), 0);
+            const unallocated = totalConfirmed - totalAllocated;
+
+            // DOM Updates
+            document.getElementById('kpi-total-received').innerHTML = `${totalReceived.toLocaleString()} <span class="text-sm font-normal text-slate-500">台</span>`;
+            document.getElementById('kpi-received-lots-count').innerText = `${receivedLots.length} ロット入荷済 (全 ${lotsData.length} ロット)`;
+            
+            document.getElementById('kpi-total-estimated').innerHTML = `${totalEstimated.toLocaleString()} <span class="text-sm font-normal text-slate-500">台</span>`;
+            document.getElementById('kpi-estimated-rate').innerText = `${estYieldRate}%`;
+
+            document.getElementById('kpi-total-completed').innerHTML = `${totalConfirmed.toLocaleString()} <span class="text-sm font-normal text-slate-500">台</span>`;
+            document.getElementById('kpi-progress-percent').innerText = `${progressPercent}%`;
+
+            document.getElementById('kpi-overall-yield').innerHTML = `${overallYield} <span class="text-sm font-normal text-slate-500">%</span>`;
+
+            document.getElementById('kpi-total-allocated').innerHTML = `${totalAllocated.toLocaleString()} <span class="text-sm font-normal text-slate-500">台</span>`;
+            const unallocatedEl = document.getElementById('kpi-unallocated-stock');
+            unallocatedEl.innerText = `${unallocated.toLocaleString()}台`;
+            // Negative = allocated more than confirmed; surface it instead of clamping to 0
+            unallocatedEl.className = unallocated < 0
+                ? "ml-1 font-semibold text-red-600"
+                : "ml-1 font-semibold text-slate-700";
+        }
+
+        // Initialize Chart.js
+        // Charts are a secondary view: if the CDN is unreachable we skip them
+        // rather than letting the exception abort the whole dashboard render.
+        function initCharts() {
+            if (typeof Chart === 'undefined') {
+                console.warn("Chart.js is unavailable - skipping chart rendering");
+                document.querySelectorAll('#monthlyChart, #statusChart').forEach(c => {
+                    c.insertAdjacentHTML('afterend',
+                        '<p class="text-xs text-slate-400 text-center py-6">グラフを読み込めませんでした（オフラインの可能性があります）</p>');
+                    c.remove();
+                });
+                return;
+            }
+
+            // Monthly Bar Chart
+            const ctxMonthly = document.getElementById('monthlyChart').getContext('2d');
+            monthlyChartInstance = new Chart(ctxMonthly, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: '入荷台数',
+                            data: [],
+                            backgroundColor: 'rgba(148, 163, 184, 0.5)',
+                            borderColor: '#94a3b8',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'RPC 見込み台数',
+                            data: [],
+                            backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'RPC 確定台数(完了)',
+                            data: [],
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { family: 'Inter', size: 11 },
+                                usePointStyle: true,
+                                boxWidth: 8
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            padding: 10,
+                            bodySpacing: 4
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Inter', size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: { font: { family: 'Inter', size: 11 } }
+                        }
+                    }
+                }
+            });
+
+            // Status Donut Chart
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            statusChartInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['未着手 / 入荷予定', '生産中', '生産完了'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: [
+                            '#cbd5e1', // Slate 300
+                            '#f59e0b', // Amber 500
+                            '#10b981'  // Emerald 500
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Update Charts with dynamic data
+        function updateCharts() {
+            // Aggregate Data by Month
+            const monthsMap = {};
+            
+            // Collect all unique months in sorted order
+            lotsData.forEach(lot => {
+                if (!lot.arrivalMonth) return; // undated lots would create an "undefined" bucket
+                if (!monthsMap[lot.arrivalMonth]) {
+                    monthsMap[lot.arrivalMonth] = { received: 0, estimate: 0, confirmed: 0 };
+                }
+                monthsMap[lot.arrivalMonth].received += Number(lot.receivedQty) || 0;
+                monthsMap[lot.arrivalMonth].estimate += Number(lot.rpcEstimateQty) || 0;
+                monthsMap[lot.arrivalMonth].confirmed += Number(lot.rpcConfirmedQty) || 0;
+            });
+
+            const sortedMonths = Object.keys(monthsMap).sort();
+            const labels = sortedMonths.map(formatMonth);
+
+            const receivedData = sortedMonths.map(m => monthsMap[m].received);
+            const estimateData = sortedMonths.map(m => monthsMap[m].estimate);
+            const confirmedData = sortedMonths.map(m => monthsMap[m].confirmed);
+
+            if (monthlyChartInstance) {
+                monthlyChartInstance.data.labels = labels;
+                monthlyChartInstance.data.datasets[0].data = receivedData;
+                monthlyChartInstance.data.datasets[1].data = estimateData;
+                monthlyChartInstance.data.datasets[2].data = confirmedData;
+                monthlyChartInstance.update();
+            }
+
+            // Status Distribution Count
+            let unstartedCount = 0;
+            let inProgressCount = 0;
+            let completedCount = 0;
+
+            lotsData.forEach(l => {
+                if (l.status === '生産完了') {
+                    completedCount += Number(l.rpcConfirmedQty) || Number(l.rpcEstimateQty) || 0;
+                } else if (l.status === '生産中') {
+                    inProgressCount += Number(l.rpcEstimateQty) || 0;
+                } else {
+                    unstartedCount += Number(l.rpcEstimateQty) || 0;
+                }
+            });
+
+            if (statusChartInstance) {
+                statusChartInstance.data.datasets[0].data = [unstartedCount, inProgressCount, completedCount];
+                statusChartInstance.update();
+            }
+
+            // Update legend values below Donut Chart
+            document.getElementById('status-unstarted-val').innerText = `${unstartedCount.toLocaleString()}台`;
+            document.getElementById('status-in-progress-val').innerText = `${inProgressCount.toLocaleString()}台`;
+            document.getElementById('status-completed-val').innerText = `${completedCount.toLocaleString()}台`;
+        }
+
+        // Apply Table Filters and Search
+        function applyFilters() {
+            const searchVal = document.getElementById('filter-search').value.toLowerCase();
+            const monthVal = document.getElementById('filter-month').value;
+            const statusVal = document.getElementById('filter-status').value;
+            const sortVal = document.getElementById('filter-sort').value;
+
+            let filtered = lotsData.filter(lot => {
+                // Search query match
+                const matchSearch = 
+                    lot.id.toLowerCase().includes(searchVal) ||
+                    (lot.modelName && lot.modelName.toLowerCase().includes(searchVal)) ||
+                    (lot.supplier && lot.supplier.toLowerCase().includes(searchVal)) ||
+                    (lot.project && lot.project.toLowerCase().includes(searchVal)) ||
+                    (lot.remarks && lot.remarks.toLowerCase().includes(searchVal));
+
+                // Month Filter
+                const matchMonth = !monthVal || lot.arrivalMonth === monthVal;
+
+                // Status Filter
+                const matchStatus = !statusVal || lot.status === statusVal;
+
+                return matchSearch && matchMonth && matchStatus;
+            });
+
+            // Sorting
+            filtered.sort((a, b) => {
+                const yieldA = a.receivedQty > 0 ? (a.rpcConfirmedQty / a.receivedQty) : 0;
+                const yieldB = b.receivedQty > 0 ? (b.rpcConfirmedQty / b.receivedQty) : 0;
+
+                switch (sortVal) {
+                    case 'month-asc':
+                        return a.arrivalMonth.localeCompare(b.arrivalMonth);
+                    case 'month-desc':
+                        return b.arrivalMonth.localeCompare(a.arrivalMonth);
+                    case 'yield-desc':
+                        return yieldB - yieldA;
+                    case 'yield-asc':
+                        return yieldA - yieldB;
+                    case 'qty-desc':
+                        return b.receivedQty - a.receivedQty;
+                    default:
+                        return 0;
+                }
+            });
+
+            renderTableRows(filtered);
+        }
+
+        // Render Rows into HTML Table
+        function renderTableRows(rows) {
+            const tbody = document.getElementById('lot-table-body');
+            tbody.innerHTML = '';
+
+            document.getElementById('displayed-count').innerText = rows.length;
+            document.getElementById('total-count').innerText = lotsData.length;
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="py-8 text-center text-slate-400 font-medium">
+                            <i class="fa-solid fa-inbox text-2xl mb-2 block text-slate-300"></i>
+                            条件に一致するロットデータが見つかりません
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            rows.forEach(lot => {
+                // Yield Rate Badge
+                let yieldRateText = "--";
+                let yieldBadgeClass = "bg-slate-100 text-slate-600";
+
+                if (lot.receivedQty > 0 && lot.rpcConfirmedQty > 0) {
+                    const rate = (lot.rpcConfirmedQty / lot.receivedQty) * 100;
+                    yieldRateText = `${rate.toFixed(1)}%`;
+                    if (rate >= 50) {
+                        yieldBadgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold";
+                    } else if (rate >= 40) {
+                        yieldBadgeClass = "bg-amber-50 text-amber-700 border border-amber-200 font-semibold";
+                    } else {
+                        yieldBadgeClass = "bg-red-50 text-red-700 border border-red-200 font-semibold";
+                    }
+                } else if (lot.receivedQty > 0 && lot.rpcEstimateQty > 0) {
+                    const estRate = ((lot.rpcEstimateQty / lot.receivedQty) * 100).toFixed(0);
+                    yieldRateText = `(見込 ${estRate}%)`;
+                }
+
+                // Interactive Direct Status Dropdown Styling
+                let statusSelectStyle = "bg-slate-100 text-slate-700 border-slate-300";
+                if (lot.status === "生産完了") {
+                    statusSelectStyle = "bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold";
+                } else if (lot.status === "生産中") {
+                    statusSelectStyle = "bg-amber-50 text-amber-800 border-amber-300 font-semibold";
+                } else if (lot.status === "未着手") {
+                    statusSelectStyle = "bg-slate-100 text-slate-700 border-slate-300";
+                } else if (lot.status === "入荷予定") {
+                    statusSelectStyle = "bg-blue-50 text-blue-800 border-blue-300";
+                }
+
+                const statusDropdownHTML = `
+                    <select data-action="status" data-id="${escapeHTML(lot.id)}" aria-label="${escapeHTML(lot.id)} のステータス"
+                        class="px-2 py-1 text-[11px] rounded-lg border focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer transition ${statusSelectStyle}">
+                        ${STATUSES.map(s => `<option value="${escapeHTML(s)}" ${lot.status === s ? 'selected' : ''}>${STATUS_ICONS[s]} ${escapeHTML(s)}</option>`).join('')}
+                    </select>
+                `;
+
+                // Format Month Display
+                const monthDisplay = formatMonth(lot.arrivalMonth);
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-indigo-50/40 transition-colors";
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4">
+                        <div class="font-bold text-slate-900">${escapeHTML(lot.id)}</div>
+                        <div class="text-[11px] text-slate-400">${monthDisplay}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="font-semibold text-slate-800">${escapeHTML(lot.modelName || '-')}</div>
+                        <div class="text-[11px] text-slate-400">${escapeHTML(lot.supplier || '調達元未設定')}</div>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        ${statusDropdownHTML}
+                    </td>
+                    <td class="py-3 px-4 text-right font-medium">
+                        ${(lot.receivedQty || 0).toLocaleString()} 台
+                    </td>
+                    <td class="py-3 px-4 text-right font-medium text-amber-700">
+                        ${(lot.rpcEstimateQty || 0).toLocaleString()} 台
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold text-emerald-700">
+                        ${lot.rpcConfirmedQty ? lot.rpcConfirmedQty.toLocaleString() + ' 台' : '-'}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="px-2 py-0.5 rounded text-[11px] ${yieldBadgeClass}">${yieldRateText}</span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-600">
+                        ${escapeHTML(lot.expectedCompletionDate) || '-'}
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="font-semibold text-indigo-900">${escapeHTML(lot.project || '未割り当て')}</div>
+                        ${lot.allocatedQty ? `<div class="text-[10px] text-indigo-600">割当: ${lot.allocatedQty}台</div>` : ''}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center space-x-1">
+                            <button type="button" data-action="duplicate" data-id="${escapeHTML(lot.id)}" class="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded transition" title="複製して新規作成" aria-label="複製">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                            <button type="button" data-action="edit" data-id="${escapeHTML(lot.id)}" class="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded transition" title="編集" aria-label="編集">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" data-action="delete" data-id="${escapeHTML(lot.id)}" class="p-1.5 text-red-500 hover:bg-red-100 rounded transition" title="削除" aria-label="削除">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Modal Handlers
+        // NOTE: firstElementChild — not querySelector('div') — so the animated
+        // element is the dialog panel itself, never some nested layout div.
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            const panel = modal.firstElementChild;
+
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                if (panel) {
+                    panel.classList.remove('scale-95');
+                    panel.classList.add('scale-100');
+                }
+            });
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            const panel = modal.firstElementChild;
+
+            modal.classList.add('opacity-0');
+            if (panel) {
+                panel.classList.remove('scale-100');
+                panel.classList.add('scale-95');
+            }
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+            }, 200);
+        }
+
+        // Open Add Modal
+        function openAddModal() {
+            document.getElementById('modalTitle').innerText = "新規ロット登録";
+            document.getElementById('lotForm').reset();
+            document.getElementById('form-id').value = "";
+            document.getElementById('form-yieldDisplay').innerText = "-- %";
+            
+            // Auto generate a lot ID that does not collide with an existing one
+            const now = new Date();
+            const prefix = `LOT-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            let seq = lotsData.length + 1;
+            while (lotsData.some(l => l.id === `${prefix}-${String(seq).padStart(2, '0')}`)) seq++;
+
+            document.getElementById('form-lotId').value = `${prefix}-${String(seq).padStart(2, '0')}`;
+            document.getElementById('form-arrivalMonth').value = currentMonthISO();
+
+            openModal('lotModal');
+        }
+
+        // Open Edit Modal
+        function openEditModal(lotId) {
+            const lot = lotsData.find(l => l.id === lotId);
+            if (!lot) return;
+
+            document.getElementById('modalTitle').innerText = `ロット編集: ${lot.id}`;
+            document.getElementById('form-id').value = lot.id;
+            document.getElementById('form-lotId').value = lot.id;
+            document.getElementById('form-arrivalMonth').value = lot.arrivalMonth || '';
+            document.getElementById('form-modelName').value = lot.modelName || '';
+            document.getElementById('form-supplier').value = lot.supplier || '';
+            document.getElementById('form-receivedQty').value = lot.receivedQty || 0;
+            document.getElementById('form-rpcEstimateQty').value = lot.rpcEstimateQty || 0;
+            document.getElementById('form-rpcConfirmedQty').value = lot.rpcConfirmedQty || 0;
+            document.getElementById('form-status').value = lot.status || '入荷予定';
+            document.getElementById('form-expectedCompletionDate').value = lot.expectedCompletionDate || '';
+            document.getElementById('form-project').value = lot.project || '';
+            document.getElementById('form-allocatedQty').value = lot.allocatedQty || 0;
+            document.getElementById('form-remarks').value = lot.remarks || '';
+
+            calculateYieldOnForm();
+            openModal('lotModal');
+        }
+
+        // Duplicate Lot (Copy data for fast entry)
+        function duplicateLot(lotId) {
+            const lot = lotsData.find(l => l.id === lotId);
+            if (!lot) return;
+
+            document.getElementById('modalTitle').innerText = `ロット複製登録 (元: ${lot.id})`;
+            
+            // Set form-id as empty so it saves as a NEW record
+            document.getElementById('form-id').value = "";
+            
+            // Auto generate a new non-conflicting Lot ID based on copied one
+            let newLotId = `${lot.id}-COPY`;
+            let counter = 1;
+            while (lotsData.some(l => l.id === newLotId)) {
+                newLotId = `${lot.id}-COPY${counter}`;
+                counter++;
+            }
+            
+            document.getElementById('form-lotId').value = newLotId;
+            document.getElementById('form-arrivalMonth').value = lot.arrivalMonth || currentMonthISO();
+            document.getElementById('form-modelName').value = lot.modelName || '';
+            document.getElementById('form-supplier').value = lot.supplier || '';
+            document.getElementById('form-receivedQty').value = lot.receivedQty || 0;
+            document.getElementById('form-rpcEstimateQty').value = lot.rpcEstimateQty || 0;
+            document.getElementById('form-rpcConfirmedQty').value = 0; // Reset confirmed qty for new lot
+            document.getElementById('form-status').value = lot.status === "生産完了" ? "未着手" : (lot.status || "未着手");
+            document.getElementById('form-expectedCompletionDate').value = lot.expectedCompletionDate || '';
+            document.getElementById('form-project').value = lot.project || '';
+            document.getElementById('form-allocatedQty').value = lot.allocatedQty || 0;
+            document.getElementById('form-remarks').value = lot.remarks || '';
+
+            calculateYieldOnForm();
+            openModal('lotModal');
+            showToast(`「${lot.id}」の内容をコピーしました。ロットID等を確認して保存してください`, "info");
+        }
+
+        // Calculate Yield Realtime on Form
+        function calculateYieldOnForm() {
+            const recv = Number(document.getElementById('form-receivedQty').value) || 0;
+            const conf = Number(document.getElementById('form-rpcConfirmedQty').value) || 0;
+            const est = Number(document.getElementById('form-rpcEstimateQty').value) || 0;
+
+            const display = document.getElementById('form-yieldDisplay');
+            if (recv > 0 && conf > 0) {
+                const yieldRate = ((conf / recv) * 100).toFixed(1);
+                display.innerText = `${yieldRate}% (実績確定)`;
+                display.className = "px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700";
+            } else if (recv > 0 && est > 0) {
+                const estRate = ((est / recv) * 100).toFixed(1);
+                display.innerText = `${estRate}% (見込み)`;
+                display.className = "px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold text-amber-700";
+            } else {
+                display.innerText = "-- %";
+                display.className = "px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700";
+            }
+        }
+
+        // Form Submission (Add or Update)
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const existingId = document.getElementById('form-id').value;
+            const newLotId = document.getElementById('form-lotId').value.trim();
+
+            if (!newLotId) {
+                showToast("ロットIDを入力してください", "error");
+                return;
+            }
+
+            // The ID is unique across all lots except the record being edited,
+            // so a rename cannot collide with an existing lot either.
+            if (lotsData.some(l => l.id === newLotId && l.id !== existingId)) {
+                showToast(`エラー: ロットID「${newLotId}」は既に存在します`, "error");
+                return;
+            }
+
+            const newLotData = normalizeLot({
+                id: newLotId,
+                arrivalMonth: document.getElementById('form-arrivalMonth').value,
+                modelName: document.getElementById('form-modelName').value,
+                supplier: document.getElementById('form-supplier').value,
+                receivedQty: document.getElementById('form-receivedQty').value,
+                rpcEstimateQty: document.getElementById('form-rpcEstimateQty').value,
+                rpcConfirmedQty: document.getElementById('form-rpcConfirmedQty').value,
+                status: document.getElementById('form-status').value,
+                expectedCompletionDate: document.getElementById('form-expectedCompletionDate').value,
+                project: document.getElementById('form-project').value,
+                allocatedQty: document.getElementById('form-allocatedQty').value,
+                remarks: document.getElementById('form-remarks').value
+            });
+
+            if (existingId) {
+                // Update Existing
+                const index = lotsData.findIndex(l => l.id === existingId);
+                if (index === -1) {
+                    showToast(`エラー: 編集対象のロットが見つかりません`, "error");
+                    return;
+                }
+                lotsData[index] = newLotData;
+                showToast(`ロット「${newLotId}」を更新しました`, "success");
+            } else {
+                lotsData.unshift(newLotData);
+                showToast(`新規ロット「${newLotId}」を登録しました`, "success");
+            }
+
+            saveToLocalStorage();
+            renderDashboard();
+            closeModal('lotModal');
+        }
+
+        // Prompt Delete Modal
+        function promptDelete(lotId) {
+            deleteTargetId = lotId;
+            document.getElementById('deleteTargetLotId').innerText = lotId;
+            document.getElementById('confirmDeleteBtn').onclick = executeDelete;
+            openModal('deleteModal');
+        }
+
+        function executeDelete() {
+            if (!deleteTargetId) return;
+            lotsData = lotsData.filter(l => l.id !== deleteTargetId);
+            saveToLocalStorage();
+            renderDashboard();
+            closeModal('deleteModal');
+            showToast(`ロット「${deleteTargetId}」を削除しました`, "info");
+            deleteTargetId = null;
+        }
+
+        // Export Data to JSON File
+        function exportToJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(lotsData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `RPC_Lots_Backup_${todayISO()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("JSONバックアップを出力しました", "success");
+        }
+
+        // Export Data to CSV
+        function exportToCSV() {
+            if (lotsData.length === 0) {
+                showToast("出力するデータがありません", "error");
+                return;
+            }
+
+            const headers = [
+                "ロットID", "入荷月", "ステータス", "機種名", "調達元",
+                "入荷台数", "RPC見込み台数", "RPC確定台数", "歩留まり率(%)",
+                "生産完了予定日", "紐付けプロジェクト", "割当台数", "備考"
+            ];
+
+            const csvRows = [headers.join(',')];
+
+            lotsData.forEach(lot => {
+                const yieldRate = (lot.receivedQty > 0 && lot.rpcConfirmedQty > 0) 
+                    ? ((lot.rpcConfirmedQty / lot.receivedQty) * 100).toFixed(1)
+                    : '';
+
+                const row = [
+                    escapeCSV(lot.id),
+                    escapeCSV(lot.arrivalMonth),
+                    escapeCSV(lot.status),
+                    escapeCSV(lot.modelName),
+                    escapeCSV(lot.supplier),
+                    lot.receivedQty || 0,
+                    lot.rpcEstimateQty || 0,
+                    lot.rpcConfirmedQty || 0,
+                    yieldRate,
+                    escapeCSV(lot.expectedCompletionDate),
+                    escapeCSV(lot.project),
+                    lot.allocatedQty || 0,
+                    escapeCSV(lot.remarks)
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const csvString = "\uFEFF" + csvRows.join('\r\n'); // UTF-8 BOM + CRLF for Excel
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `RPC_Lot_Data_${todayISO()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("CSVファイルを出力しました", "success");
+        }
+
+        // Import JSON File
+        function handleJSONImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) {
+                        showToast("無効なJSONフォーマットです（配列である必要があります）", "error");
+                        return;
+                    }
+
+                    const normalized = normalizeLots(imported);
+                    if (normalized.length === 0) {
+                        showToast("有効なロットデータが見つかりませんでした", "error");
+                        return;
+                    }
+
+                    lotsData = normalized;
+                    saveToLocalStorage();
+                    renderDashboard();
+                    closeModal('importExportModal');
+
+                    const skipped = imported.length - normalized.length;
+                    showToast(
+                        skipped > 0
+                            ? `${normalized.length} 件を復元しました（${skipped} 件は無効なためスキップ）`
+                            : `${normalized.length} 件のデータを復元しました`,
+                        "success"
+                    );
+                } catch (err) {
+                    console.error("Failed to import JSON", err);
+                    showToast("ファイルの読み込みに失敗しました", "error");
+                }
+            };
+            reader.onerror = () => showToast("ファイルの読み込みに失敗しました", "error");
+            reader.readAsText(file);
+            // Allow re-selecting the same file consecutively
+            event.target.value = '';
+        }
+
+        // Helper: Escape CSV string
+        function escapeCSV(val) {
+            if (val === null || val === undefined) return '""';
+            return `"${String(val).replace(/"/g, '""')}"`;
+        }
+
+        // Helper: Escape HTML (0 and false must still render, so no falsy check)
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Custom Toast Notification System
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let iconClass = "fa-circle-info text-blue-500";
+            let borderColor = "border-blue-500";
+
+            if (type === "success") {
+                iconClass = "fa-circle-check text-emerald-500";
+                borderColor = "border-emerald-500";
+            } else if (type === "error") {
+                iconClass = "fa-circle-xmark text-red-500";
+                borderColor = "border-red-500";
+            }
+
+            toast.className = `pointer-events-auto bg-white border-l-4 ${borderColor} shadow-lg rounded-r-lg p-3 text-xs flex items-center space-x-2.5 text-slate-800 transform translate-x-10 opacity-0 transition-all duration-300 max-w-xs`;
+            toast.innerHTML = `
+                <i class="fa-solid ${iconClass} text-base"></i>
+                <span class="font-medium">${escapeHTML(message)}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-x-10', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-10');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
