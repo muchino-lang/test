@@ -44,6 +44,21 @@
         .transition-all-custom {
             transition: all 0.2s ease-in-out;
         }
+        /* Print: only the work order sheet goes on paper */
+        @media print {
+            body * { visibility: hidden; }
+            #workOrderSheet, #workOrderSheet * { visibility: visible; }
+            #workOrderSheet {
+                position: absolute;
+                inset: 0 auto auto 0;
+                width: 100%;
+                max-height: none;
+                overflow: visible;
+                padding: 0;
+            }
+            .no-print { display: none !important; }
+            @page { margin: 14mm; }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -185,6 +200,9 @@
                     <button id="tab-btn-project" onclick="switchBreakdownTab('project')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
                         <i class="fa-solid fa-graduation-cap mr-1"></i> プロジェクト(大学)別
                     </button>
+                    <button id="tab-btn-workorder" onclick="switchBreakdownTab('workorder')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-clipboard-list mr-1"></i> 指示書別
+                    </button>
                     <button id="tab-btn-lot" onclick="switchBreakdownTab('lot')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
                         <i class="fa-solid fa-boxes-stacked mr-1"></i> ロット別カード
                     </button>
@@ -214,6 +232,23 @@
                     <span id="project-summary-count" class="text-slate-500 font-medium">全 0 件</span>
                 </div>
                 <div id="project-summary-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamically populated via JS -->
+                </div>
+            </div>
+
+            <!-- TAB: Work Order (生産指示書) Breakdown View -->
+            <div id="tab-content-workorder" class="hidden space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <i class="fa-solid fa-filter text-indigo-500"></i>
+                        <label for="workorder-select-filter" class="font-semibold text-slate-700">指示書絞り込み:</label>
+                        <select id="workorder-select-filter" onchange="renderWorkOrderSummary()" class="px-2 py-1 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="ALL">すべての指示書</option>
+                        </select>
+                    </div>
+                    <span id="workorder-count" class="text-slate-500 font-medium">全 0 件</span>
+                </div>
+                <div id="workorder-summary-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <!-- Dynamically populated via JS -->
                 </div>
             </div>
@@ -288,6 +323,69 @@
                         <p class="font-bold text-slate-700 mt-0.5" id="status-completed-val">0台</p>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- SECTION: Production Schedule (Gantt) -->
+        <section class="glass-card rounded-xl p-5 shadow-sm border border-slate-200">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-bars-staggered text-indigo-600"></i>
+                        生産スケジュール（ガントチャート）
+                    </h2>
+                    <p class="text-xs text-slate-500">生産開始予定日〜生産完了予定日の工程を指示書／ロット単位で表示（開始日未入力の場合は入荷月の初日を始点として表示）</p>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap text-xs">
+                    <div class="flex bg-slate-100 p-1 rounded-lg font-medium">
+                        <button id="gantt-group-workOrder" onclick="setGanttGroupBy('workOrder')" class="px-3 py-1.5 rounded-md transition shadow-sm bg-white text-indigo-600 font-bold">
+                            <i class="fa-solid fa-clipboard-list mr-1"></i> 指示書別
+                        </button>
+                        <button id="gantt-group-lot" onclick="setGanttGroupBy('lot')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-boxes-stacked mr-1"></i> ロット別
+                        </button>
+                    </div>
+                    <select id="gantt-zoom" onchange="setGanttZoom(this.value)" aria-label="表示倍率" class="px-2 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="day">日単位（拡大）</option>
+                        <option value="week" selected>週単位（標準）</option>
+                        <option value="month">月単位（俯瞰）</option>
+                    </select>
+                    <button onclick="scrollGanttToToday()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition flex items-center gap-1.5">
+                        <i class="fa-regular fa-calendar-day"></i> 今日へ
+                    </button>
+                </div>
+            </div>
+
+            <div id="gantt-empty" class="hidden text-center py-10 text-xs text-slate-400">
+                <i class="fa-regular fa-calendar-xmark text-2xl mb-2 block text-slate-300"></i>
+                日程（生産完了予定日）が設定されたロットがありません
+            </div>
+
+            <div id="gantt-wrapper" class="flex border border-slate-200 rounded-lg overflow-hidden">
+                <!-- Fixed label column -->
+                <div class="shrink-0 w-52 sm:w-64 bg-slate-50 border-r border-slate-200">
+                    <div class="h-12 border-b border-slate-200 flex items-end px-3 pb-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                        指示書 / ロット
+                    </div>
+                    <div id="gantt-labels"></div>
+                </div>
+                <!-- Scrollable timeline -->
+                <div id="gantt-scroll" class="flex-1 overflow-x-auto">
+                    <div id="gantt-track" class="relative">
+                        <div id="gantt-header" class="h-12 border-b border-slate-200 relative bg-white"></div>
+                        <div id="gantt-rows" class="relative"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center flex-wrap gap-x-4 gap-y-1 mt-3 text-[11px] text-slate-500">
+                <span class="flex items-center gap-1"><span class="w-3 h-2 rounded-sm bg-blue-400 inline-block"></span> 入荷予定</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-2 rounded-sm bg-slate-400 inline-block"></span> 未着手</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-2 rounded-sm bg-amber-500 inline-block"></span> 生産中</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-2 rounded-sm bg-emerald-500 inline-block"></span> 生産完了</span>
+                <span class="flex items-center gap-1"><span class="w-0.5 h-3 bg-red-500 inline-block"></span> 本日</span>
+                <span class="flex items-center gap-1 text-slate-400"><i class="fa-solid fa-triangle-exclamation text-red-500"></i> 完了予定を過ぎた未完了</span>
             </div>
         </section>
 
@@ -479,9 +577,33 @@
                         </select>
                     </div>
 
+                    <!-- Work Order No -->
+                    <div>
+                        <label for="form-workOrderNo" class="block text-xs font-semibold text-slate-700 mb-1">
+                            生産指示書No
+                            <span class="font-normal text-slate-400">(同じ番号のロットが1枚にまとまります)</span>
+                        </label>
+                        <div class="flex gap-1.5">
+                            <input type="text" id="form-workOrderNo" list="workorder-suggestions" placeholder="例: WO-2026-10-001" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <button type="button" onclick="fillNewWorkOrderNo()" title="新しい指示書Noを自動採番" class="shrink-0 px-2.5 text-xs bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 transition">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            </button>
+                        </div>
+                        <datalist id="workorder-suggestions"></datalist>
+                    </div>
+
+                    <!-- Production Start Date -->
+                    <div>
+                        <label for="form-productionStartDate" class="block text-xs font-semibold text-slate-700 mb-1">
+                            生産開始予定日
+                            <span class="font-normal text-slate-400">(任意)</span>
+                        </label>
+                        <input type="date" id="form-productionStartDate" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
                     <!-- Completion Expected Date -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">生産完了予定日</label>
+                        <label for="form-expectedCompletionDate" class="block text-xs font-semibold text-slate-700 mb-1">生産完了予定日</label>
                         <input type="date" id="form-expectedCompletionDate" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
 
@@ -587,6 +709,29 @@
         </div>
     </div>
 
+    <!-- MODAL: Work Order (生産指示書) Sheet -->
+    <div id="workOrderModal" role="dialog" aria-modal="true" class="modal-root fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 transform scale-95 transition-transform duration-200">
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0 no-print">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list text-indigo-400"></i>
+                    <span>生産指示書</span>
+                </h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-print"></i> 印刷 / PDF
+                    </button>
+                    <button onclick="closeModal('workOrderModal')" class="text-slate-400 hover:text-white transition text-lg" aria-label="閉じる">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="workOrderSheet" class="p-6 overflow-y-auto text-slate-800">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
@@ -595,6 +740,8 @@
         const SAMPLE_LOTS = [
             {
                 id: "LOT-2026-08-01",
+                workOrderNo: "WO-2026-08-001",
+                productionStartDate: "2026-08-20",
                 arrivalMonth: "2026-08",
                 status: "生産完了",
                 receivedQty: 1000,
@@ -609,6 +756,8 @@
             },
             {
                 id: "LOT-2026-08-02",
+                workOrderNo: "WO-2026-08-002",
+                productionStartDate: "2026-08-25",
                 arrivalMonth: "2026-08",
                 status: "生産完了",
                 receivedQty: 800,
@@ -623,6 +772,8 @@
             },
             {
                 id: "LOT-2026-09-01",
+                workOrderNo: "WO-2026-09-001",
+                productionStartDate: "2026-09-20",
                 arrivalMonth: "2026-09",
                 status: "生産中",
                 receivedQty: 1200,
@@ -637,6 +788,8 @@
             },
             {
                 id: "LOT-2026-09-02",
+                workOrderNo: "WO-2026-09-002",
+                productionStartDate: "2026-10-01",
                 arrivalMonth: "2026-09",
                 status: "生産中",
                 receivedQty: 900,
@@ -651,6 +804,8 @@
             },
             {
                 id: "LOT-2026-10-01",
+                workOrderNo: "WO-2026-10-001",
+                productionStartDate: "2026-11-01",
                 arrivalMonth: "2026-10",
                 status: "未着手",
                 receivedQty: 1500,
@@ -665,6 +820,8 @@
             },
             {
                 id: "LOT-2026-11-01",
+                workOrderNo: "WO-2026-11-001",
+                productionStartDate: "2026-11-25",
                 arrivalMonth: "2026-11",
                 status: "入荷予定",
                 receivedQty: 2000,
@@ -679,6 +836,8 @@
             },
             {
                 id: "LOT-2026-12-01",
+                workOrderNo: "WO-2026-12-001",
+                productionStartDate: "2027-01-05",
                 arrivalMonth: "2026-12",
                 status: "入荷予定",
                 receivedQty: 1800,
@@ -690,6 +849,22 @@
                 project: "東洋大学",
                 allocatedQty: 600,
                 remarks: "年末最終入荷枠"
+            },
+            {
+                id: "LOT-2026-09-03",
+                workOrderNo: "WO-2026-09-001",
+                productionStartDate: "2026-09-25",
+                arrivalMonth: "2026-09",
+                status: "生産中",
+                receivedQty: 400,
+                rpcEstimateQty: 200,
+                rpcConfirmedQty: 60,
+                modelName: "Let's note CF-SV",
+                supplier: "オリックス・レンテック",
+                expectedCompletionDate: "2026-10-20",
+                project: "立命館大学",
+                allocatedQty: 150,
+                remarks: "WO-2026-09-001 の追加ロット（同一指示書で生産）"
             }
         ];
 
@@ -704,6 +879,15 @@
             default: 'bg-slate-100 text-slate-700'
         };
         const UNASSIGNED_PROJECT = '未割り当て';
+        const NO_WORK_ORDER = '指示書 未設定';
+        // Gantt zoom levels (pixels per day)
+        const GANTT_ZOOM = { day: 26, week: 9, month: 3.5 };
+        const STATUS_BAR_CLASS = {
+            '生産完了': 'bg-emerald-500',
+            '生産中': 'bg-amber-500',
+            '未着手': 'bg-slate-400',
+            '入荷予定': 'bg-blue-400'
+        };
 
         // Global State
         let lotsData = [];
@@ -711,6 +895,8 @@
         let statusChartInstance = null;
         let deleteTargetId = null;
         let activeBreakdownTab = 'model';
+        let ganttGroupBy = 'workOrder'; // 'workOrder' | 'lot'
+        let ganttZoom = 'week';
 
         // Initialize App on DOM Loaded
         document.addEventListener('DOMContentLoaded', () => {
@@ -733,6 +919,7 @@
                     case 'duplicate': duplicateLot(id); break;
                     case 'edit': openEditModal(id); break;
                     case 'delete': promptDelete(id); break;
+                    case 'sheet': openWorkOrderSheet(id); break;
                 }
             });
 
@@ -764,8 +951,11 @@
             };
             const status = text(raw.status);
 
+            const date = (v) => /^\d{4}-\d{2}-\d{2}$/.test(text(v)) ? text(v) : '';
+
             return {
                 id: text(raw.id),
+                workOrderNo: text(raw.workOrderNo),
                 arrivalMonth: /^\d{4}-\d{2}$/.test(text(raw.arrivalMonth)) ? text(raw.arrivalMonth) : '',
                 modelName: text(raw.modelName),
                 supplier: text(raw.supplier),
@@ -773,7 +963,8 @@
                 rpcEstimateQty: num(raw.rpcEstimateQty),
                 rpcConfirmedQty: num(raw.rpcConfirmedQty),
                 status: STATUSES.includes(status) ? status : '入荷予定',
-                expectedCompletionDate: text(raw.expectedCompletionDate),
+                productionStartDate: date(raw.productionStartDate),
+                expectedCompletionDate: date(raw.expectedCompletionDate),
                 project: text(raw.project),
                 allocatedQty: num(raw.allocatedQty),
                 remarks: text(raw.remarks)
@@ -863,7 +1054,7 @@
         function switchBreakdownTab(tabName) {
             activeBreakdownTab = tabName;
             
-            ['model', 'project', 'lot'].forEach(t => {
+            ['model', 'project', 'workorder', 'lot'].forEach(t => {
                 const btn = document.getElementById(`tab-btn-${t}`);
                 const content = document.getElementById(`tab-content-${t}`);
                 if (t === tabName) {
@@ -880,6 +1071,9 @@
             if (tabName === 'project') {
                 populateProjectDropdown();
                 renderProjectSummary();
+            } else if (tabName === 'workorder') {
+                populateWorkOrderDropdown();
+                renderWorkOrderSummary();
             } else if (tabName === 'lot') {
                 renderLotCardSummary();
             } else {
@@ -893,7 +1087,11 @@
             updateModelSummary();
             populateProjectDropdown();
             renderProjectSummary();
+            populateWorkOrderDropdown();
+            populateWorkOrderSuggestions();
+            renderWorkOrderSummary();
             renderLotCardSummary();
+            renderGantt();
             updateCharts();
             applyFilters();
         }
@@ -1420,6 +1618,7 @@
                     (lot.modelName && lot.modelName.toLowerCase().includes(searchVal)) ||
                     (lot.supplier && lot.supplier.toLowerCase().includes(searchVal)) ||
                     (lot.project && lot.project.toLowerCase().includes(searchVal)) ||
+                    (lot.workOrderNo && lot.workOrderNo.toLowerCase().includes(searchVal)) ||
                     (lot.remarks && lot.remarks.toLowerCase().includes(searchVal));
 
                 // Month Filter
@@ -1524,6 +1723,12 @@
                     <td class="py-3 px-4">
                         <div class="font-bold text-slate-900">${escapeHTML(lot.id)}</div>
                         <div class="text-[11px] text-slate-400">${monthDisplay}</div>
+                        ${lot.workOrderNo
+                            ? `<button type="button" data-action="sheet" data-id="${escapeHTML(lot.workOrderNo)}" title="指示書を開く"
+                                   class="mt-1 inline-flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-medium transition">
+                                   <i class="fa-solid fa-clipboard-list"></i>${escapeHTML(lot.workOrderNo)}
+                               </button>`
+                            : ''}
                     </td>
                     <td class="py-3 px-4">
                         <div class="font-semibold text-slate-800">${escapeHTML(lot.modelName || '-')}</div>
@@ -1545,7 +1750,8 @@
                         <span class="px-2 py-0.5 rounded text-[11px] ${yieldBadgeClass}">${yieldRateText}</span>
                     </td>
                     <td class="py-3 px-4 text-slate-600">
-                        ${escapeHTML(lot.expectedCompletionDate) || '-'}
+                        <div>${escapeHTML(lot.expectedCompletionDate) || '-'}</div>
+                        ${lot.productionStartDate ? `<div class="text-[10px] text-slate-400">開始 ${escapeHTML(lot.productionStartDate)}</div>` : ''}
                     </td>
                     <td class="py-3 px-4">
                         <div class="font-semibold text-indigo-900">${escapeHTML(lot.project || '未割り当て')}</div>
@@ -1618,6 +1824,8 @@
             let seq = lotsData.length + 1;
             while (lotsData.some(l => l.id === `${prefix}-${String(seq).padStart(2, '0')}`)) seq++;
 
+            document.getElementById('form-workOrderNo').value = '';
+            document.getElementById('form-productionStartDate').value = '';
             document.getElementById('form-lotId').value = `${prefix}-${String(seq).padStart(2, '0')}`;
             document.getElementById('form-arrivalMonth').value = currentMonthISO();
 
@@ -1639,6 +1847,8 @@
             document.getElementById('form-rpcEstimateQty').value = lot.rpcEstimateQty || 0;
             document.getElementById('form-rpcConfirmedQty').value = lot.rpcConfirmedQty || 0;
             document.getElementById('form-status').value = lot.status || '入荷予定';
+            document.getElementById('form-workOrderNo').value = lot.workOrderNo || '';
+            document.getElementById('form-productionStartDate').value = lot.productionStartDate || '';
             document.getElementById('form-expectedCompletionDate').value = lot.expectedCompletionDate || '';
             document.getElementById('form-project').value = lot.project || '';
             document.getElementById('form-allocatedQty').value = lot.allocatedQty || 0;
@@ -1674,6 +1884,8 @@
             document.getElementById('form-rpcEstimateQty').value = lot.rpcEstimateQty || 0;
             document.getElementById('form-rpcConfirmedQty').value = 0; // Reset confirmed qty for new lot
             document.getElementById('form-status').value = lot.status === "生産完了" ? "未着手" : (lot.status || "未着手");
+            document.getElementById('form-workOrderNo').value = lot.workOrderNo || '';
+            document.getElementById('form-productionStartDate').value = lot.productionStartDate || '';
             document.getElementById('form-expectedCompletionDate').value = lot.expectedCompletionDate || '';
             document.getElementById('form-project').value = lot.project || '';
             document.getElementById('form-allocatedQty').value = lot.allocatedQty || 0;
@@ -1733,6 +1945,8 @@
                 rpcEstimateQty: document.getElementById('form-rpcEstimateQty').value,
                 rpcConfirmedQty: document.getElementById('form-rpcConfirmedQty').value,
                 status: document.getElementById('form-status').value,
+                workOrderNo: document.getElementById('form-workOrderNo').value,
+                productionStartDate: document.getElementById('form-productionStartDate').value,
                 expectedCompletionDate: document.getElementById('form-expectedCompletionDate').value,
                 project: document.getElementById('form-project').value,
                 allocatedQty: document.getElementById('form-allocatedQty').value,
@@ -1796,9 +2010,9 @@
             }
 
             const headers = [
-                "ロットID", "入荷月", "ステータス", "機種名", "調達元",
+                "指示書No", "ロットID", "入荷月", "ステータス", "機種名", "調達元",
                 "入荷台数", "RPC見込み台数", "RPC確定台数", "歩留まり率(%)",
-                "生産完了予定日", "紐付けプロジェクト", "割当台数", "備考"
+                "生産開始予定日", "生産完了予定日", "紐付けプロジェクト", "割当台数", "備考"
             ];
 
             const csvRows = [headers.join(',')];
@@ -1809,6 +2023,7 @@
                     : '';
 
                 const row = [
+                    escapeCSV(lot.workOrderNo),
                     escapeCSV(lot.id),
                     escapeCSV(lot.arrivalMonth),
                     escapeCSV(lot.status),
@@ -1818,6 +2033,7 @@
                     lot.rpcEstimateQty || 0,
                     lot.rpcConfirmedQty || 0,
                     yieldRate,
+                    escapeCSV(lot.productionStartDate),
                     escapeCSV(lot.expectedCompletionDate),
                     escapeCSV(lot.project),
                     lot.allocatedQty || 0,
@@ -1896,6 +2112,519 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
+        }
+
+
+        /* =====================================================================
+         * 生産指示書 (Work Order) & 生産スケジュール (Gantt)
+         * ===================================================================== */
+
+        // --- Date helpers (local time; never round-trip through UTC) ---
+        function parseDate(str) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(str || '')) return null;
+            const [y, m, d] = str.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        function startOfMonth(month) {
+            if (!/^\d{4}-\d{2}$/.test(month || '')) return null;
+            const [y, m] = month.split('-').map(Number);
+            return new Date(y, m - 1, 1);
+        }
+
+        function todayDate() {
+            const d = new Date();
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
+
+        function addDays(date, days) {
+            const d = new Date(date);
+            d.setDate(d.getDate() + days);
+            return d;
+        }
+
+        function daysBetween(from, to) {
+            return Math.round((to - from) / 86400000);
+        }
+
+        function formatDateJP(date) {
+            if (!date) return '-';
+            return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        // Schedule span of a single lot.
+        // End is the production due date; start falls back to the arrival month
+        // so lots with only a due date still get a bar instead of vanishing.
+        function lotSpan(lot) {
+            const end = parseDate(lot.expectedCompletionDate);
+            if (!end) return null;
+            const start = parseDate(lot.productionStartDate) || startOfMonth(lot.arrivalMonth) || end;
+            return { start: start > end ? end : start, end };
+        }
+
+        // Roll a set of lot statuses up to one status for the work order
+        function rollupStatus(lots) {
+            if (lots.length === 0) return '入荷予定';
+            if (lots.every(l => l.status === '生産完了')) return '生産完了';
+            if (lots.some(l => l.status === '生産中')) return '生産中';
+            if (lots.every(l => l.status === '入荷予定')) return '入荷予定';
+            return '未着手';
+        }
+
+        // Group lots into work orders keyed by 指示書No (blank = one bucket)
+        function buildWorkOrders() {
+            const map = new Map();
+
+            lotsData.forEach(lot => {
+                const key = lot.workOrderNo || NO_WORK_ORDER;
+                if (!map.has(key)) {
+                    map.set(key, {
+                        no: key,
+                        isUnassigned: key === NO_WORK_ORDER,
+                        lots: [],
+                        receivedQty: 0,
+                        estimateQty: 0,
+                        confirmedQty: 0,
+                        allocatedQty: 0,
+                        projects: new Set(),
+                        models: new Set()
+                    });
+                }
+                const wo = map.get(key);
+                wo.lots.push(lot);
+                wo.receivedQty += lot.receivedQty;
+                wo.estimateQty += lot.rpcEstimateQty;
+                wo.confirmedQty += lot.rpcConfirmedQty;
+                wo.allocatedQty += lot.allocatedQty;
+                if (lot.project) wo.projects.add(lot.project);
+                if (lot.modelName) wo.models.add(lot.modelName);
+            });
+
+            return Array.from(map.values()).map(wo => {
+                const spans = wo.lots.map(lotSpan).filter(Boolean);
+                wo.start = spans.length ? new Date(Math.min(...spans.map(s => s.start))) : null;
+                wo.end = spans.length ? new Date(Math.max(...spans.map(s => s.end))) : null;
+                wo.status = rollupStatus(wo.lots);
+                wo.overdue = !!wo.end && wo.end < todayDate() && wo.status !== '生産完了';
+                wo.progress = wo.estimateQty > 0
+                    ? Math.min(100, Math.round((wo.confirmedQty / wo.estimateQty) * 100))
+                    : 0;
+                return wo;
+            }).sort((a, b) => {
+                if (a.isUnassigned !== b.isUnassigned) return a.isUnassigned ? 1 : -1;
+                if (a.end && b.end) return a.end - b.end;
+                if (a.end) return -1;
+                if (b.end) return 1;
+                return a.no.localeCompare(b.no);
+            });
+        }
+
+        // Next unused work order number for the current month
+        function nextWorkOrderNo() {
+            const prefix = `WO-${currentMonthISO()}`;
+            const used = new Set(lotsData.map(l => l.workOrderNo).filter(Boolean));
+            let seq = 1;
+            while (used.has(`${prefix}-${String(seq).padStart(3, '0')}`)) seq++;
+            return `${prefix}-${String(seq).padStart(3, '0')}`;
+        }
+
+        function fillNewWorkOrderNo() {
+            document.getElementById('form-workOrderNo').value = nextWorkOrderNo();
+        }
+
+        // Existing numbers offered as autocomplete, so lots join a sheet by typing
+        function populateWorkOrderSuggestions() {
+            const datalist = document.getElementById('workorder-suggestions');
+            if (!datalist) return;
+            const numbers = Array.from(new Set(lotsData.map(l => l.workOrderNo).filter(Boolean))).sort();
+            datalist.innerHTML = numbers.map(no => `<option value="${escapeHTML(no)}"></option>`).join('');
+        }
+
+        function populateWorkOrderDropdown() {
+            const select = document.getElementById('workorder-select-filter');
+            if (!select) return;
+
+            const current = select.value;
+            const orders = buildWorkOrders();
+            select.innerHTML = `<option value="ALL">すべての指示書</option>` +
+                orders.map(wo => `<option value="${escapeHTML(wo.no)}">${escapeHTML(wo.no)}</option>`).join('');
+
+            if (Array.from(select.options).some(o => o.value === current)) select.value = current;
+        }
+
+        // --- 指示書別サマリー ---
+        function renderWorkOrderSummary() {
+            const container = document.getElementById('workorder-summary-container');
+            const countBadge = document.getElementById('workorder-count');
+            if (!container) return;
+
+            const filterVal = document.getElementById('workorder-select-filter')?.value || 'ALL';
+            let orders = buildWorkOrders();
+            if (filterVal !== 'ALL') orders = orders.filter(wo => wo.no === filterVal);
+
+            countBadge.innerText = `表示: ${orders.length} 件`;
+
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-6 text-xs text-slate-400">指示書データがありません</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            orders.forEach(wo => {
+                const projects = Array.from(wo.projects).join(' / ') || '未割り当て';
+                const models = Array.from(wo.models).join(' / ') || '未設定';
+                const period = (wo.start && wo.end)
+                    ? `${formatDateJP(wo.start)} 〜 ${formatDateJP(wo.end)}`
+                    : '日程未設定';
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border transition-all ${wo.isUnassigned ? 'bg-amber-50/50 border-amber-200' : 'bg-white border-slate-200 hover:border-indigo-300 shadow-sm'}`;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <h4 class="font-bold text-sm text-slate-900 truncate flex items-center gap-1.5">
+                                <i class="fa-solid ${wo.isUnassigned ? 'fa-triangle-exclamation text-amber-500' : 'fa-clipboard-list text-indigo-600'}"></i>
+                                ${escapeHTML(wo.no)}
+                            </h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5 truncate" title="${escapeHTML(projects)}">
+                                <i class="fa-solid fa-graduation-cap mr-1 text-purple-500"></i>${escapeHTML(projects)}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="px-2 py-0.5 rounded text-[10px] ${STATUS_BADGE_CLASS[wo.status] || STATUS_BADGE_CLASS.default}">${escapeHTML(wo.status)}</span>
+                            ${wo.overdue ? '<i class="fa-solid fa-triangle-exclamation text-red-500 text-xs" title="完了予定日を超過しています"></i>' : ''}
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500 mt-2 truncate" title="${escapeHTML(models)}">
+                        対象機種: <span class="font-medium text-slate-700">${escapeHTML(models)}</span>
+                    </p>
+                    <p class="text-[11px] mt-0.5 ${wo.overdue ? 'text-red-600 font-semibold' : 'text-slate-500'}">
+                        <i class="fa-regular fa-calendar mr-1"></i>生産期間: ${escapeHTML(period)}
+                    </p>
+
+                    <div class="mt-3 grid grid-cols-4 gap-1 text-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">ロット</span>
+                            <span class="font-bold text-sm text-slate-800">${wo.lots.length}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">入荷</span>
+                            <span class="font-bold text-sm text-slate-800">${wo.receivedQty.toLocaleString()}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">見込</span>
+                            <span class="font-bold text-sm text-amber-600">${wo.estimateQty.toLocaleString()}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">確定</span>
+                            <span class="font-bold text-sm text-emerald-600">${wo.confirmedQty.toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="flex items-center justify-between text-[11px] mb-1">
+                            <span class="text-slate-500">見込みに対する進捗</span>
+                            <strong class="text-emerald-700">${wo.progress}%</strong>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" style="width: ${wo.progress}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <div class="flex flex-wrap gap-1 min-w-0">
+                            ${wo.lots.map(l => `<span class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-medium" title="${escapeHTML(l.modelName)}">${escapeHTML(l.id)}</span>`).join('')}
+                        </div>
+                        <button type="button" data-action="sheet" data-id="${escapeHTML(wo.no)}" class="shrink-0 px-2.5 py-1 text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-file-lines"></i> 指示書を開く
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // --- 指示書シート (印刷用) ---
+        function openWorkOrderSheet(workOrderNo) {
+            const wo = buildWorkOrders().find(w => w.no === workOrderNo);
+            if (!wo) return;
+
+            const sheet = document.getElementById('workOrderSheet');
+            const projects = Array.from(wo.projects).join(' / ') || '未割り当て';
+
+            const rows = wo.lots.map(lot => {
+                const span = lotSpan(lot);
+                return `
+                    <tr class="border-b border-slate-200">
+                        <td class="py-2 px-2 font-semibold">${escapeHTML(lot.id)}</td>
+                        <td class="py-2 px-2">${escapeHTML(lot.modelName || '-')}</td>
+                        <td class="py-2 px-2 text-slate-500">${escapeHTML(lot.supplier || '-')}</td>
+                        <td class="py-2 px-2 text-right">${lot.receivedQty.toLocaleString()}</td>
+                        <td class="py-2 px-2 text-right text-amber-700">${lot.rpcEstimateQty.toLocaleString()}</td>
+                        <td class="py-2 px-2 text-right font-semibold text-emerald-700">${lot.rpcConfirmedQty ? lot.rpcConfirmedQty.toLocaleString() : '-'}</td>
+                        <td class="py-2 px-2 text-center">${escapeHTML(lot.status)}</td>
+                        <td class="py-2 px-2 text-slate-600">${span ? `${formatDateJP(span.start)}〜${formatDateJP(span.end)}` : '未設定'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const remarks = wo.lots.filter(l => l.remarks).map(l =>
+                `<li><span class="font-semibold">${escapeHTML(l.id)}:</span> ${escapeHTML(l.remarks)}</li>`
+            ).join('');
+
+            sheet.innerHTML = `
+                <div class="border-b-2 border-slate-800 pb-3 mb-4 flex items-end justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold tracking-wide">生産指示書</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">R∞PC 大学向けリユースPC 生産管理</p>
+                    </div>
+                    <div class="text-right text-xs">
+                        <p class="font-bold text-base">${escapeHTML(wo.no)}</p>
+                        <p class="text-slate-500">発行日: ${formatDateJP(todayDate())}</p>
+                    </div>
+                </div>
+
+                <table class="w-full text-xs mb-5">
+                    <tbody>
+                        <tr>
+                            <th class="text-left bg-slate-100 py-1.5 px-2 w-28 border border-slate-200">納入先PJ</th>
+                            <td class="py-1.5 px-2 border border-slate-200">${escapeHTML(projects)}</td>
+                            <th class="text-left bg-slate-100 py-1.5 px-2 w-28 border border-slate-200">ステータス</th>
+                            <td class="py-1.5 px-2 border border-slate-200">${escapeHTML(wo.status)}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-left bg-slate-100 py-1.5 px-2 border border-slate-200">生産期間</th>
+                            <td class="py-1.5 px-2 border border-slate-200 ${wo.overdue ? 'text-red-600 font-semibold' : ''}">
+                                ${wo.start && wo.end ? `${formatDateJP(wo.start)} 〜 ${formatDateJP(wo.end)}` : '日程未設定'}
+                                ${wo.overdue ? '（完了予定超過）' : ''}
+                            </td>
+                            <th class="text-left bg-slate-100 py-1.5 px-2 border border-slate-200">対象ロット数</th>
+                            <td class="py-1.5 px-2 border border-slate-200">${wo.lots.length} ロット</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">対象ロット明細</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-[10px] uppercase tracking-wider border-b-2 border-slate-300">
+                                <th class="py-2 px-2 text-left">ロットID</th>
+                                <th class="py-2 px-2 text-left">機種名</th>
+                                <th class="py-2 px-2 text-left">調達元</th>
+                                <th class="py-2 px-2 text-right">入荷</th>
+                                <th class="py-2 px-2 text-right">見込</th>
+                                <th class="py-2 px-2 text-right">確定</th>
+                                <th class="py-2 px-2 text-center">状況</th>
+                                <th class="py-2 px-2 text-left">生産期間</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                        <tfoot>
+                            <tr class="border-t-2 border-slate-800 font-bold">
+                                <td class="py-2 px-2" colspan="3">合計</td>
+                                <td class="py-2 px-2 text-right">${wo.receivedQty.toLocaleString()}</td>
+                                <td class="py-2 px-2 text-right text-amber-700">${wo.estimateQty.toLocaleString()}</td>
+                                <td class="py-2 px-2 text-right text-emerald-700">${wo.confirmedQty.toLocaleString()}</td>
+                                <td class="py-2 px-2 text-center" colspan="2">歩留まり ${yieldLabel({ receivedQty: wo.receivedQty, rpcConfirmedQty: wo.confirmedQty, rpcEstimateQty: wo.estimateQty })}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                ${remarks ? `
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mt-5 mb-2">備考</h3>
+                    <ul class="text-xs text-slate-600 list-disc pl-5 space-y-0.5">${remarks}</ul>
+                ` : ''}
+
+                <div class="mt-8 grid grid-cols-3 gap-4 text-xs">
+                    ${['作成', '確認', '承認'].map(label => `
+                        <div class="border border-slate-300">
+                            <div class="bg-slate-100 text-center py-1 border-b border-slate-300 text-[10px] font-semibold">${label}</div>
+                            <div class="h-14"></div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            openModal('workOrderModal');
+        }
+
+        // --- ガントチャート ---
+        function setGanttGroupBy(mode) {
+            ganttGroupBy = mode;
+            ['workOrder', 'lot'].forEach(m => {
+                const btn = document.getElementById(`gantt-group-${m}`);
+                if (!btn) return;
+                btn.className = m === mode
+                    ? "px-3 py-1.5 rounded-md transition shadow-sm bg-white text-indigo-600 font-bold"
+                    : "px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900";
+            });
+            renderGantt();
+        }
+
+        function setGanttZoom(zoom) {
+            ganttZoom = GANTT_ZOOM[zoom] ? zoom : 'week';
+            renderGantt();
+        }
+
+        // Flatten the data into schedule rows for the current grouping
+        function buildScheduleRows() {
+            if (ganttGroupBy === 'lot') {
+                return lotsData
+                    .map(lot => {
+                        const span = lotSpan(lot);
+                        if (!span) return null;
+                        return {
+                            key: lot.id,
+                            type: 'lot',
+                            title: lot.id,
+                            subtitle: lot.workOrderNo || lot.modelName || '',
+                            start: span.start,
+                            end: span.end,
+                            status: lot.status,
+                            overdue: span.end < todayDate() && lot.status !== '生産完了',
+                            qty: lot.rpcEstimateQty
+                        };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => a.end - b.end);
+            }
+
+            return buildWorkOrders()
+                .filter(wo => wo.start && wo.end)
+                .map(wo => ({
+                    key: wo.no,
+                    type: 'workOrder',
+                    title: wo.no,
+                    subtitle: Array.from(wo.projects).join(' / ') || `${wo.lots.length} ロット`,
+                    start: wo.start,
+                    end: wo.end,
+                    status: wo.status,
+                    overdue: wo.overdue,
+                    qty: wo.estimateQty
+                }));
+        }
+
+        function renderGantt() {
+            const labelsEl = document.getElementById('gantt-labels');
+            const headerEl = document.getElementById('gantt-header');
+            const rowsEl = document.getElementById('gantt-rows');
+            const trackEl = document.getElementById('gantt-track');
+            const wrapperEl = document.getElementById('gantt-wrapper');
+            const emptyEl = document.getElementById('gantt-empty');
+            if (!labelsEl || !rowsEl) return;
+
+            const rows = buildScheduleRows();
+
+            wrapperEl.classList.toggle('hidden', rows.length === 0);
+            emptyEl.classList.toggle('hidden', rows.length > 0);
+            if (rows.length === 0) {
+                labelsEl.innerHTML = '';
+                headerEl.innerHTML = '';
+                rowsEl.innerHTML = '';
+                return;
+            }
+
+            const pxPerDay = GANTT_ZOOM[ganttZoom];
+            // Today is always inside the range so the marker and the 今日へ button
+            // stay meaningful even when every lot is scheduled in the future.
+            const today = todayDate();
+            const rangeStart = addDays(new Date(Math.min(...rows.map(r => r.start), today)), -3);
+            const rangeEnd = addDays(new Date(Math.max(...rows.map(r => r.end), today)), 3);
+            const totalDays = daysBetween(rangeStart, rangeEnd) + 1;
+            const trackWidth = Math.max(totalDays * pxPerDay, 320);
+            const offsetOf = (date) => daysBetween(rangeStart, date) * pxPerDay;
+
+            trackEl.style.width = `${trackWidth}px`;
+
+            // --- Header: month bands + (zoom dependent) day ticks ---
+            const monthBands = [];
+            const gridLines = [];
+            let cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+            while (cursor <= rangeEnd) {
+                const next = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+                const from = Math.max(offsetOf(cursor), 0);
+                const to = Math.min(offsetOf(next), trackWidth);
+                monthBands.push(
+                    `<div class="absolute top-0 h-6 flex items-center border-l border-slate-200 px-1.5 text-[11px] font-semibold text-slate-600 whitespace-nowrap overflow-hidden"
+                          style="left:${from}px; width:${Math.max(to - from, 0)}px">
+                        ${cursor.getFullYear()}年${cursor.getMonth() + 1}月
+                     </div>`
+                );
+                gridLines.push(`<div class="absolute top-0 bottom-0 border-l border-slate-200" style="left:${from}px"></div>`);
+                cursor = next;
+            }
+
+            let ticks = '';
+            if (ganttZoom !== 'month') {
+                const step = ganttZoom === 'day' ? 1 : 7;
+                for (let i = 0; i < totalDays; i += step) {
+                    const d = addDays(rangeStart, i);
+                    if (ganttZoom === 'week' && d.getDay() !== 1 && i !== 0) continue;
+                    const weekend = d.getDay() === 0 || d.getDay() === 6;
+                    ticks += `<div class="absolute bottom-0 h-6 flex items-center justify-center text-[9px] ${weekend ? 'text-red-400' : 'text-slate-400'}"
+                                   style="left:${offsetOf(d)}px; width:${pxPerDay * (ganttZoom === 'day' ? 1 : 7)}px">${d.getMonth() + 1}/${d.getDate()}</div>`;
+                }
+            }
+
+            headerEl.innerHTML = monthBands.join('') + ticks;
+
+            // --- Today marker ---
+            const todayMarker = `<div id="gantt-today" class="absolute top-0 bottom-0 w-0.5 bg-red-500/70 z-10 pointer-events-none" style="left:${offsetOf(today)}px"></div>`;
+
+            // --- Rows ---
+            labelsEl.innerHTML = rows.map(row => `
+                <div class="h-10 flex flex-col justify-center px-3 border-b border-slate-200 ${row.type === 'workOrder' ? 'cursor-pointer hover:bg-indigo-50' : ''}"
+                     ${row.type === 'workOrder' ? `data-action="sheet" data-id="${escapeHTML(row.key)}" title="指示書を開く"` : `data-action="edit" data-id="${escapeHTML(row.key)}" title="ロットを編集"`}>
+                    <span class="text-[11px] font-bold text-slate-800 truncate flex items-center gap-1">
+                        ${row.overdue ? '<i class="fa-solid fa-triangle-exclamation text-red-500 text-[10px]"></i>' : ''}
+                        ${escapeHTML(row.title)}
+                    </span>
+                    <span class="text-[10px] text-slate-400 truncate">${escapeHTML(row.subtitle)}</span>
+                </div>
+            `).join('');
+
+            rowsEl.innerHTML = rows.map(row => {
+                const left = offsetOf(row.start);
+                const width = Math.max((daysBetween(row.start, row.end) + 1) * pxPerDay, 6);
+                const barColor = STATUS_BAR_CLASS[row.status] || STATUS_BAR_CLASS['未着手'];
+                const label = `${formatDateJP(row.start)}〜${formatDateJP(row.end)}・見込${row.qty.toLocaleString()}台`;
+
+                return `
+                    <div class="h-10 border-b border-slate-200 relative">
+                        <div class="absolute top-2 h-6 rounded ${barColor} ${row.overdue ? 'ring-2 ring-red-500' : ''} shadow-sm flex items-center px-1.5 overflow-hidden"
+                             style="left:${left}px; width:${width}px" title="${escapeHTML(row.title)} / ${escapeHTML(label)}">
+                            <span class="text-[10px] font-semibold text-white whitespace-nowrap">${escapeHTML(row.title)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            rowsEl.insertAdjacentHTML('beforeend',
+                `<div class="absolute inset-0 pointer-events-none">${gridLines.join('')}${todayMarker}</div>`);
+            headerEl.insertAdjacentHTML('beforeend', todayMarker.replace('id="gantt-today"', ''));
+
+            // Keep today visible on first paint
+            scrollGanttToToday({ smooth: false, onlyIfUnscrolled: true });
+        }
+
+        function scrollGanttToToday(options = {}) {
+            const scroller = document.getElementById('gantt-scroll');
+            if (!scroller) return;
+            if (options.onlyIfUnscrolled && scroller.scrollLeft > 0) return;
+
+            const marker = scroller.querySelector('#gantt-today');
+            const left = marker ? parseFloat(marker.style.left) : 0;
+            scroller.scrollTo({
+                left: Math.max(left - scroller.clientWidth / 3, 0),
+                behavior: options.smooth === false ? 'auto' : 'smooth'
+            });
         }
 
         // Custom Toast Notification System
