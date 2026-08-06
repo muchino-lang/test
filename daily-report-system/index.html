@@ -334,13 +334,14 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
         <div id="evSuggest"></div>
         <div class="idcall">
           <span class="xs muted">候補に該当が無いとき：</span>
-          <button class="btn sm" id="btnFindPrompt">🔎 項目を探すプロンプトをコピー</button>
-          <span class="xs muted">→ AIの回答のIDを入力 →</span>
+          <button class="btn sm" id="btnFindPrompt">📋 日報本文をコピー</button>
+          <a class="btn sm" id="btnAgentOpen" href="#" target="_blank" rel="noopener">↗ エージェントを開く</a>
+          <span class="xs muted">→ 回答のIDを入力 →</span>
           <input type="text" id="evIdInput" placeholder="S012, S034" spellcheck="false">
           <button class="btn p sm" id="btnIdCall">呼び出す</button>
         </div>
         <div class="xs muted" id="idCallHint" style="margin:-2px 0 9px">
-          コピーしたプロンプトをAIに貼り付けると、該当するスキル項目のIDが返ってきます。そのIDをここに入力すると項目を呼び出せます（カンマ区切りで複数可）。
+          日報本文をスキル反映エージェントに貼り付けると、該当するスキル項目のIDが返ってきます。そのIDをここに入力すると項目を呼び出せます（カンマ区切りで複数可）。
         </div>
         <div id="evBox"></div>
       </div>
@@ -474,6 +475,17 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
         <button class="btn sm" id="btnResetSkills">初期スキル表に戻す</button>
         <span class="xs muted" id="skillState"></span>
       </div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+      <b class="sm">🤖 スキル反映エージェント</b>
+      <div class="xs muted" style="margin:4px 0 9px">
+        スキル表と判定ルールを内蔵したAIエージェントのURL。設定しておくと「AIに割り当てさせる」で<b>日報本文だけ</b>を渡せます。
+        スキル表を更新したら、エージェント側の知識ファイルも差し替えてください。
+      </div>
+      <div class="row">
+        <input type="text" id="setAgent" placeholder="https://…" style="flex:1;min-width:240px;font-size:12px">
+        <a class="btn sm" id="setAgentOpen" href="#" target="_blank" rel="noopener">↗ 開く</a>
+        <button class="btn sm" id="setAgentReset">既定に戻す</button>
+      </div>
       <div class="grid2" style="margin-top:16px">
         <div><label class="f">既定の氏名（毎回自動入力）</label><input type="text" id="setName" placeholder="山田 太郎"></div>
         <div><label class="f">表示テーマ</label>
@@ -508,25 +520,31 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
       <button class="btn sm" data-close>閉じる</button>
     </div>
     <div class="mb">
-      <div class="alert w" style="margin-bottom:12px">
-        ① プロンプトをコピー → ② ChatGPT / Claude / Copilot 等に貼って実行 → ③ 返ってきたJSONを下に貼り付けて「取り込む」。<br>
-        目視で69項目を探す作業はここで終わりです。
+      <div class="alert o" style="margin-bottom:12px">
+        🤖 <div><b>スキル反映エージェントを使う場合、貼るのは日報本文だけです。</b>
+        スキル表と判定ルールはエージェント側に入っているので、長いプロンプトは不要です。<br>
+        ① 下の本文をコピー → ② エージェントに貼って実行 → ③ 返ってきたIDまたはJSONを貼り付けて「取り込む」。</div>
       </div>
 
       <div class="row" style="justify-content:space-between;margin-bottom:6px">
-        <b class="sm">STEP 1. プロンプト</b>
+        <b class="sm">STEP 1. エージェントに貼る本文</b>
         <div class="row" style="gap:6px">
-          <label class="xs muted row" style="gap:4px"><input type="checkbox" id="aiFull" checked style="width:14px;height:14px;accent-color:var(--brand)">行動基準も含める（精度↑・長い）</label>
-          <button class="btn p sm" id="aiCopy">📋 プロンプトをコピー</button>
+          <span class="xs muted" id="aiLen"></span>
+          <a class="btn sm" id="aiOpen" href="#" target="_blank" rel="noopener">↗ エージェントを開く</a>
+          <button class="btn p sm" id="aiCopy">📋 コピー</button>
         </div>
       </div>
       <pre class="out" id="aiPrompt" style="max-height:240px"></pre>
+      <div class="row" style="margin-top:7px;gap:10px">
+        <label class="xs muted row" style="gap:4px"><input type="checkbox" id="aiSelf" style="width:14px;height:14px;accent-color:var(--brand)">エージェントを使わない（スキル表と判定ルールを含む長いプロンプトにする）</label>
+        <label class="xs muted row" style="gap:4px;display:none" id="aiFullWrap"><input type="checkbox" id="aiFull" checked style="width:14px;height:14px;accent-color:var(--brand)">行動基準も含める（精度↑・長い）</label>
+      </div>
 
       <div class="row" style="justify-content:space-between;margin:14px 0 6px">
         <b class="sm">STEP 2. AIの回答を貼り付け</b>
-        <span class="xs muted">JSON でも「S012」を含む文章でも読み取れます</span>
+        <span class="xs muted">JSON でも「S012, S034」でも読み取れます</span>
       </div>
-      <textarea id="aiResp" rows="6" placeholder='[{"id":"S030","evidence":"朝日大学の商談で…"}]'></textarea>
+      <textarea id="aiResp" rows="6" placeholder='[{"id":"S030","evidence":"朝日大学の商談で…"}]　または　S030, S051'></textarea>
     </div>
     <div class="mf">
       <span class="xs muted">取り込み後も、内容は自分の言葉で必ず直してください。</span>
@@ -1042,6 +1060,18 @@ $('#pAdd').onclick=()=>{
 };
 
 /* ---- AI割り当て（プロンプト生成 → 回答の取り込み） ---- */
+const AGENT_URL_DEFAULT='https://chat.knowleful.jp/share-agt/8940c8bf-af2a-4412-820c-5d1aa6e950f5';
+const agentUrl = ()=> (DB.settings.agentUrl||AGENT_URL_DEFAULT);
+// エージェント（スキル表と判定ルールを内蔵）に貼るのは日報本文だけでよい
+function buildBody(){
+  const d=formData();
+  return `# 本日の業務内容
+${d.tasks.length?d.tasks.map(t=>'・'+t).join('\n'):'（未入力）'}
+
+# 業務を通じた気づき・課題
+${d.insight||'（未入力）'}
+${d.topics.length?`\n# モ・ゲ・ジョ分析\n${d.topics.map(t=>`【${t.title}】\n目的:${t.p}\n現状:${t.s}\n条件:${t.c||'（未記入）'}\nこう考える:${t.h}\nだからこうする:${t.w}`).join('\n\n')}\n`:''}`;
+}
 function buildPrompt(full){
   const d=formData();
   const body=`# 本日の業務内容
@@ -1069,7 +1099,16 @@ ${body}
 # スキルマップ項目一覧
 ${list}`;
 }
-function renderPrompt(){ $('#aiPrompt').textContent=buildPrompt($('#aiFull').checked); }
+function aiText(){ return $('#aiSelf').checked ? buildPrompt($('#aiFull').checked) : buildBody(); }
+function renderPrompt(){
+  const self=$('#aiSelf').checked;
+  const t=aiText();
+  $('#aiPrompt').textContent=t;
+  $('#aiFullWrap').style.display=self?'':'none';
+  $('#aiOpen').style.display=self?'none':'';
+  $('#aiOpen').href=agentUrl();
+  $('#aiLen').textContent=`約${t.length.toLocaleString()}字`;
+}
 
 // 候補に無いときに「どの項目に当たるか」だけをAIに探させるプロンプト
 function buildFindPrompt(){
@@ -1097,8 +1136,10 @@ ${SKILLS.map(s=>`${s.id} [${LV_NAME[s.lv]}／${s.ph}／${s.cat}] ${s.name}\n    
 $('#btnFindPrompt').onclick=()=>{
   const d=formData();
   if(!d.tasks.length && !d.insight){ toast('先に業務内容か気づきを入力してください'); $$('.tk')[0].focus(); return; }
-  toast(copy(buildFindPrompt())
-    ? 'プロンプトをコピーしました。AIに貼り付け、返ってきたIDを右の欄に入力してください'
+  // エージェントを使わない設定のときは、スキル表を含む自己完結プロンプトを渡す
+  const t=DB.settings.aiSelf? buildFindPrompt() : buildBody();
+  toast(copy(t)
+    ? (DB.settings.aiSelf?'プロンプトをコピーしました。AIに貼り付けてください':'日報本文をコピーしました。エージェントに貼り付けてください')
     : 'コピーできませんでした');
 };
 // IDを直接入力して項目を呼び出す
@@ -1120,12 +1161,15 @@ $('#evIdInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDef
 $('#btnAi').onclick=()=>{
   const d=formData();
   if(!d.tasks.length && !d.insight){ toast('先に「業務内容」か「気づき」を入力してください'); $$('.tk')[0].focus(); return; }
-  $('#aiResp').value=''; renderPrompt(); $('#aiModal').classList.add('on');
+  $('#aiResp').value=''; $('#aiSelf').checked=!!DB.settings.aiSelf; renderPrompt(); $('#aiModal').classList.add('on');
 };
 $('#aiFull').onchange=renderPrompt;
+$('#aiSelf').onchange=()=>{ DB.settings.aiSelf=$('#aiSelf').checked; save(); renderPrompt(); };
 $$('#aiModal [data-close]').forEach(b=>b.onclick=()=>$('#aiModal').classList.remove('on'));
 $('#aiModal').onclick=e=>{ if(e.target.id==='aiModal') e.currentTarget.classList.remove('on'); };
-$('#aiCopy').onclick=()=>toast(copy(buildPrompt($('#aiFull').checked))?'プロンプトをコピーしました。AIに貼り付けてください':'コピーできませんでした。枠内を手動でコピーしてください');
+$('#aiCopy').onclick=()=>toast(copy(aiText())
+  ? ($('#aiSelf').checked?'プロンプトをコピーしました。AIに貼り付けてください':'日報本文をコピーしました。エージェントに貼り付けてください')
+  : 'コピーできませんでした。枠内を手動でコピーしてください');
 
 function parseAi(raw){
   const out=[];
@@ -1138,10 +1182,25 @@ function parseAi(raw){
       });
     }catch(e){}
   }
-  if(!out.length){ // 崩れた回答向けのフォールバック
-    const re=/(S\d{3})[^\S\n]*[:：\-）)\]】]?[^\S\n]*(.*)/g; let x;
-    while((x=re.exec(raw))){ const id=x[1].toUpperCase();
-      if(SMAP[id]&&!out.some(o=>o.sid===id)) out.push({sid:id,text:x[2].replace(/^["'「]|["'」],?$/g,'').trim()}); }
+  if(!out.length){ // JSON以外の回答（ID一覧、「S012 ｜ 項目名 ｜ 理由」形式など）
+    for(const line of raw.split(/\r?\n/)){
+      const ids=(line.toUpperCase().match(/S\d{3,}/g)||[]).filter(id=>SMAP[id]);
+      if(!ids.length) continue;
+      // 1行に複数IDが並ぶ「S012, S034」形式は、まとめて追加するだけ（説明文は無い）
+      if(ids.length>1){ ids.forEach(id=>{ if(!out.some(o=>o.sid===id)) out.push({sid:id,text:''}); }); continue; }
+      const id=ids[0];
+      if(out.some(o=>o.sid===id)) continue;
+      let text='';
+      if(/[｜|]/.test(line)){
+        // 「S012 ｜ 項目名 ｜ 根拠」— 最後の欄が根拠
+        const parts=line.split(/[｜|]/).map(s=>s.trim()).filter(Boolean);
+        if(parts.length>=2) text=parts[parts.length-1];
+      }else{
+        text=line.replace(/S\d{3,}/i,'').replace(/^[\s:：\-–—・）)\]】＞>]+/,'').trim();
+      }
+      if(text===SMAP[id].name) text='';
+      out.push({sid:id,text:text.replace(/^["'「]|["'」]$/g,'').trim()});
+    }
   }
   return out;
 }
@@ -1658,6 +1717,13 @@ $('#btnResetSkills').onclick=()=>{
   DB.skills=null; save(); SKILLS=BUILTIN_SKILLS; rebuildSkillIndex(); fillSelects(); initUI();
   toast('初期スキル表に戻しました');
 };
+$('#setAgent').onchange=()=>{
+  const v=$('#setAgent').value.trim();
+  if(v && !/^https?:\/\//i.test(v)){ alert('http(s):// から始まるURLを入力してください'); $('#setAgent').value=agentUrl(); return; }
+  DB.settings.agentUrl=v||''; save(); syncAgentLinks(); toast('エージェントURLを保存しました');
+};
+$('#setAgentReset').onclick=()=>{ DB.settings.agentUrl=''; save(); $('#setAgent').value=AGENT_URL_DEFAULT; syncAgentLinks(); toast('既定のURLに戻しました'); };
+function syncAgentLinks(){ ['#setAgentOpen','#btnAgentOpen','#aiOpen'].forEach(id=>{const a=$(id); if(a) a.href=agentUrl();}); }
 $('#setName').onchange=()=>{ DB.settings.name=$('#setName').value.trim(); save(); $('#fName').value=DB.settings.name; toast('保存しました'); };
 $('#setTheme').onchange=()=>{ DB.settings.theme=$('#setTheme').value; save(); applyTheme(); };
 function applyTheme(){
@@ -1672,6 +1738,7 @@ function initUI(){
   $('#setName').value=DB.settings.name||'';
   $('#setTheme').value=DB.settings.theme||'auto';
   $('#skillState').textContent=`現在 ${SKILLS.length}項目${DB.skills?'（CSVで更新済み）':'（初期表）'}`;
+  $('#setAgent').value=agentUrl(); syncAgentLinks();
   clearForm();
   refreshKpi(); renderStatus(); renderFocus(); renderEvPins(); renderMap(); renderHist(); renderReview();
 }
