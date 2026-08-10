@@ -151,10 +151,9 @@ textarea{resize:vertical;min-height:56px}
 .sug.focus{border-color:var(--brand);background:rgba(79,70,229,.08)}
 .sid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;font-weight:700;
   color:var(--sub);background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:0 5px;flex:none}
-.idcall{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 10px;margin-bottom:5px;
-  border:1px dashed var(--line);border-radius:9px;background:var(--panel)}
-.idcall input{width:130px;flex:none;font-size:12px;padding:5px 9px;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.idcall{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:9px 11px;margin-bottom:9px;
+  border:1px dashed var(--brand);border-radius:10px;background:var(--panel)}
+.idcall textarea{width:100%;font-size:12px;padding:6px 9px;min-height:44px;background:var(--panel2)}
 .sughint{font-size:11.5px;color:var(--sub);padding:9px 11px;border:1px dashed var(--line);border-radius:9px;background:var(--panel)}
 .evtasks{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;align-items:center}
 .evtasks .tkchip{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:2px 7px;
@@ -333,15 +332,18 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
         </div>
         <div id="evSuggest"></div>
         <div class="idcall">
-          <span class="xs muted">候補に該当が無いとき：</span>
-          <button class="btn sm" id="btnFindPrompt">📋 日報本文をコピー</button>
-          <a class="btn sm" id="btnAgentOpen" href="#" target="_blank" rel="noopener">↗ エージェントを開く</a>
-          <span class="xs muted">→ 回答のIDを入力 →</span>
-          <input type="text" id="evIdInput" placeholder="S012, S034" spellcheck="false">
-          <button class="btn p sm" id="btnIdCall">呼び出す</button>
-        </div>
-        <div class="xs muted" id="idCallHint" style="margin:-2px 0 9px">
-          日報本文をスキル反映エージェントに貼り付けると、該当するスキル項目のIDが返ってきます。そのIDをここに入力すると項目を呼び出せます（カンマ区切りで複数可）。
+          <div class="row" style="justify-content:space-between;width:100%">
+            <b class="xs" style="color:var(--sub)">🤖 AIエージェントの回答をここに貼り付け</b>
+            <div class="row" style="gap:6px">
+              <button class="btn sm" id="btnFindPrompt">📋 日報本文をコピー</button>
+              <a class="btn sm" id="btnAgentOpen" href="#" target="_blank" rel="noopener">↗ エージェントを開く</a>
+            </div>
+          </div>
+          <textarea id="evPaste" rows="2" placeholder='取り込み用JSON [{"id":"S012","evidence":"…"}] でも、ID一覧 S012, S034 でも貼り付けられます'></textarea>
+          <div class="row" style="justify-content:space-between;width:100%">
+            <span class="xs muted">日報本文をコピー → エージェントに貼る → 返ってきた回答をこの枠に貼り付け</span>
+            <button class="btn p sm" id="btnIdCall">📥 取り込む</button>
+          </div>
         </div>
         <div id="evBox"></div>
       </div>
@@ -356,11 +358,11 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
 
       <div class="row" style="margin-top:18px;justify-content:space-between">
         <div class="row">
-          <button class="btn g" id="btnSave">💾 日報を保存して積み上げる</button>
-          <button class="btn" id="btnCopyChat">💬 チャット用コピー</button>
+          <button class="btn g" id="btnSave">💾 保存して積み上げ＋チャット用にコピー</button>
           <button class="btn" id="btnCopyTsv">📋 Excel貼付(1行)</button>
         </div>
         <div class="row">
+          <button class="btn sm" id="btnNew">🆕 新しい日報を書く</button>
           <button class="btn sm" id="btnSample">✨ 見本を流し込む</button>
           <button class="btn sm danger" id="btnClear">クリア</button>
         </div>
@@ -619,7 +621,7 @@ rebuildSkillIndex();
 const KEY='drSkillMap.v1';
 
 /* ============ ストア ============ */
-const blank = ()=>({version:1,settings:{name:'',theme:'auto'},reports:[],eval:{},pins:[],skills:null});
+const blank = ()=>({version:1,settings:{name:'',theme:'auto'},reports:[],eval:{},pins:[],skills:null,draft:null});
 let DB = load();
 function load(){
   try{const r=JSON.parse(localStorage.getItem(KEY));
@@ -1142,22 +1144,25 @@ $('#btnFindPrompt').onclick=()=>{
     ? (DB.settings.aiSelf?'プロンプトをコピーしました。AIに貼り付けてください':'日報本文をコピーしました。エージェントに貼り付けてください')
     : 'コピーできませんでした');
 };
-// IDを直接入力して項目を呼び出す
-function callByIds(raw){
-  const ids=[...new Set((String(raw).toUpperCase().match(/S\d{3,}/g)||[]))];
-  if(!ids.length){ toast('IDが読み取れません（例：S012, S034）'); return; }
-  let ok=0, ng=[];
-  ids.forEach(id=>{ if(!SMAP[id]){ ng.push(id); return; }
-    if($$(`#evBox [data-sid="${id}"]`).length) return;
-    addEv(id); ok++; });
-  $('#evIdInput').value='';
+// JSON でも ID 一覧でも同じ枠から取り込めるようにする
+function importPasted(raw){
+  if(!String(raw).trim()){ toast('エージェントの回答を貼り付けてください'); $('#evPaste').focus(); return; }
+  const items=parseAi(raw);
+  if(!items.length){ toast('項目を読み取れませんでした（JSON か S012 形式のIDを貼り付けてください）'); return; }
+  let ok=0;
+  items.forEach(it=>{
+    if($$(`#evBox [data-sid="${it.sid}"]`).length) return;
+    addEv(it.sid);
+    const r=$(`#evBox [data-sid="${it.sid}"]`);
+    if(r&&it.text) r.querySelector('.ev-t').value=it.text;
+    ok++;
+  });
+  $('#evPaste').value='';
   renderEvEmpty(); renderEvPins();
-  toast(ok? `${ok}件を呼び出しました${ng.length?`（該当なし: ${ng.join(', ')}）`:''}`
-          : (ng.length?`該当するIDがありません: ${ng.join(', ')}`:'すべて追加済みです'));
+  toast(ok? `${ok}件を取り込みました。内容は自分の言葉で確認・修正してください` : 'すべて追加済みの項目でした');
   if(ok) $('#evBox').lastElementChild.scrollIntoView({behavior:'smooth',block:'center'});
 }
-$('#btnIdCall').onclick=()=>callByIds($('#evIdInput').value);
-$('#evIdInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();callByIds(e.target.value);} });
+$('#btnIdCall').onclick=()=>importPasted($('#evPaste').value);
 $('#btnAi').onclick=()=>{
   const d=formData();
   if(!d.tasks.length && !d.insight){ toast('先に「業務内容」か「気づき」を入力してください'); $$('.tk')[0].focus(); return; }
@@ -1272,24 +1277,67 @@ function validate(){
 }
 $('#btnSave').onclick=()=>{
   const d=validate(); if(!d) return;
+  let newId=editing;
   if(editing){
     const i=DB.reports.findIndex(r=>r.id===editing);
     DB.reports[i]=Object.assign(DB.reports[i],d);
   }else{
     const dup=DB.reports.find(r=>r.date===d.date);
     if(dup && !confirm(`${d.date} の日報はすでに存在します。追加でもう1件保存しますか？\n（「キャンセル」を押して履歴タブから編集することもできます）`)) return;
-    DB.reports.push(Object.assign({id:'R'+Date.now().toString(36)},d));
+    newId='R'+Date.now().toString(36);
+    DB.reports.push(Object.assign({id:newId},d));
   }
   DB.reports.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
   DB.settings.name=d.name;
-  save(); refreshKpi(); renderFocus(); renderStatus();
+  DB.draft=null;
+  save(); refreshKpi(); renderFocus(); renderEvPins(); renderStatus();
+  // 保存してもフォームは消さない。以降の保存は同じ日報の上書きになる
+  editing=newId;
+  const t=reportText(d); showOut(t); const copied=copy(t);
   const n=d.ev.length, noTopic=!d.topics.length;
-  clearForm();
-  toast(noTopic
-    ? `保存しました（実績${n}件）。次はどれか1つ、課題を見つけてモ・ゲ・ジョ分析まで書けるといいですね`
-    : `保存しました。${n}件の実績がスキルマップに積み上がりました 🎉`);
+  $('#editNote').innerHTML=`<span style="color:var(--ok);font-weight:700">✅ ${d.date} の日報を保存済みです。</span>`
+    +` 内容はこのまま残ります。修正して再度保存すると<b>同じ日報が上書き</b>されます。別の日の日報を書くときは「🆕 新しい日報を書く」を押してください。`;
+  toast((copied?'保存＋チャット用にコピーしました':'保存しました（コピーは下の枠から）')
+    + `／実績${n}件${noTopic?'。次はどれか1つ、課題を見つけてモ・ゲ・ジョ分析まで書けるといいですね':' 🎉'}`);
 };
-$('#btnClear').onclick=()=>{ if(confirm('入力内容をクリアしますか？')) clearForm(); };
+$('#btnNew').onclick=()=>{
+  const d=formData();
+  const dirty=!editing&&(d.tasks.length||d.insight||d.ev.length||d.topics.length);
+  if(dirty && !confirm('入力中の内容が残っています。保存せずに新しい日報を始めますか？')) return;
+  clearForm(); window.scrollTo({top:0,behavior:'smooth'}); toast('新しい日報を開きました');
+};
+$('#btnClear').onclick=()=>{ if(!confirm('入力内容をクリアしますか？（保存済みの日報は消えません）')) return;
+  clearForm(); DB.draft=null; save(); };
+
+/* ---- 下書きの自動保存（誤ってタブを閉じても消えないように） ---- */
+let draftTimer=null, draftDirty=false;
+function saveDraft(){
+  if(!draftDirty) return;                // 触っていないなら書き込まない（他タブの保存内容を潰さないため）
+  draftDirty=false;
+  if(editing) return;                    // 保存済みの日報を編集中は下書きにしない
+  const d=formData();
+  const empty=!d.tasks.length&&!d.insight&&!d.ev.length&&!d.topics.length;
+  DB.draft = empty? null : d;
+  save();
+}
+function scheduleDraft(){ draftDirty=true; clearTimeout(draftTimer); draftTimer=setTimeout(saveDraft,800); }
+document.addEventListener('input',e=>{
+  if(e.target.closest('#v-today')) scheduleDraft();
+});
+window.addEventListener('beforeunload',()=>{ clearTimeout(draftTimer); saveDraft(); });
+function restoreDraft(){
+  const d=DB.draft; if(!d) return false;
+  $('#fDate').value=d.date||today(); $('#fName').value=d.name||DB.settings.name||'';
+  $('#taskBox').innerHTML=''; (d.tasks&&d.tasks.length?d.tasks:['']).forEach(t=>$('#taskBox').appendChild(taskRow(t))); renumberTasks();
+  $('#fInsight').value=d.insight||'';
+  $('#evBox').innerHTML='';
+  (d.ev||[]).forEach(e=>{ if(!SMAP[e.sid]) return; addEv(e.sid);
+    const r=$(`#evBox [data-sid="${e.sid}"]`); if(r) r.querySelector('.ev-t').value=e.text||''; });
+  $('#topicBox').innerHTML=''; (d.topics||[]).forEach(t=>$('#topicBox').appendChild(topicBlock(t)));
+  renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins();
+  $('#editNote').innerHTML='📝 前回の入力途中の内容を復元しました。（保存はまだされていません）';
+  return true;
+}
 
 /* ---- 出力 ---- */
 function reportText(d){
@@ -1325,8 +1373,6 @@ function copy(t){
   document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}
   document.body.removeChild(a);return ok;
 }
-$('#btnCopyChat').onclick=()=>{ const d=validate(); if(!d) return; const t=reportText(d); showOut(t);
-  toast(copy(t)?'チャット用にコピーしました':'コピーできませんでした。下の枠から手動でコピーしてください'); };
 $('#btnCopyTsv').onclick=()=>{
   const d=validate(); if(!d) return;
   const q=s=>`"${String(s||'').replace(/"/g,'""')}"`;
@@ -1740,6 +1786,7 @@ function initUI(){
   $('#skillState').textContent=`現在 ${SKILLS.length}項目${DB.skills?'（CSVで更新済み）':'（初期表）'}`;
   $('#setAgent').value=agentUrl(); syncAgentLinks();
   clearForm();
+  restoreDraft();
   refreshKpi(); renderStatus(); renderFocus(); renderEvPins(); renderMap(); renderHist(); renderReview();
 }
 initUI();
