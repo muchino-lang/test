@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R∞PC 製品仕様書ジェネレーター</title>
+<style>
+:root {
+  --pri: #1a3a5c; --priL: #e8eef4; --bdr: #c8cdd3; --bg: #f6f7f9;
+  --txt: #1c1c1c; --txtM: #555; --white: #fff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-serif; color: var(--txt); background: var(--bg); }
+
+/* ── Top Bar ── */
+.bar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 10px; padding: 10px 20px; background: var(--pri); color: #fff;
+  position: sticky; top: 0; z-index: 10;
+}
+.bar-title { font-size: 15px; font-weight: 700; letter-spacing: .04em; display: flex; align-items: center; gap: 10px; }
+/* height:auto + max-height keeps the aspect ratio intact, so the logo can never be cropped */
+.bar-logo { width: auto; height: auto; max-height: 34px; max-width: 190px; object-fit: contain; display: block; flex: 0 0 auto; filter: brightness(0) invert(1); }
+.wordmark { font-weight: 800; font-size: 19px; letter-spacing: .04em; }
+.bar-btns { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tab-btn { padding: 5px 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,.4); background: transparent; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
+.tab-btn.active { background: #fff; color: var(--pri); }
+.dl-btn { padding: 7px 20px; border-radius: 7px; border: none; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
+.dl-word { background: #217346; }
+.dl-pdf { background: #0d2438; }
+
+/* ── Container ── */
+.cnt { max-width: 880px; margin: 0 auto; padding: 20px 16px 60px; }
+
+/* ── Form ── */
+.sec { margin-bottom: 24px; }
+.sec-title { font-size: 12px; font-weight: 700; color: var(--pri); letter-spacing: .06em; border-bottom: 2px solid var(--pri); padding-bottom: 5px; margin-bottom: 12px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 18px; }
+.fld { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fld label { font-size: 11px; font-weight: 600; color: var(--txtM); }
+.fld input, .fld select, .fld textarea {
+  padding: 7px 10px; border-radius: 6px; border: 1px solid var(--bdr);
+  font-size: 13px; background: var(--white); outline: none; font-family: inherit; width: 100%;
+}
+.fld input:focus, .fld select:focus, .fld textarea:focus { border-color: var(--pri); box-shadow: 0 0 0 2px rgba(26,58,92,.12); }
+.fld textarea { min-height: 70px; resize: vertical; }
+.auto-box { padding: 7px 10px; border-radius: 6px; border: 1px solid var(--pri); font-size: 13px; background: var(--priL); color: var(--pri); font-weight: 600; }
+.hint { font-size: 10px; color: #888; }
+
+/* toggle switch */
+.tgl { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 600; color: var(--txtM); }
+/* visually hidden but still focusable, so the toggle works from the keyboard */
+.tgl input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.tgl .track { width: 40px; height: 22px; border-radius: 999px; background: #c8cdd3; position: relative; transition: background .15s; flex: 0 0 auto; }
+.tgl input:focus-visible + .track { box-shadow: 0 0 0 3px rgba(26,58,92,.3); }
+.tgl .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.tgl input:checked + .track { background: var(--pri); }
+.tgl input:checked + .track::after { transform: translateX(18px); }
+
+.img-upload { border: 2px dashed var(--bdr); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; background: var(--white); }
+.img-upload img { max-width: 100%; max-height: 180px; border-radius: 8px; object-fit: contain; display: block; margin: 0 auto; }
+.img-upload .ph { font-size: 28px; margin-bottom: 4px; }
+.img-upload .ph-txt { font-size: 12px; color: var(--txtM); }
+#imageInput { display: none; }
+.img-actions { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+.mini-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--bdr); background: var(--white); font-size: 11px; cursor: pointer; color: var(--txtM); font-family: inherit; }
+.mini-btn:hover { border-color: var(--pri); color: var(--pri); }
+
+/* ── Preview sheet ── */
+.sheet { background: var(--white); border-radius: 10px; border: 1px solid var(--bdr); overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.sh-hdr { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 3px solid var(--pri); padding: 14px 24px; }
+.sh-hdr img { width: auto; height: auto; max-height: 32px; max-width: 180px; object-fit: contain; display: block; flex: 0 0 auto; }
+.sh-hdr .wordmark { color: var(--pri); font-size: 22px; }
+.sh-hdr .doc-type { font-size: 13px; color: var(--txtM); }
+.sh-sum { text-align: right; padding: 6px 24px 2px; font-size: 11px; color: var(--txtM); word-break: break-all; }
+.sh-meta { display: flex; justify-content: space-between; gap: 12px; padding: 6px 24px 10px; font-size: 12px; color: var(--txtM); }
+.sh-body { padding: 0 24px 18px; }
+.sh-body .img-center { text-align: center; margin: 10px 0; }
+.sh-body .img-center img { max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; }
+.spec-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.spec-tbl th, .spec-tbl td { padding: 8px 12px; font-size: 12px; border-bottom: 1px solid var(--bdr); text-align: left; vertical-align: top; }
+.spec-tbl th { width: 190px; font-weight: 600; }
+.spec-tbl th.sec-hdr { background: var(--pri); color: #fff; font-weight: 700; }
+.spec-tbl th.sub-hdr { background: #f3f5f7; color: var(--txtM); padding-left: 32px; }
+.spec-tbl td { font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+.spec-tbl td a { color: #1a5276; word-break: break-all; }
+.spec-tbl td.empty { color: #aaa; }
+.price-bar { display: flex; align-items: baseline; justify-content: flex-end; padding: 12px 24px; border-top: 2px solid var(--pri); background: var(--priL); }
+.price-bar .lbl { font-size: 12px; color: var(--txtM); margin-right: 8px; }
+.price-bar .val { font-size: 24px; font-weight: 800; color: var(--pri); }
+.notes-box { padding: 12px 24px; font-size: 12px; color: var(--txtM); white-space: pre-wrap; line-height: 1.7; border-top: 1px solid var(--bdr); }
+.foot { padding: 12px 24px; font-size: 10px; color: #888; white-space: pre-wrap; line-height: 1.5; border-top: 1px solid var(--bdr); }
+
+@media print {
+  .no-print, #editPanel { display: none !important; }
+  body { background: #fff !important; }
+  .cnt { padding: 0; max-width: none; }
+  .sheet { box-shadow: none; border: none; border-radius: 0; }
+  .spec-tbl th.sec-hdr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .price-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+@media (max-width: 600px) {
+  .grid, .grid3 { grid-template-columns: 1fr; }
+  .spec-tbl th { width: 120px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════ TOP BAR ════ -->
+<div class="bar no-print">
+  <div class="bar-title">
+    <img id="barLogo" class="bar-logo" alt="R∞PC" style="display:none" />
+    <span id="barWordmark" class="wordmark">R∞PC</span>
+    <span>仕様書ジェネレーター</span>
+  </div>
+  <div class="bar-btns">
+    <button class="tab-btn" id="tabEdit" type="button">編集</button>
+    <button class="tab-btn" id="tabPreview" type="button">プレビュー</button>
+    <button class="dl-btn dl-word" id="btnWord" type="button" style="display:none">📄 Word</button>
+    <button class="dl-btn dl-pdf" id="btnPdf" type="button" style="display:none">🖨 PDF / 印刷</button>
+  </div>
+</div>
+
+<div class="cnt">
+
+<!-- ════════════════ EDIT MODE ════════════════ -->
+<div id="editPanel">
+
+  <!-- Logo -->
+  <div class="sec">
+    <div class="sec-title">ロゴ画像</div>
+    <div class="img-upload" id="logoDrop" style="padding:16px">
+      <div id="logoPlaceholder">
+        <div class="wordmark" style="color:var(--pri)">R∞PC</div>
+        <div class="ph-txt" style="margin-top:6px">クリックして会社ロゴ（PNG / SVG）を設定<br>未設定の場合は上記の文字ロゴが使われます</div>
+      </div>
+      <img id="logoPreview" style="display:none;max-height:60px" alt="ロゴ" />
+    </div>
+    <div class="img-actions" id="logoActions" style="display:none">
+      <button class="mini-btn" type="button" id="btnLogoChange">ロゴを変更</button>
+      <button class="mini-btn" type="button" id="btnLogoRemove">文字ロゴに戻す</button>
+    </div>
+    <input type="file" id="logoInput" accept="image/*" style="display:none" />
+  </div>
+
+  <!-- Header info -->
+  <div class="sec">
+    <div class="sec-title">ヘッダー情報</div>
+    <div class="grid">
+      <div class="fld"><label for="targetYear">対象年度</label><input id="targetYear" placeholder="2027" /></div>
+      <div class="fld"><label for="person">担当者名</label><input id="person" placeholder="担当者名" /></div>
+    </div>
+  </div>
+
+  <!-- Image -->
+  <div class="sec">
+    <div class="sec-title">商品画像</div>
+    <div class="img-upload" id="imgDrop">
+      <div id="imgPlaceholder"><div class="ph">📷</div><div class="ph-txt">クリック（またはドラッグ＆ドロップ）で画像をインポート</div></div>
+      <img id="imgPreview" style="display:none" alt="商品画像" />
+    </div>
+    <div class="img-actions" id="imgActions" style="display:none">
+      <button class="mini-btn" type="button" id="btnImgChange">画像を変更</button>
+      <button class="mini-btn" type="button" id="btnImgRemove">画像を削除</button>
+    </div>
+    <input type="file" id="imageInput" accept="image/*" />
+  </div>
+
+  <!-- Basic -->
+  <div class="sec">
+    <div class="sec-title">◆ 基本情報</div>
+    <div class="grid">
+      <div class="fld"><label for="maker">メーカー</label>
+        <select id="maker"><option value="">選択</option></select>
+      </div>
+      <div class="fld"><label for="productName">品名</label><input id="productName" placeholder="例: EliteBook 830 G7" /></div>
+      <div class="fld"><label for="modelYear">機種発売年</label><input id="modelYear" placeholder="自動 or 手動入力" /></div>
+    </div>
+  </div>
+
+  <!-- CPU -->
+  <div class="sec">
+    <div class="sec-title">◆ プロセッサー</div>
+    <div class="grid">
+      <div class="fld"><label for="cpuSeries">CPUシリーズ</label>
+        <select id="cpuSeries"><option value="">選択</option></select>
+      </div>
+      <div class="fld"><label for="cpuGen">世代</label>
+        <select id="cpuGen" disabled><option value="">選択</option></select>
+      </div>
+    </div>
+    <div class="grid3" id="cpuAutoRow" style="display:none;margin-top:10px">
+      <div class="fld"><label>CPU発売年（自動）</label><div class="auto-box" id="cpuYearAuto">-</div></div>
+      <div class="fld"><label>コードネーム（自動）</label><div class="auto-box" id="cpuCodeAuto">-</div></div>
+      <div class="fld"><label>CPU表記（自動）</label><div class="auto-box" id="cpuLabelAuto">-</div></div>
+    </div>
+  </div>
+
+  <!-- Spec -->
+  <div class="sec">
+    <div class="sec-title">◆ 主なスペック</div>
+    <div class="grid">
+      <div class="fld"><label for="memory">メモリ(最大メモリ)</label>
+        <select id="memory"><option value="">選択</option></select>
+      </div>
+      <div class="fld"><label for="storage">記憶媒体</label><input id="storage" placeholder="例: 500GB(SSD) ※新品crucial製" /></div>
+      <div class="fld"><label for="opticalDrive">光学式ドライブ</label><input id="opticalDrive" value="指定なし" /></div>
+      <div class="fld"><label for="displaySize">液晶サイズ</label>
+        <select id="displaySize"><option value="">選択</option></select>
+      </div>
+      <div class="fld"><label for="wifi">無線LAN</label>
+        <select id="wifi"><option value="あり">あり</option><option value="なし">なし</option></select>
+      </div>
+      <div class="fld"><label for="resolution">解像度</label>
+        <select id="resolution"><option value="">選択</option></select>
+      </div>
+      <div class="fld"><label for="numpad">テンキー</label>
+        <select id="numpad"><option value="無">無</option><option value="有">有</option></select>
+      </div>
+      <div class="fld"><label for="camera">カメラ</label>
+        <select id="camera"><option value="あり">あり</option><option value="なし">なし</option></select>
+      </div>
+      <div class="fld"><label for="os">OS</label>
+        <select id="os"><option value="">選択</option></select>
+      </div>
+      <div class="fld"><label for="osNote">OS備考</label><input id="osNote" value="※Microsoft AUTHORISED Refurbisher　Program 認定OS" /></div>
+      <div class="fld">
+        <label for="weight">重量 ※必須項目</label>
+        <input id="weight" list="weightPresets" placeholder="例: 約1.25 kg" />
+        <datalist id="weightPresets">
+          <option value="約1.0 kg"></option><option value="約1.1 kg"></option><option value="約1.2 kg"></option>
+          <option value="約1.3 kg"></option><option value="約1.4 kg"></option><option value="約1.5 kg"></option>
+          <option value="約1.6 kg"></option><option value="約1.8 kg"></option><option value="約2.0 kg"></option>
+        </datalist>
+        <span class="hint">未入力の場合は仕様書に「－」と表示されます</span>
+      </div>
+      <div class="fld"><label for="office">Officeソフト</label><input id="office" value="無" /></div>
+      <div class="fld"><label for="refUrl">参考ページURL</label><input id="refUrl" placeholder="https://..." /></div>
+    </div>
+  </div>
+
+  <!-- Warranty -->
+  <div class="sec">
+    <div class="sec-title">◆ 付属品・保証</div>
+    <div class="grid">
+      <div class="fld"><label for="accessories">付属品</label><input id="accessories" value="ACアダプタのみ　　（元箱、サポート連絡先記載有ウェルカムカード）" /></div>
+      <div class="fld"><label for="warranty">保証期間</label>
+        <select id="warranty"><option value="">選択</option></select>
+      </div>
+      <div class="fld"><label for="warrantyUrl">保証規程URL</label><input id="warrantyUrl" value="https://x.gd/academy" /></div>
+    </div>
+    <div class="fld" style="margin-top:8px"><label for="warrantyDetail">保証内容詳細</label>
+      <textarea id="warrantyDetail">【保証内容抜粋】
+
+ユーザー過失による破損、水濡れ、改造などのあらゆる故障・不具合に対して、追加料金等なく
+弊社にて修理・交換機にて対応致します。交換機の際は弊社指定
+ー保証対象外ー
+※紛失、R∞PCステッカーの紛失の場合
+※データ、ソフト
+※パソコン本体ではない付属品類</textarea>
+    </div>
+  </div>
+
+  <!-- Price -->
+  <div class="sec">
+    <div class="sec-title">◆ 価格・備考</div>
+    <div style="margin-bottom:10px">
+      <label class="tgl" for="showPrice">
+        <input type="checkbox" id="showPrice" checked />
+        <span class="track"></span>
+        <span id="showPriceLabel">卸価格を仕様書に表示する</span>
+      </label>
+    </div>
+    <div class="grid" id="priceRow">
+      <div class="fld"><label for="price">卸価格（税抜）</label><input id="price" inputmode="numeric" placeholder="例: 35,000" /></div>
+    </div>
+    <div class="fld" style="margin-top:8px"><label for="notes">備考（その他）</label>
+      <textarea id="notes" placeholder="画像は参考画像です。" style="min-height:60px"></textarea>
+    </div>
+  </div>
+
+  <div class="sec">
+    <button class="mini-btn" type="button" id="btnReset">入力内容をすべてリセット</button>
+    <span class="hint" id="saveState" style="margin-left:10px"></span>
+  </div>
+
+</div><!-- /editPanel -->
+
+<!-- ════════════════ PREVIEW MODE ════════════════ -->
+<div id="previewPanel" style="display:none"></div>
+
+</div><!-- /cnt -->
+
+<script>
+"use strict";
+
+// ═══════════════ Data ═══════════════
+/**
+ * Company logo. Left empty on purpose: the base64 PNG that used to live here was
+ * corrupt (the lower ~40% of the 172x39 image decoded as noise, which is why the
+ * mark looked cut off at every size). Set one from the "ロゴ画像" field instead —
+ * it is stored locally and embedded into the preview, the Word file and print.
+ * When no logo is set, the text wordmark below is used and nothing looks broken.
+ */
+const WORDMARK = "R∞PC";
+let logoData = null;
+
+const MAKERS = ["HP","Lenovo","Dell","Fujitsu","NEC","Panasonic","Dynabook (Toshiba)","ASUS","Microsoft","Apple"];
+const CPU_MAP = {
+  "Core i3":{gens:[4,5,6,7,8,10,11,12,13,14]}, "Core i5":{gens:[4,5,6,7,8,10,11,12,13,14]},
+  "Core i7":{gens:[4,5,6,7,8,10,11,12,13,14]}, "Core i9":{gens:[9,10,11,12,13,14]},
+  "Celeron":{gens:["N3000系","N4000系","N4500系","N5000系","N100系"]},
+  "Pentium":{gens:["Gold","Silver","N5000系","N6000系"]},
+  "Core Ultra 5":{gens:["Series 1","Series 2"]}, "Core Ultra 7":{gens:["Series 1","Series 2"]},
+  "Core Ultra 9":{gens:["Series 1","Series 2"]},
+};
+const GEN_YEAR = {
+  4:{year:"2013",code:"Haswell"},5:{year:"2015",code:"Broadwell"},6:{year:"2015",code:"Skylake"},
+  7:{year:"2017",code:"Kaby Lake"},8:{year:"2018",code:"Coffee Lake"},9:{year:"2018",code:"Coffee Lake"},
+  10:{year:"2020",code:"Comet Lake / Ice Lake"},11:{year:"2021",code:"Tiger Lake"},
+  12:{year:"2022",code:"Alder Lake"},13:{year:"2023",code:"Raptor Lake"},14:{year:"2024",code:"Raptor Lake Refresh"},
+  "N3000系":{year:"2015",code:"Braswell"},"N4000系":{year:"2017",code:"Gemini Lake"},
+  "N4500系":{year:"2021",code:"Jasper Lake"},"N5000系":{year:"2019",code:"Gemini Lake Refresh"},
+  "N100系":{year:"2023",code:"Alder Lake-N"},
+  "Gold":{year:"2018",code:"Coffee Lake"},"Silver":{year:"2019",code:"Gemini Lake"},
+  "N6000系":{year:"2021",code:"Jasper Lake"},
+  "Series 1":{year:"2024",code:"Meteor Lake"},"Series 2":{year:"2024",code:"Lunar Lake / Arrow Lake"},
+};
+const MEM = ["4GB","8GB","16GB","32GB","64GB"];
+const DISPLAY = ['11.6"','12.5"','13.3"','14.0"','15.6"','17.3"'];
+const RES = ["HD","FHD","WUXGA","QHD","WQXGA","4K"];
+const OS_LIST = ["Windows11Pro","Windows11Home","Windows10Pro","Chrome OS Flex","OS なし"];
+const WARRANTY_LIST = ["R∞PCAcademy(4年保証)","R∞PC(1年保証)","R∞PC(2年保証)","メーカー保証なし"];
+
+const FOOTNOTE = "（注）\n※1 ・デスクトップサーチの参考値の記載。各製品で質量が異なる場合があります。\n※2 ・記載の内容はメーカー参考ページ、及びデスクトップサーチでの公開情報の内容をもとに参考として記載したものです。\n※3 ・メーカー参考ページについてはあくまでベースモデルの情報です。本製品の仕様と完全に一致するものではございませんのでご注意ください。";
+
+// Text fields persisted / restored / reset as a group
+const FIELD_IDS = [
+  "targetYear","person","maker","productName","modelYear","cpuSeries","cpuGen",
+  "memory","storage","opticalDrive","displaySize","wifi","resolution","numpad","camera",
+  "os","osNote","weight","office","refUrl",
+  "accessories","warranty","warrantyUrl","warrantyDetail","price","notes",
+];
+const STORAGE_KEY = "roopc-spec-generator-v1";
+const DEFAULTS = {};
+
+let imageData = null;
+
+// ═══════════════ Helpers ═══════════════
+const $ = (id) => document.getElementById(id);
+const V = (id) => ($(id) ? String($(id).value).trim() : "");
+
+/** Escape text before it is interpolated into innerHTML / the Word document. */
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+const isUrl = (s) => /^https?:\/\//i.test(s);
+/** Strip characters that are illegal in file names (the summary contains "/"). */
+const safeFileName = (s) => String(s).replace(/[\\/:*?"<>|\r\n\t]/g, "_").replace(/\s+/g, " ").trim().slice(0, 120);
+
+function fillSelect(id, opts) {
+  const sel = $(id);
+  opts.forEach((o) => {
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    sel.appendChild(op);
+  });
+}
+
+// ═══════════════ CPU ═══════════════
+/** Derived from the two selects, so it stays correct after a page reload / restore. */
+function cpuInfo() {
+  const series = V("cpuSeries");
+  const g = V("cpuGen");
+  if (!series || !g) return { year: "", code: "", label: "" };
+  const numeric = g !== "" && !isNaN(g);
+  const info = GEN_YEAR[numeric ? Number(g) : g];
+  if (!info) return { year: "", code: "", label: series };
+  return { year: info.year, code: info.code, label: series + (numeric ? " 第" + g + "世代" : " " + g) };
+}
+
+function rebuildGenOptions(keep) {
+  const series = V("cpuSeries");
+  const genSel = $("cpuGen");
+  genSel.innerHTML = '<option value="">選択</option>';
+  genSel.disabled = !series;
+  if (!series) return;
+  (CPU_MAP[series] ? CPU_MAP[series].gens : []).forEach((g) => {
+    const op = document.createElement("option");
+    op.value = g;
+    op.textContent = isNaN(g) ? g : "第" + g + "世代";
+    genSel.appendChild(op);
+  });
+  if (keep != null && [...genSel.options].some((o) => o.value === String(keep))) genSel.value = String(keep);
+}
+
+function refreshCpuAuto() {
+  const { year, code, label } = cpuInfo();
+  const row = $("cpuAutoRow");
+  if (!label || !year) { row.style.display = "none"; return; }
+  $("cpuYearAuto").textContent = year + "年";
+  $("cpuCodeAuto").textContent = code;
+  $("cpuLabelAuto").textContent = label;
+  row.style.display = "";
+  if (!V("modelYear")) $("modelYear").value = year;
+}
+
+// ═══════════════ Image ═══════════════
+const MAX_IMG_DIM = 1400;
+
+/** Downscale before embedding: raw camera JPEGs make the .doc unusably large. */
+function loadImageFile(file) {
+  if (!file || !/^image\//.test(file.type)) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const src = String(ev.target.result);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, MAX_IMG_DIM / Math.max(img.width, img.height));
+      if (scale === 1 && src.length < 700000) { setImage(src); return; }
+      const cv = document.createElement("canvas");
+      cv.width = Math.max(1, Math.round(img.width * scale));
+      cv.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = cv.getContext("2d");
+      ctx.fillStyle = "#fff";                      // flatten transparency for Word / print
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      setImage(cv.toDataURL("image/jpeg", 0.88));
+    };
+    img.onerror = () => setImage(src);
+    img.src = src;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setLogo(dataUrl) {
+  logoData = dataUrl || null;
+  const img = $("logoPreview");
+  if (logoData) {
+    img.src = logoData; img.style.display = "";
+    $("logoPlaceholder").style.display = "none";
+    $("logoActions").style.display = "";
+    $("barLogo").src = logoData; $("barLogo").style.display = "";
+    $("barWordmark").style.display = "none";
+  } else {
+    img.removeAttribute("src"); img.style.display = "none";
+    $("logoPlaceholder").style.display = "";
+    $("logoActions").style.display = "none";
+    $("barLogo").removeAttribute("src"); $("barLogo").style.display = "none";
+    $("barWordmark").style.display = "";
+    $("logoInput").value = "";
+  }
+  save();
+  if (inPreview()) renderPreview();
+}
+
+/** Logo markup shared by the on-screen sheet and the Word document. */
+function logoMarkup(maxH) {
+  return logoData
+    ? '<img src="' + logoData + '" alt="' + WORDMARK + '" style="max-height:' + maxH + '" />'
+    : '<span class="wordmark">' + esc(WORDMARK) + "</span>";
+}
+
+function setImage(dataUrl) {
+  imageData = dataUrl;
+  const prev = $("imgPreview");
+  if (dataUrl) {
+    prev.src = dataUrl; prev.style.display = "";
+    $("imgPlaceholder").style.display = "none";
+    $("imgActions").style.display = "";
+  } else {
+    prev.removeAttribute("src"); prev.style.display = "none";
+    $("imgPlaceholder").style.display = "";
+    $("imgActions").style.display = "none";
+    $("imageInput").value = "";
+  }
+  save();
+}
+
+// ═══════════════ Document model ═══════════════
+function getSummary() {
+  const { label } = cpuInfo();
+  return [V("maker"), V("productName"), label, V("memory"), V("displaySize"), V("resolution")]
+    .filter(Boolean).join("/");
+}
+
+function priceShown() { return $("showPrice").checked && !!V("price"); }
+
+function formattedPrice() {
+  const raw = V("price").replace(/[,\s]/g, "");
+  return /^\d+$/.test(raw) ? Number(raw).toLocaleString("ja-JP") : V("price");
+}
+
+/**
+ * Spec rows. `always: true` keeps the row in the sheet even when empty (rendered as "－"),
+ * so mandatory items such as 重量 never silently disappear from the document.
+ */
+function buildRows() {
+  const { year, code, label } = cpuInfo();
+  const os = V("os");
+  const osNote = V("osNote");
+  const defs = [
+    { l: "◆メーカー",            v: V("maker"),        always: true },
+    { l: "◆品名",                v: V("productName"),  always: true },
+    { l: "◆機種発売年※2",        v: V("modelYear") || year, always: true },
+    { l: "◆CPU発売年※2",         v: code ? code + " " + year + "年発売" : "" },
+    { l: "◆主なスペック：CPU※2", v: label,             always: true },
+    { l: "　メモリ(最大メモリ)",  v: V("memory"),       always: true },
+    { l: "　記憶媒体",            v: V("storage"),      always: true },
+    { l: "　光学式ドライブ",      v: V("opticalDrive") },
+    { l: "　液晶サイズ",          v: V("displaySize"),  always: true },
+    { l: "　無線LAN",             v: V("wifi") },
+    { l: "　解像度※2",           v: V("resolution"),   always: true },
+    { l: "　テンキー",            v: V("numpad") },
+    { l: "　カメラ",              v: V("camera") },
+    { l: "　OS",                  v: os ? os + "　" + osNote : "" },
+    { l: "　重量※1",             v: V("weight"),       always: true },
+    { l: "　参考ページ※3",       v: V("refUrl") },
+    { l: "　Officeソフト",        v: V("office") },
+    { l: "◆付属品",              v: V("accessories") },
+    { l: "◆保証期間",            v: V("warranty"),     always: true },
+    { l: "◆保証規程URL",         v: V("warrantyUrl") },
+  ];
+  return defs
+    .filter((r) => r.v || r.always)
+    .map((r) => ({ label: r.l, value: r.v, isSection: r.l.startsWith("◆"), empty: !r.v }));
+}
+
+// ═══════════════ Preview ═══════════════
+function renderPreview() {
+  const rows = buildRows();
+  const notes = V("notes");
+  const wd = V("warrantyDetail");
+
+  let html = '<div class="sheet">' +
+    '<div class="sh-hdr">' + logoMarkup("32px") + '<span class="doc-type">製品仕様書</span></div>' +
+    '<div class="sh-sum">' + esc(getSummary()) + "</div>" +
+    '<div class="sh-meta"><span>' + esc(V("targetYear")) + "年度入学生向け</span>" +
+    "<span>担当：<b>" + esc(V("person")) + "</b></span></div>" +
+    '<div class="sh-body">';
+
+  if (imageData) html += '<div class="img-center"><img src="' + imageData + '" alt="商品画像" /></div>';
+
+  html += '<table class="spec-tbl"><tbody>';
+  rows.forEach((r) => {
+    const cell = r.empty
+      ? '<td class="empty">－</td>'
+      : "<td>" + (isUrl(r.value)
+          ? '<a href="' + esc(r.value) + '" target="_blank" rel="noopener">' + esc(r.value) + "</a>"
+          : esc(r.value)) + "</td>";
+    html += '<tr><th class="' + (r.isSection ? "sec-hdr" : "sub-hdr") + '">' + esc(r.label) + "</th>" + cell + "</tr>";
+  });
+  html += "</tbody></table></div>";
+
+  if (priceShown()) {
+    html += '<div class="price-bar"><span class="lbl">卸価格（税抜）</span><span class="val">¥' +
+      esc(formattedPrice()) + "</span></div>";
+  }
+  if (notes || wd) {
+    html += '<div class="notes-box"><b>◆備考</b>\n' + (notes ? esc(notes) + "\n\n" : "") + esc(wd) + "</div>";
+  }
+  html += '<div class="foot">' + esc(FOOTNOTE) + "</div></div>";
+
+  $("previewPanel").innerHTML = html;
+}
+
+// ═══════════════ Mode switching ═══════════════
+function showEdit() {
+  $("editPanel").style.display = "";
+  $("previewPanel").style.display = "none";
+  $("tabEdit").classList.add("active");
+  $("tabPreview").classList.remove("active");
+  $("btnWord").style.display = "none";
+  $("btnPdf").style.display = "none";
+}
+function showPreview() {
+  $("editPanel").style.display = "none";
+  $("previewPanel").style.display = "";
+  $("tabEdit").classList.remove("active");
+  $("tabPreview").classList.add("active");
+  $("btnWord").style.display = "";
+  $("btnPdf").style.display = "";
+  renderPreview();
+}
+const inPreview = () => $("previewPanel").style.display !== "none";
+
+// ═══════════════ Word export ═══════════════
+function downloadWord() {
+  const rows = buildRows();
+  const summary = getSummary();
+  const notes = V("notes");
+  const wd = V("warrantyDetail");
+
+  const trs = rows.map((r) => {
+    const cell = r.empty
+      ? "<td>－</td>"
+      : "<td>" + (isUrl(r.value)
+          ? '<a href="' + esc(r.value) + '">' + esc(r.value) + "</a>"
+          : esc(r.value).replace(/\n/g, "<br />")) + "</td>";
+    return '<tr class="' + (r.isSection ? "sec" : "sub") + '"><th class="' +
+      (r.isSection ? "sec-hdr" : "sub-hdr") + '">' + esc(r.label) + "</th>" + cell + "</tr>";
+  }).join("");
+
+  const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+    'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head><meta charset="utf-8"><title>' + esc(summary || "製品仕様書") + "</title><style>" +
+    "@page{size:A4;margin:18mm 16mm}" +
+    "body{font-family:'Yu Gothic','Meiryo',sans-serif;color:#1c1c1c;font-size:11pt}" +
+    ".top{border-bottom:3px solid #1a3a5c;padding-bottom:8px;margin-bottom:4px}" +
+    ".top img{max-height:28px}" +
+    ".top .wordmark{font-size:16pt;font-weight:800;color:#1a3a5c;letter-spacing:.04em}" +
+    ".top .rt{float:right;font-size:10pt;color:#555}" +
+    ".summary{font-size:9pt;color:#555;margin-bottom:2px;text-align:right;clear:both}" +
+    ".meta{margin-bottom:10px;font-size:10pt}" +
+    ".meta .rt{float:right}" +
+    "table{width:100%;border-collapse:collapse}" +
+    "th,td{border:1px solid #c8cdd3;padding:7px 12px;font-size:10pt;vertical-align:top}" +
+    "th{width:180px;text-align:left;font-weight:600}" +
+    "th.sec-hdr{background:#1a3a5c;color:#ffffff;font-weight:700}" +
+    "th.sub-hdr{background:#f3f5f7;color:#555555;padding-left:28px}" +
+    ".price-box{margin-top:12px;text-align:right;border-top:2px solid #1a3a5c;padding-top:8px}" +
+    ".price-box .v{font-size:20pt;font-weight:800;color:#1a3a5c}" +
+    ".notes{margin-top:10px;font-size:9pt;color:#555;white-space:pre-wrap;line-height:1.6}" +
+    ".img-box{text-align:center;margin:10px 0}" +
+    ".img-box img{max-width:360px}" +
+    ".foot{margin-top:14px;font-size:8pt;color:#888;white-space:pre-wrap;line-height:1.5}" +
+    "</style></head><body>" +
+    '<div class="top"><span class="rt">製品仕様書</span>' + logoMarkup("28px") + "</div>" +
+    '<div class="summary">' + esc(summary) + "</div>" +
+    '<div class="meta"><span>' + esc(V("targetYear")) + "年度入学生向け</span>" +
+    '<span class="rt">担当：<b>' + esc(V("person")) + "</b></span></div>" +
+    (imageData ? '<div class="img-box"><img src="' + imageData + '" /></div>' : "") +
+    "<table>" + trs + "</table>" +
+    (priceShown()
+      ? '<div class="price-box">卸価格（税抜）<span class="v">　¥' + esc(formattedPrice()) + "</span></div>"
+      : "") +
+    ((notes || wd)
+      ? '<div class="notes">◆備考\n' + (notes ? esc(notes) + "\n\n" : "") + esc(wd) + "</div>"
+      : "") +
+    '<div class="foot">' + esc(FOOTNOTE) + "</div>" +
+    "</body></html>";
+
+  const blob = new Blob(["﻿" + doc], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = safeFileName((summary || "仕様書") + "_R∞PC") + ".doc";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ═══════════════ Persistence ═══════════════
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const data = { fields: {}, showPrice: $("showPrice").checked, image: imageData, logo: logoData };
+    FIELD_IDS.forEach((id) => { data.fields[id] = V(id); });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      note("保存済み（この端末のブラウザに自動保存されます）");
+    } catch (e) {
+      note("自動保存できませんでした（画像が大きい可能性があります）");
+    }
+  }, 250);
+}
+
+function restore() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch (e) { data = null; }
+  if (!data) return false;
+  const f = data.fields || {};
+  if (f.cpuSeries) { $("cpuSeries").value = f.cpuSeries; rebuildGenOptions(f.cpuGen); }
+  FIELD_IDS.forEach((id) => {
+    if (id === "cpuGen" || id === "cpuSeries") return;
+    if (typeof f[id] === "string" && $(id)) $(id).value = f[id];
+  });
+  $("showPrice").checked = data.showPrice !== false;
+  if (data.image) setImage(data.image);
+  if (data.logo) setLogo(data.logo);
+  return true;
+}
+
+function note(msg) { $("saveState").textContent = msg; }
+
+function resetAll() {
+  if (!confirm("入力内容をすべて初期状態に戻します。よろしいですか？")) return;
+  FIELD_IDS.forEach((id) => { if ($(id)) $(id).value = DEFAULTS[id] || ""; });
+  $("cpuSeries").value = "";
+  rebuildGenOptions(null);
+  $("showPrice").checked = true;
+  setImage(null);
+  syncPriceRow();
+  refreshCpuAuto();
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+  note("リセットしました");
+}
+
+function syncPriceRow() {
+  const on = $("showPrice").checked;
+  $("priceRow").style.opacity = on ? "1" : ".45";
+  $("price").disabled = !on;
+  $("showPriceLabel").textContent = on ? "卸価格を仕様書に表示する" : "卸価格を仕様書に表示しない";
+}
+
+// ═══════════════ Boot ═══════════════
+function init() {
+  fillSelect("maker", MAKERS);
+  fillSelect("cpuSeries", Object.keys(CPU_MAP));
+  fillSelect("memory", MEM);
+  fillSelect("displaySize", DISPLAY);
+  fillSelect("resolution", RES);
+  fillSelect("os", OS_LIST);
+  fillSelect("warranty", WARRANTY_LIST);
+
+  $("warranty").value = "R∞PCAcademy(4年保証)";
+  $("targetYear").value = new Date().getFullYear() + 1;
+  FIELD_IDS.forEach((id) => { if ($(id)) DEFAULTS[id] = $(id).value; });
+
+  restore();
+  syncPriceRow();
+  refreshCpuAuto();
+
+  // tabs / actions
+  $("tabEdit").addEventListener("click", showEdit);
+  $("tabPreview").addEventListener("click", showPreview);
+  $("btnWord").addEventListener("click", downloadWord);
+  $("btnPdf").addEventListener("click", () => window.print());
+  $("btnReset").addEventListener("click", resetAll);
+
+  // CPU cascade
+  $("cpuSeries").addEventListener("change", () => { rebuildGenOptions(null); refreshCpuAuto(); });
+  $("cpuGen").addEventListener("change", refreshCpuAuto);
+
+  // price toggle
+  $("showPrice").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
+
+  // any edit -> autosave (+ live preview when the sheet is on screen)
+  $("editPanel").addEventListener("input", (e) => {
+    if (e.target.id === "modelYear" || e.target.id === "cpuSeries" || e.target.id === "cpuGen") refreshCpuAuto();
+    save();
+    if (inPreview()) renderPreview();
+  });
+  $("editPanel").addEventListener("change", save);
+
+  // logo (kept as-is by リセット: it is company-wide, not per-product data)
+  $("logoDrop").addEventListener("click", () => $("logoInput").click());
+  $("btnLogoChange").addEventListener("click", (e) => { e.stopPropagation(); $("logoInput").click(); });
+  $("btnLogoRemove").addEventListener("click", (e) => { e.stopPropagation(); setLogo(null); });
+  $("logoInput").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f || !/^image\//.test(f.type)) return;
+    const r = new FileReader();
+    r.onload = (ev) => setLogo(String(ev.target.result));   // no re-encode: keeps SVG / transparency
+    r.readAsDataURL(f);
+  });
+
+  // image
+  $("imgDrop").addEventListener("click", () => $("imageInput").click());
+  $("btnImgChange").addEventListener("click", (e) => { e.stopPropagation(); $("imageInput").click(); });
+  $("btnImgRemove").addEventListener("click", (e) => { e.stopPropagation(); setImage(null); });
+  $("imageInput").addEventListener("change", (e) => loadImageFile(e.target.files && e.target.files[0]));
+  ["dragover", "dragenter"].forEach((t) =>
+    $("imgDrop").addEventListener(t, (e) => { e.preventDefault(); $("imgDrop").style.borderColor = "#1a3a5c"; }));
+  ["dragleave", "drop"].forEach((t) =>
+    $("imgDrop").addEventListener(t, () => { $("imgDrop").style.borderColor = ""; }));
+  $("imgDrop").addEventListener("drop", (e) => {
+    e.preventDefault();
+    loadImageFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+  });
+
+  // printing always outputs the sheet, never the form
+  window.addEventListener("beforeprint", () => { if (!inPreview()) showPreview(); });
+
+  showEdit();
+}
+
+init();
+</script>
+</body>
+</html>
