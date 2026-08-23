@@ -58,6 +58,30 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .tgl input:checked + .track { background: var(--pri); }
 .tgl input:checked + .track::after { transform: translateX(18px); }
 
+/* segmented choice (price type) */
+.segbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.segbar.off { opacity: .45; pointer-events: none; }
+.seg {
+  position: relative; display: flex; flex-direction: column; gap: 2px;
+  padding: 11px 14px 11px 40px; border: 2px solid var(--bdr); border-radius: 9px;
+  background: var(--white); cursor: pointer; transition: border-color .12s, background .12s;
+}
+.seg:hover { border-color: #9aa4ae; }
+.seg input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.seg::before {
+  content: ""; position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid #c8cdd3; background: #fff;
+}
+.seg .seg-t { font-size: 14px; font-weight: 700; color: var(--txtM); }
+.seg .seg-s { font-size: 10px; color: #888; }
+.seg input:focus-visible ~ .seg-t { text-decoration: underline; }
+.seg-wholesale.on { border-color: #1a3a5c; background: #eef3f8; }
+.seg-wholesale.on .seg-t { color: #1a3a5c; }
+.seg-wholesale.on::before { border-color: #1a3a5c; background: #1a3a5c; box-shadow: inset 0 0 0 3px #fff; }
+.seg-end.on { border-color: #0a6b5b; background: #e9f6f3; }
+.seg-end.on .seg-t { color: #0a6b5b; }
+.seg-end.on::before { border-color: #0a6b5b; background: #0a6b5b; box-shadow: inset 0 0 0 3px #fff; }
+
 /* saved presets */
 .pgrp { border: 1px solid var(--bdr); border-radius: 8px; background: var(--white); margin-bottom: 10px; overflow: hidden; }
 .pgrp-hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--priL); color: var(--pri); font-weight: 700; font-size: 12px; padding: 8px 12px; }
@@ -101,6 +125,8 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .price-bar { display: flex; align-items: baseline; justify-content: flex-end; padding: 12px 24px; border-top: 2px solid var(--pri); background: var(--priL); }
 .price-bar .lbl { font-size: 12px; color: var(--txtM); margin-right: 8px; }
 .price-bar .val { font-size: 24px; font-weight: 800; color: var(--pri); }
+.price-bar.end { background: #e9f6f3; border-top-color: #0a6b5b; }
+.price-bar.end .lbl, .price-bar.end .val { color: #0a6b5b; }
 .price-bar.draft { background: #fff8ef; border-top-color: #e0a44a; }
 .price-bar.draft .lbl, .price-bar.draft .val { color: #a35200; }
 .notes-box { padding: 12px 24px; font-size: 12px; color: var(--txtM); white-space: pre-wrap; line-height: 1.7; border-top: 1px solid var(--bdr); }
@@ -334,14 +360,27 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
         <span id="isDraftPriceLabel">暫定価格として表示する</span>
       </label>
     </div>
-    <div class="grid" id="priceRow">
-      <div class="fld"><label for="priceType">価格種別</label>
-        <select id="priceType">
-          <option value="卸価格">卸価格（代理店・協業向け）</option>
-          <option value="エンド価格">エンド価格（学校直販向け）</option>
-        </select>
+    <div id="priceRow">
+      <div class="fld" style="margin-bottom:12px">
+        <label>価格種別</label>
+        <div class="segbar" id="priceTypeSeg" role="radiogroup" aria-label="価格種別">
+          <label class="seg seg-wholesale">
+            <input type="radio" name="priceTypeRadio" value="卸価格" checked />
+            <span class="seg-t">卸価格</span>
+            <span class="seg-s">代理店・協業向け</span>
+          </label>
+          <label class="seg seg-end">
+            <input type="radio" name="priceTypeRadio" value="エンド価格" />
+            <span class="seg-t">エンド価格</span>
+            <span class="seg-s">学校直販向け</span>
+          </label>
+        </div>
+        <!-- canonical value: saved, restored and read by the document builders -->
+        <input type="hidden" id="priceType" value="卸価格" />
       </div>
-      <div class="fld"><label for="price" id="priceLabel">卸価格（税抜）</label><input id="price" inputmode="numeric" placeholder="例: 35,000" /></div>
+      <div class="grid">
+        <div class="fld"><label for="price" id="priceLabel">卸価格（税抜）</label><input id="price" inputmode="numeric" placeholder="例: 35,000" /></div>
+      </div>
     </div>
     <div class="fld" style="margin-top:8px"><label for="notes">備考（その他）</label>
       <textarea id="notes" placeholder="画像は参考画像です。" style="min-height:60px"></textarea>
@@ -580,6 +619,9 @@ function priceShown() { return $("showPrice").checked && !!V("price"); }
 
 /** 卸価格 (partner / reseller) or エンド価格 (direct-to-school). */
 const isDraftPrice = () => $("isDraftPrice").checked;
+const isEndPrice = () => V("priceType") === "エンド価格";
+/** draft wins over the type colour, so a provisional price always reads as provisional */
+const priceClass = () => (isDraftPrice() ? " draft" : isEndPrice() ? " end" : "");
 const priceLabel = () =>
   (V("priceType") || "卸価格") + "（税抜）" + (isDraftPrice() ? "　※暫定価格" : "");
 
@@ -735,7 +777,7 @@ function renderPreview() {
   html += "</tbody></table></div>";
 
   if (priceShown()) {
-    html += '<div class="price-bar' + (isDraftPrice() ? " draft" : "") + '">' +
+    html += '<div class="price-bar' + priceClass() + '">' +
       '<span class="lbl">' + esc(priceLabel()) + '</span><span class="val">¥' +
       esc(formattedPrice()) + "</span></div>";
   }
@@ -803,6 +845,8 @@ function downloadWord() {
     "th.sub-hdr{background:#f3f5f7;color:#555555;padding-left:28px}" +
     ".price-box{margin-top:12px;text-align:right;border-top:2px solid #1a3a5c;padding-top:8px}" +
     ".price-box .v{font-size:20pt;font-weight:800;color:#1a3a5c}" +
+    ".price-box.end{border-top-color:#0a6b5b;color:#0a6b5b}" +
+    ".price-box.end .v{color:#0a6b5b}" +
     ".price-box.draft{border-top-color:#e0a44a;color:#a35200}" +
     ".price-box.draft .v{color:#a35200}" +
     ".notes{margin-top:10px;font-size:9pt;color:#555;white-space:pre-wrap;line-height:1.6}" +
@@ -822,7 +866,7 @@ function downloadWord() {
     (imageData ? '<div class="img-box"><img src="' + imageData + '" /></div>' : "") +
     "<table>" + trs + "</table>" +
     (priceShown()
-      ? '<div class="price-box' + (isDraftPrice() ? " draft" : "") + '">' + esc(priceLabel()) +
+      ? '<div class="price-box' + priceClass() + '">' + esc(priceLabel()) +
         '<span class="v">　¥' + esc(formattedPrice()) + "</span></div>"
       : "") +
     ((notes || wd)
@@ -1083,8 +1127,13 @@ function syncPriceRow() {
   const type = V("priceType") || "卸価格";
   $("priceRow").style.opacity = on ? "1" : ".45";
   $("price").disabled = !on;
-  $("priceType").disabled = !on;
   $("isDraftPrice").disabled = !on;
+  // Reflect the stored value onto the segments (restore / preset recall come through here).
+  $("priceTypeSeg").classList.toggle("off", !on);
+  document.querySelectorAll('#priceTypeSeg input[name="priceTypeRadio"]').forEach((r) => {
+    r.checked = r.value === type;
+    r.closest(".seg").classList.toggle("on", r.checked);
+  });
   $("priceLabel").textContent = priceLabel();
   $("showPriceLabel").textContent = type + (on ? "を仕様書に表示する" : "を仕様書に表示しない");
   $("isDraftPriceLabel").textContent = isDraftPrice() ? type + "は暫定価格として表示中" : "暫定価格として表示する";
@@ -1141,7 +1190,13 @@ function init() {
   // price toggle
   $("showPrice").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
   $("isDraft").addEventListener("change", () => { syncDraft(); save(); if (inPreview()) renderPreview(); });
-  $("priceType").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
+  $("priceTypeSeg").addEventListener("change", (e) => {
+    if (!e.target.name || e.target.name !== "priceTypeRadio") return;
+    $("priceType").value = e.target.value;
+    syncPriceRow();
+    save();
+    if (inPreview()) renderPreview();
+  });
   $("isDraftPrice").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
 
   // any edit -> autosave (+ live preview when the sheet is on screen)
