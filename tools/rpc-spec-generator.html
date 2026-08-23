@@ -84,6 +84,7 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .sh-hdr img { width: auto; height: auto; max-height: 32px; max-width: 180px; object-fit: contain; display: block; flex: 0 0 auto; }
 .sh-hdr .wordmark { color: var(--pri); font-size: 22px; }
 .sh-hdr .doc-type { font-size: 13px; color: var(--txtM); }
+.sh-hdr .doc-type.draft { color: #a35200; background: #fff3e0; border: 1px solid #e0a44a; border-radius: 5px; padding: 3px 10px; font-weight: 700; }
 .sh-sum { text-align: right; padding: 6px 24px 2px; font-size: 11px; color: var(--txtM); word-break: break-all; }
 .sh-meta { display: flex; justify-content: space-between; gap: 12px; padding: 6px 24px 10px; font-size: 12px; color: var(--txtM); }
 .sh-body { padding: 0 24px 18px; }
@@ -159,6 +160,13 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
   <!-- Header info -->
   <div class="sec">
     <div class="sec-title">ヘッダー情報</div>
+    <div style="margin-bottom:12px">
+      <label class="tgl" for="isDraft">
+        <input type="checkbox" id="isDraft" />
+        <span class="track"></span>
+        <span id="isDraftLabel">製品仕様書として出力する</span>
+      </label>
+    </div>
     <div class="grid">
       <div class="fld"><label for="addressee">宛名</label>
         <input id="addressee" placeholder="例: 株式会社●●" />
@@ -621,6 +629,9 @@ function buildRows() {
   return rows;
 }
 
+const isDraft = () => $("isDraft").checked;
+const docTypeLabel = () => (isDraft() ? "暫定仕様書" : "製品仕様書");
+
 /** "株式会社●● 御中" — empty when no addressee was entered. */
 function addresseeLine() {
   const name = V("addressee");
@@ -635,10 +646,10 @@ function docFileName() {
   const pad = (n) => String(n).padStart(2, "0");
   const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
   const parts = [
-    stamp, V("addressee"), V("maker"), V("productName"),
+    isDraft() ? "暫定" : "", stamp, V("addressee"), V("maker"), V("productName"),
     cpuInfo().label, V("memory"), V("storage"),
   ].filter(Boolean);
-  return safeFileName(parts.join("_")) || "製品仕様書";
+  return safeFileName(parts.join("_")) || docTypeLabel();
 }
 
 // ═══════════════ Preview ═══════════════
@@ -648,7 +659,8 @@ function renderPreview() {
   const wd = V("warrantyDetail");
 
   let html = '<div class="sheet">' +
-    '<div class="sh-hdr">' + logoMarkup("32px") + '<span class="doc-type">製品仕様書</span></div>' +
+    '<div class="sh-hdr">' + logoMarkup("32px") +
+    '<span class="doc-type' + (isDraft() ? " draft" : "") + '">' + esc(docTypeLabel()) + "</span></div>" +
     (addresseeLine() ? '<div class="sh-addr">' + esc(addresseeLine()) + "</div>" : "") +
     '<div class="sh-sum">' + esc(getSummary()) + "</div>" +
     '<div class="sh-meta"><span>' + esc(V("targetYear")) + "年度入学生向け</span>" +
@@ -722,6 +734,7 @@ function downloadWord() {
     ".top img{max-height:28px}" +
     ".top .wordmark{font-size:16pt;font-weight:800;color:#1a3a5c;letter-spacing:.04em}" +
     ".top .rt{float:right;font-size:10pt;color:#555}" +
+    ".top .rt.draft{color:#a35200;font-weight:700;border:1px solid #e0a44a;padding:2px 8px}" +
     ".addr{font-size:13pt;font-weight:700;margin:8px 0 2px;clear:both}" +
     ".summary{font-size:9pt;color:#555;margin-bottom:2px;text-align:right;clear:both}" +
     ".meta{margin-bottom:10px;font-size:10pt}" +
@@ -738,7 +751,8 @@ function downloadWord() {
     ".img-box img{max-width:360px}" +
     ".foot{margin-top:14px;font-size:8pt;color:#888;white-space:pre-wrap;line-height:1.5}" +
     "</style></head><body>" +
-    '<div class="top"><span class="rt">製品仕様書</span>' + logoMarkup("28px") + "</div>" +
+    '<div class="top"><span class="rt' + (isDraft() ? " draft" : "") + '">' + esc(docTypeLabel()) +
+    "</span>" + logoMarkup("28px") + "</div>" +
     (addresseeLine() ? '<div class="addr">' + esc(addresseeLine()) + "</div>" : "") +
     '<div class="summary">' + esc(summary) + "</div>" +
     '<div class="meta"><span>' + esc(V("targetYear")) + "年度入学生向け</span>" +
@@ -770,7 +784,10 @@ let saveTimer = null;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    const data = { fields: {}, showPrice: $("showPrice").checked, image: imageData, logo: logoData };
+    const data = {
+      fields: {}, showPrice: $("showPrice").checked, isDraft: isDraft(),
+      image: imageData, logo: logoData,
+    };
     FIELD_IDS.forEach((id) => { data.fields[id] = V(id); });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -792,6 +809,7 @@ function restore() {
     if (typeof f[id] === "string" && $(id)) $(id).value = f[id];
   });
   $("showPrice").checked = data.showPrice !== false;
+  $("isDraft").checked = !!data.isDraft;
   if (data.image) setImage(data.image);
   if (data.logo) setLogo(data.logo);
   return true;
@@ -832,7 +850,7 @@ function writePresets(list) {
 function snapshot() {
   const fields = {};
   FIELD_IDS.forEach((id) => { fields[id] = V(id); });
-  return { fields, showPrice: $("showPrice").checked, image: imageData };
+  return { fields, showPrice: $("showPrice").checked, isDraft: isDraft(), image: imageData };
 }
 
 function applySnapshot(snap) {
@@ -844,8 +862,10 @@ function applySnapshot(snap) {
     if ($(id)) $(id).value = typeof f[id] === "string" ? f[id] : "";
   });
   $("showPrice").checked = snap.showPrice !== false;
+  $("isDraft").checked = !!snap.isDraft;
   setImage(snap.image || null);
   syncPriceRow();
+  syncDraft();
   refreshCpuAuto();
   save();
 }
@@ -962,11 +982,17 @@ function resetAll() {
   $("cpuSeries").value = "";
   rebuildGenOptions(null);
   $("showPrice").checked = true;
+  $("isDraft").checked = false;
   setImage(null);
   syncPriceRow();
+  syncDraft();
   refreshCpuAuto();
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
   note("リセットしました");
+}
+
+function syncDraft() {
+  $("isDraftLabel").textContent = docTypeLabel() + "として出力する";
 }
 
 function syncPriceRow() {
@@ -992,6 +1018,7 @@ function init() {
 
   restore();
   syncPriceRow();
+  syncDraft();
   refreshCpuAuto();
 
   // tabs / actions
@@ -1025,6 +1052,7 @@ function init() {
 
   // price toggle
   $("showPrice").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
+  $("isDraft").addEventListener("change", () => { syncDraft(); save(); if (inPreview()) renderPreview(); });
 
   // any edit -> autosave (+ live preview when the sheet is on screen)
   $("editPanel").addEventListener("input", (e) => {
