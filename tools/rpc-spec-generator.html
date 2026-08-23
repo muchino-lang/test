@@ -101,6 +101,8 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .price-bar { display: flex; align-items: baseline; justify-content: flex-end; padding: 12px 24px; border-top: 2px solid var(--pri); background: var(--priL); }
 .price-bar .lbl { font-size: 12px; color: var(--txtM); margin-right: 8px; }
 .price-bar .val { font-size: 24px; font-weight: 800; color: var(--pri); }
+.price-bar.draft { background: #fff8ef; border-top-color: #e0a44a; }
+.price-bar.draft .lbl, .price-bar.draft .val { color: #a35200; }
 .notes-box { padding: 12px 24px; font-size: 12px; color: var(--txtM); white-space: pre-wrap; line-height: 1.7; border-top: 1px solid var(--bdr); }
 .foot { padding: 12px 24px; font-size: 10px; color: #888; white-space: pre-wrap; line-height: 1.5; border-top: 1px solid var(--bdr); }
 
@@ -266,8 +268,11 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
         </datalist>
         <span class="hint">未入力の場合、この行は仕様書に出力されません</span>
       </div>
-      <div class="fld"><label for="office">Officeソフト</label><input id="office" value="無" /></div>
       <div class="fld"><label for="refUrl">参考ページURL</label><input id="refUrl" placeholder="https://..." /></div>
+      <div class="fld"><label for="preinstall">プリインストールソフト</label>
+        <input id="preinstall" value="Norton 360 デラックス（1年間）" />
+      </div>
+      <div class="fld"><label for="office">Officeソフト</label><input id="office" value="無し" /></div>
     </div>
   </div>
 
@@ -317,15 +322,26 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
   <!-- Price -->
   <div class="sec">
     <div class="sec-title">◆ 価格・備考</div>
-    <div style="margin-bottom:10px">
+    <div style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px 24px">
       <label class="tgl" for="showPrice">
         <input type="checkbox" id="showPrice" checked />
         <span class="track"></span>
         <span id="showPriceLabel">卸価格を仕様書に表示する</span>
       </label>
+      <label class="tgl" for="isDraftPrice">
+        <input type="checkbox" id="isDraftPrice" />
+        <span class="track"></span>
+        <span id="isDraftPriceLabel">暫定価格として表示する</span>
+      </label>
     </div>
     <div class="grid" id="priceRow">
-      <div class="fld"><label for="price">卸価格（税抜）</label><input id="price" inputmode="numeric" placeholder="例: 35,000" /></div>
+      <div class="fld"><label for="priceType">価格種別</label>
+        <select id="priceType">
+          <option value="卸価格">卸価格（代理店・協業向け）</option>
+          <option value="エンド価格">エンド価格（学校直販向け）</option>
+        </select>
+      </div>
+      <div class="fld"><label for="price" id="priceLabel">卸価格（税抜）</label><input id="price" inputmode="numeric" placeholder="例: 35,000" /></div>
     </div>
     <div class="fld" style="margin-top:8px"><label for="notes">備考（その他）</label>
       <textarea id="notes" placeholder="画像は参考画像です。" style="min-height:60px"></textarea>
@@ -403,16 +419,16 @@ const RES = ["HD","FHD","WUXGA","QHD","WQXGA","4K"];
 const OS_LIST = ["Windows11Pro","Windows11Home","Windows10Pro","Chrome OS Flex","OS なし"];
 const WARRANTY_LIST = ["R∞PCAcademy(4年保証)","R∞PC(1年保証)","R∞PC(2年保証)","メーカー保証なし"];
 
-const FOOTNOTE = "（注）\n※1 ・デスクトップサーチの参考値の記載。各製品で質量が異なる場合があります。\n※2 ・記載の内容はメーカー参考ページ、及びデスクトップサーチでの公開情報の内容をもとに参考として記載したものです。\n　　　・CPUは「世代」単位での表記としております。\n　　　　同一世代内の型番末尾（例：i5-10210U / i5-10310U）による性能差は軽微であるため、弊社では世代単位で品質基準を統一し、\n　　　　安定した調達・保証体制を確保しております。\n※3 ・メーカー参考ページについてはあくまでベースモデルの情報です。本製品の仕様と完全に一致するものではございませんのでご注意ください。";
+const FOOTNOTE_BASE = "（注）\n※1 ・デスクトップサーチの参考値の記載。各製品で質量が異なる場合があります。\n※2 ・記載の内容はメーカー参考ページ、及びデスクトップサーチでの公開情報の内容をもとに参考として記載したものです。\n　　　・CPUは「世代」単位での表記としております。\n　　　　同一世代内の型番末尾（例：i5-10210U / i5-10310U）による性能差は軽微であるため、弊社では世代単位で品質基準を統一し、\n　　　　安定した調達・保証体制を確保しております。\n※3 ・メーカー参考ページについてはあくまでベースモデルの情報です。本製品の仕様と完全に一致するものではございませんのでご注意ください。";
 
 // Text fields persisted / restored / reset as a group
 const FIELD_IDS = [
   "addressee","honorific","targetYear","person",
   "maker","productName","modelYear","cpuSeries","cpuGen",
   "memory","storage","opticalDrive","displaySize","wifi","resolution","numpad","camera",
-  "os","osNote","weight","office","refUrl",
+  "os","osNote","weight","refUrl","preinstall","office",
   "hdmi","usbTypeC","usbTypeA","lanPort","vgaPort","sdSlot","audioJack","bluetooth","otherPort",
-  "accessories","warranty","warrantyUrl","warrantyDetail","price","notes",
+  "accessories","warranty","warrantyUrl","warrantyDetail","priceType","price","notes",
 ];
 const STORAGE_KEY = "roopc-spec-generator-v1";
 const PRESET_KEY = "roopc-spec-presets-v1";
@@ -562,6 +578,11 @@ function getSummary() {
 
 function priceShown() { return $("showPrice").checked && !!V("price"); }
 
+/** 卸価格 (partner / reseller) or エンド価格 (direct-to-school). */
+const isDraftPrice = () => $("isDraftPrice").checked;
+const priceLabel = () =>
+  (V("priceType") || "卸価格") + "（税抜）" + (isDraftPrice() ? "　※暫定価格" : "");
+
 function formattedPrice() {
   const raw = V("price").replace(/[,\s]/g, "");
   return /^\d+$/.test(raw) ? Number(raw).toLocaleString("ja-JP") : V("price");
@@ -607,6 +628,10 @@ function buildRows() {
     ["OS", os ? os + "　" + osNote : ""],
     ["重量※1", V("weight")],
     ["参考ページ※3", V("refUrl")],
+  ]);
+
+  pushGroup("◆", [
+    ["プリインストールソフト", V("preinstall")],
     ["Officeソフト", V("office")],
   ]);
 
@@ -627,6 +652,29 @@ function buildRows() {
   push("◆保証規程URL", V("warrantyUrl"));
 
   return rows;
+}
+
+/** Windows editions as Microsoft writes them, for the MAR paragraph. */
+const OS_DISPLAY = {
+  "Windows11Pro": "Windows 11 Pro",
+  "Windows11Home": "Windows 11 Home",
+  "Windows10Pro": "Windows 10 Pro",
+};
+
+/**
+ * Footnotes. The MAR paragraph is only appended for a Windows OS, and names the
+ * edition that was actually selected, so it can never claim a different one.
+ */
+function footnote() {
+  const os = OS_DISPLAY[V("os")];
+  if (!os) return FOOTNOTE_BASE;
+  return FOOTNOTE_BASE +
+    "\n\n※Microsoft Authorized Refurbisher (MAR) プログラムについて" +
+    "\nMicrosoft社が、認定を受けた再生PC事業者に対してのみWindows OSの正規ライセンスを提供する制度です。" +
+    "MARの正規ライセンスは、Windowsのセキュリティ更新や最新機能が通常どおり提供されます。" +
+    "本製品は同プログラムに基づき、Microsoft社より供与された正規ライセンスにより" + os + "をインストールしております。" +
+    "\n※Windows および Microsoft Authorized Refurbisher は、米国 Microsoft Corporation の" +
+    "米国およびその他の国における登録商標または商標です。";
 }
 
 /** Meta line parts. Each is omitted entirely when its field is blank. */
@@ -687,13 +735,14 @@ function renderPreview() {
   html += "</tbody></table></div>";
 
   if (priceShown()) {
-    html += '<div class="price-bar"><span class="lbl">卸価格（税抜）</span><span class="val">¥' +
+    html += '<div class="price-bar' + (isDraftPrice() ? " draft" : "") + '">' +
+      '<span class="lbl">' + esc(priceLabel()) + '</span><span class="val">¥' +
       esc(formattedPrice()) + "</span></div>";
   }
   if (notes || wd) {
     html += '<div class="notes-box"><b>◆備考</b>\n' + (notes ? esc(notes) + "\n\n" : "") + esc(wd) + "</div>";
   }
-  html += '<div class="foot">' + esc(FOOTNOTE) + "</div></div>";
+  html += '<div class="foot">' + esc(footnote()) + "</div></div>";
 
   $("previewPanel").innerHTML = html;
 }
@@ -754,6 +803,8 @@ function downloadWord() {
     "th.sub-hdr{background:#f3f5f7;color:#555555;padding-left:28px}" +
     ".price-box{margin-top:12px;text-align:right;border-top:2px solid #1a3a5c;padding-top:8px}" +
     ".price-box .v{font-size:20pt;font-weight:800;color:#1a3a5c}" +
+    ".price-box.draft{border-top-color:#e0a44a;color:#a35200}" +
+    ".price-box.draft .v{color:#a35200}" +
     ".notes{margin-top:10px;font-size:9pt;color:#555;white-space:pre-wrap;line-height:1.6}" +
     ".img-box{text-align:center;margin:10px 0}" +
     ".img-box img{max-width:360px}" +
@@ -771,12 +822,13 @@ function downloadWord() {
     (imageData ? '<div class="img-box"><img src="' + imageData + '" /></div>' : "") +
     "<table>" + trs + "</table>" +
     (priceShown()
-      ? '<div class="price-box">卸価格（税抜）<span class="v">　¥' + esc(formattedPrice()) + "</span></div>"
+      ? '<div class="price-box' + (isDraftPrice() ? " draft" : "") + '">' + esc(priceLabel()) +
+        '<span class="v">　¥' + esc(formattedPrice()) + "</span></div>"
       : "") +
     ((notes || wd)
       ? '<div class="notes">◆備考\n' + (notes ? esc(notes) + "\n\n" : "") + esc(wd) + "</div>"
       : "") +
-    '<div class="foot">' + esc(FOOTNOTE) + "</div>" +
+    '<div class="foot">' + esc(footnote()) + "</div>" +
     "</body></html>";
 
   const blob = new Blob(["﻿" + doc], { type: "application/msword" });
@@ -796,7 +848,8 @@ function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     const data = {
-      fields: {}, showPrice: $("showPrice").checked, isDraft: isDraft(),
+      fields: {}, showPrice: $("showPrice").checked,
+      isDraft: isDraft(), isDraftPrice: isDraftPrice(),
       image: imageData, logo: logoData,
     };
     FIELD_IDS.forEach((id) => { data.fields[id] = V(id); });
@@ -821,6 +874,7 @@ function restore() {
   });
   $("showPrice").checked = data.showPrice !== false;
   $("isDraft").checked = !!data.isDraft;
+  $("isDraftPrice").checked = !!data.isDraftPrice;
   if (data.image) setImage(data.image);
   if (data.logo) setLogo(data.logo);
   return true;
@@ -869,7 +923,10 @@ function writePresets(list) {
 function snapshot() {
   const fields = {};
   FIELD_IDS.forEach((id) => { fields[id] = V(id); });
-  return { fields, showPrice: $("showPrice").checked, isDraft: isDraft(), image: imageData };
+  return {
+    fields, showPrice: $("showPrice").checked,
+    isDraft: isDraft(), isDraftPrice: isDraftPrice(), image: imageData,
+  };
 }
 
 function applySnapshot(snap) {
@@ -886,6 +943,7 @@ function applySnapshot(snap) {
   });
   $("showPrice").checked = snap.showPrice !== false;
   $("isDraft").checked = !!snap.isDraft;
+  $("isDraftPrice").checked = !!snap.isDraftPrice;
   setImage(snap.image || null);
   syncPriceRow();
   syncDraft();
@@ -1007,6 +1065,7 @@ function resetAll() {
   rebuildGenOptions(null);
   $("showPrice").checked = true;
   $("isDraft").checked = false;
+  $("isDraftPrice").checked = false;
   setImage(null);
   syncPriceRow();
   syncDraft();
@@ -1021,9 +1080,14 @@ function syncDraft() {
 
 function syncPriceRow() {
   const on = $("showPrice").checked;
+  const type = V("priceType") || "卸価格";
   $("priceRow").style.opacity = on ? "1" : ".45";
   $("price").disabled = !on;
-  $("showPriceLabel").textContent = on ? "卸価格を仕様書に表示する" : "卸価格を仕様書に表示しない";
+  $("priceType").disabled = !on;
+  $("isDraftPrice").disabled = !on;
+  $("priceLabel").textContent = priceLabel();
+  $("showPriceLabel").textContent = type + (on ? "を仕様書に表示する" : "を仕様書に表示しない");
+  $("isDraftPriceLabel").textContent = isDraftPrice() ? type + "は暫定価格として表示中" : "暫定価格として表示する";
 }
 
 // ═══════════════ Boot ═══════════════
@@ -1077,6 +1141,8 @@ function init() {
   // price toggle
   $("showPrice").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
   $("isDraft").addEventListener("change", () => { syncDraft(); save(); if (inPreview()) renderPreview(); });
+  $("priceType").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
+  $("isDraftPrice").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
 
   // any edit -> autosave (+ live preview when the sheet is on screen)
   $("editPanel").addEventListener("input", (e) => {
