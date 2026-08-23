@@ -58,6 +58,17 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .tgl input:checked + .track { background: var(--pri); }
 .tgl input:checked + .track::after { transform: translateX(18px); }
 
+/* saved presets */
+.pgrp { border: 1px solid var(--bdr); border-radius: 8px; background: var(--white); margin-bottom: 10px; overflow: hidden; }
+.pgrp-hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--priL); color: var(--pri); font-weight: 700; font-size: 12px; padding: 8px 12px; }
+.pgrp-hd .count { font-weight: 600; color: var(--txtM); font-size: 11px; }
+.pst { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--bdr); flex-wrap: wrap; }
+.pst .nm { font-size: 13px; font-weight: 600; word-break: break-all; }
+.pst .tm { font-size: 10px; color: #888; margin-top: 2px; }
+.pst .acts { display: flex; gap: 6px; flex-shrink: 0; }
+.pst-empty { font-size: 12px; color: #888; padding: 10px 2px; }
+.sh-addr { padding: 12px 24px 0; font-size: 15px; font-weight: 700; }
+
 .img-upload { border: 2px dashed var(--bdr); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; background: var(--white); }
 .img-upload img { max-width: 100%; max-height: 180px; border-radius: 8px; object-fit: contain; display: block; margin: 0 auto; }
 .img-upload .ph { font-size: 28px; margin-bottom: 4px; }
@@ -149,6 +160,17 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
   <div class="sec">
     <div class="sec-title">ヘッダー情報</div>
     <div class="grid">
+      <div class="fld"><label for="addressee">宛名</label>
+        <input id="addressee" placeholder="例: 株式会社●●" />
+        <span class="hint">未入力の場合、仕様書に宛名は一切表示されません</span>
+      </div>
+      <div class="fld"><label for="honorific">敬称</label>
+        <select id="honorific">
+          <option value="御中">御中</option>
+          <option value="様">様</option>
+          <option value="">（敬称なし）</option>
+        </select>
+      </div>
       <div class="fld"><label for="targetYear">対象年度</label><input id="targetYear" placeholder="2027" /></div>
       <div class="fld"><label for="person">担当者名</label><input id="person" placeholder="担当者名" /></div>
     </div>
@@ -227,18 +249,39 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
       </div>
       <div class="fld"><label for="osNote">OS備考</label><input id="osNote" value="※Microsoft AUTHORISED Refurbisher　Program 認定OS" /></div>
       <div class="fld">
-        <label for="weight">重量 ※必須項目</label>
+        <label for="weight">重量</label>
         <input id="weight" list="weightPresets" placeholder="例: 約1.25 kg" />
         <datalist id="weightPresets">
           <option value="約1.0 kg"></option><option value="約1.1 kg"></option><option value="約1.2 kg"></option>
           <option value="約1.3 kg"></option><option value="約1.4 kg"></option><option value="約1.5 kg"></option>
           <option value="約1.6 kg"></option><option value="約1.8 kg"></option><option value="約2.0 kg"></option>
         </datalist>
-        <span class="hint">未入力の場合は仕様書に「－」と表示されます</span>
+        <span class="hint">未入力の場合、この行は仕様書に出力されません</span>
       </div>
       <div class="fld"><label for="office">Officeソフト</label><input id="office" value="無" /></div>
       <div class="fld"><label for="refUrl">参考ページURL</label><input id="refUrl" placeholder="https://..." /></div>
     </div>
+  </div>
+
+  <!-- Interface -->
+  <div class="sec">
+    <div class="sec-title">◆ インターフェース</div>
+    <p class="hint" style="margin-bottom:10px">入力した項目だけが仕様書に出力されます。未入力の項目は行ごと出力されません。</p>
+    <div class="grid3">
+      <div class="fld"><label for="hdmi">HDMI</label><input id="hdmi" list="portPresets" placeholder="例: ×1" /></div>
+      <div class="fld"><label for="usbTypeC">USB Type-C</label><input id="usbTypeC" list="portPresets" placeholder="例: ×2" /></div>
+      <div class="fld"><label for="usbTypeA">USB Type-A</label><input id="usbTypeA" list="portPresets" placeholder="例: ×2" /></div>
+      <div class="fld"><label for="lanPort">有線LAN端子</label><input id="lanPort" list="portPresets" placeholder="例: あり" /></div>
+      <div class="fld"><label for="vgaPort">VGA (D-sub)</label><input id="vgaPort" list="portPresets" placeholder="例: あり" /></div>
+      <div class="fld"><label for="sdSlot">SDカードスロット</label><input id="sdSlot" list="portPresets" placeholder="例: microSD" /></div>
+      <div class="fld"><label for="audioJack">オーディオ端子</label><input id="audioJack" list="portPresets" placeholder="例: あり" /></div>
+      <div class="fld"><label for="bluetooth">Bluetooth</label><input id="bluetooth" list="portPresets" placeholder="例: あり" /></div>
+      <div class="fld"><label for="otherPort">その他端子</label><input id="otherPort" placeholder="例: Thunderbolt 4 ×1" /></div>
+    </div>
+    <datalist id="portPresets">
+      <option value="あり"></option><option value="なし"></option>
+      <option value="×1"></option><option value="×2"></option><option value="×3"></option><option value="×4"></option>
+    </datalist>
   </div>
 
   <!-- Warranty -->
@@ -279,6 +322,24 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
     <div class="fld" style="margin-top:8px"><label for="notes">備考（その他）</label>
       <textarea id="notes" placeholder="画像は参考画像です。" style="min-height:60px"></textarea>
     </div>
+  </div>
+
+  <!-- Saved presets -->
+  <div class="sec">
+    <div class="sec-title">◆ 記載条件の保存 / 呼び出し</div>
+    <div class="grid" style="align-items:end">
+      <div class="fld"><label for="presetName">登録名</label>
+        <input id="presetName" placeholder="未入力の場合は品名などから自動命名" />
+      </div>
+      <div class="fld">
+        <label>&nbsp;</label>
+        <div style="display:flex;gap:8px">
+          <button class="mini-btn" type="button" id="btnPresetSave" style="border-color:var(--pri);color:var(--pri);font-weight:700">現在の内容を登録</button>
+        </div>
+      </div>
+    </div>
+    <p class="hint" style="margin:8px 0">登録した内容は宛名ごとにまとめて表示されます。保存日時・更新日時も記録されます。</p>
+    <div id="presetList"></div>
   </div>
 
   <div class="sec">
@@ -338,12 +399,15 @@ const FOOTNOTE = "（注）\n※1 ・デスクトップサーチの参考値の�
 
 // Text fields persisted / restored / reset as a group
 const FIELD_IDS = [
-  "targetYear","person","maker","productName","modelYear","cpuSeries","cpuGen",
+  "addressee","honorific","targetYear","person",
+  "maker","productName","modelYear","cpuSeries","cpuGen",
   "memory","storage","opticalDrive","displaySize","wifi","resolution","numpad","camera",
   "os","osNote","weight","office","refUrl",
+  "hdmi","usbTypeC","usbTypeA","lanPort","vgaPort","sdSlot","audioJack","bluetooth","otherPort",
   "accessories","warranty","warrantyUrl","warrantyDetail","price","notes",
 ];
 const STORAGE_KEY = "roopc-spec-generator-v1";
+const PRESET_KEY = "roopc-spec-presets-v1";
 const DEFAULTS = {};
 
 let imageData = null;
@@ -496,38 +560,85 @@ function formattedPrice() {
 }
 
 /**
- * Spec rows. `always: true` keeps the row in the sheet even when empty (rendered as "－"),
- * so mandatory items such as 重量 never silently disappear from the document.
+ * Spec rows. Every row is skipped when its field is blank, so an item that was not
+ * filled in never appears in the document at all. Grouped items ("主なスペック",
+ * "インターフェース") put the ◆ group prefix on the first row that survives, so the
+ * group heading never lands on a row that was skipped.
  */
 function buildRows() {
   const { year, code, label } = cpuInfo();
   const os = V("os");
   const osNote = V("osNote");
-  const defs = [
-    { l: "◆メーカー",            v: V("maker"),        always: true },
-    { l: "◆品名",                v: V("productName"),  always: true },
-    { l: "◆機種発売年※2",        v: V("modelYear") || year, always: true },
-    { l: "◆CPU発売年※2",         v: code ? code + " " + year + "年発売" : "" },
-    { l: "◆主なスペック：CPU※2", v: label,             always: true },
-    { l: "　メモリ(最大メモリ)",  v: V("memory"),       always: true },
-    { l: "　記憶媒体",            v: V("storage"),      always: true },
-    { l: "　光学式ドライブ",      v: V("opticalDrive") },
-    { l: "　液晶サイズ",          v: V("displaySize"),  always: true },
-    { l: "　無線LAN",             v: V("wifi") },
-    { l: "　解像度※2",           v: V("resolution"),   always: true },
-    { l: "　テンキー",            v: V("numpad") },
-    { l: "　カメラ",              v: V("camera") },
-    { l: "　OS",                  v: os ? os + "　" + osNote : "" },
-    { l: "　重量※1",             v: V("weight"),       always: true },
-    { l: "　参考ページ※3",       v: V("refUrl") },
-    { l: "　Officeソフト",        v: V("office") },
-    { l: "◆付属品",              v: V("accessories") },
-    { l: "◆保証期間",            v: V("warranty"),     always: true },
-    { l: "◆保証規程URL",         v: V("warrantyUrl") },
-  ];
-  return defs
-    .filter((r) => r.v || r.always)
-    .map((r) => ({ label: r.l, value: r.v, isSection: r.l.startsWith("◆"), empty: !r.v }));
+  const rows = [];
+
+  const push = (l, v) => { if (v) rows.push({ label: l, value: v, isSection: l.charAt(0) === "◆" }); };
+  const pushGroup = (prefix, items) => {
+    let first = true;
+    items.forEach(([l, v]) => {
+      if (!v) return;
+      push((first ? prefix : "　") + l, v);
+      first = false;
+    });
+  };
+
+  push("◆メーカー", V("maker"));
+  push("◆品名", V("productName"));
+  push("◆機種発売年※2", V("modelYear") || year);
+  push("◆CPU発売年※2", code && year ? code + " " + year + "年発売" : "");
+
+  pushGroup("◆主なスペック：", [
+    ["CPU※2", label],
+    ["メモリ(最大メモリ)", V("memory")],
+    ["記憶媒体", V("storage")],
+    ["光学式ドライブ", V("opticalDrive")],
+    ["液晶サイズ", V("displaySize")],
+    ["無線LAN", V("wifi")],
+    ["解像度※2", V("resolution")],
+    ["テンキー", V("numpad")],
+    ["カメラ", V("camera")],
+    ["OS", os ? os + "　" + osNote : ""],
+    ["重量※1", V("weight")],
+    ["参考ページ※3", V("refUrl")],
+    ["Officeソフト", V("office")],
+  ]);
+
+  pushGroup("◆インターフェース：", [
+    ["HDMI", V("hdmi")],
+    ["USB Type-C", V("usbTypeC")],
+    ["USB Type-A", V("usbTypeA")],
+    ["有線LAN端子", V("lanPort")],
+    ["VGA (D-sub)", V("vgaPort")],
+    ["SDカードスロット", V("sdSlot")],
+    ["オーディオ端子", V("audioJack")],
+    ["Bluetooth", V("bluetooth")],
+    ["その他端子", V("otherPort")],
+  ]);
+
+  push("◆付属品", V("accessories"));
+  push("◆保証期間", V("warranty"));
+  push("◆保証規程URL", V("warrantyUrl"));
+
+  return rows;
+}
+
+/** "株式会社●● 御中" — empty when no addressee was entered. */
+function addresseeLine() {
+  const name = V("addressee");
+  if (!name) return "";
+  const h = V("honorific");
+  return h ? name + "　" + h : name;
+}
+
+/** File name built from what was actually entered: 日付_宛名_メーカー_品名_CPU_メモリ */
+function docFileName() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+  const parts = [
+    stamp, V("addressee"), V("maker"), V("productName"),
+    cpuInfo().label, V("memory"), V("storage"),
+  ].filter(Boolean);
+  return safeFileName(parts.join("_")) || "製品仕様書";
 }
 
 // ═══════════════ Preview ═══════════════
@@ -538,6 +649,7 @@ function renderPreview() {
 
   let html = '<div class="sheet">' +
     '<div class="sh-hdr">' + logoMarkup("32px") + '<span class="doc-type">製品仕様書</span></div>' +
+    (addresseeLine() ? '<div class="sh-addr">' + esc(addresseeLine()) + "</div>" : "") +
     '<div class="sh-sum">' + esc(getSummary()) + "</div>" +
     '<div class="sh-meta"><span>' + esc(V("targetYear")) + "年度入学生向け</span>" +
     "<span>担当：<b>" + esc(V("person")) + "</b></span></div>" +
@@ -547,11 +659,9 @@ function renderPreview() {
 
   html += '<table class="spec-tbl"><tbody>';
   rows.forEach((r) => {
-    const cell = r.empty
-      ? '<td class="empty">－</td>'
-      : "<td>" + (isUrl(r.value)
-          ? '<a href="' + esc(r.value) + '" target="_blank" rel="noopener">' + esc(r.value) + "</a>"
-          : esc(r.value)) + "</td>";
+    const cell = "<td>" + (isUrl(r.value)
+      ? '<a href="' + esc(r.value) + '" target="_blank" rel="noopener">' + esc(r.value) + "</a>"
+      : esc(r.value)) + "</td>";
     html += '<tr><th class="' + (r.isSection ? "sec-hdr" : "sub-hdr") + '">' + esc(r.label) + "</th>" + cell + "</tr>";
   });
   html += "</tbody></table></div>";
@@ -596,11 +706,9 @@ function downloadWord() {
   const wd = V("warrantyDetail");
 
   const trs = rows.map((r) => {
-    const cell = r.empty
-      ? "<td>－</td>"
-      : "<td>" + (isUrl(r.value)
-          ? '<a href="' + esc(r.value) + '">' + esc(r.value) + "</a>"
-          : esc(r.value).replace(/\n/g, "<br />")) + "</td>";
+    const cell = "<td>" + (isUrl(r.value)
+      ? '<a href="' + esc(r.value) + '">' + esc(r.value) + "</a>"
+      : esc(r.value).replace(/\n/g, "<br />")) + "</td>";
     return '<tr class="' + (r.isSection ? "sec" : "sub") + '"><th class="' +
       (r.isSection ? "sec-hdr" : "sub-hdr") + '">' + esc(r.label) + "</th>" + cell + "</tr>";
   }).join("");
@@ -614,6 +722,7 @@ function downloadWord() {
     ".top img{max-height:28px}" +
     ".top .wordmark{font-size:16pt;font-weight:800;color:#1a3a5c;letter-spacing:.04em}" +
     ".top .rt{float:right;font-size:10pt;color:#555}" +
+    ".addr{font-size:13pt;font-weight:700;margin:8px 0 2px;clear:both}" +
     ".summary{font-size:9pt;color:#555;margin-bottom:2px;text-align:right;clear:both}" +
     ".meta{margin-bottom:10px;font-size:10pt}" +
     ".meta .rt{float:right}" +
@@ -630,6 +739,7 @@ function downloadWord() {
     ".foot{margin-top:14px;font-size:8pt;color:#888;white-space:pre-wrap;line-height:1.5}" +
     "</style></head><body>" +
     '<div class="top"><span class="rt">製品仕様書</span>' + logoMarkup("28px") + "</div>" +
+    (addresseeLine() ? '<div class="addr">' + esc(addresseeLine()) + "</div>" : "") +
     '<div class="summary">' + esc(summary) + "</div>" +
     '<div class="meta"><span>' + esc(V("targetYear")) + "年度入学生向け</span>" +
     '<span class="rt">担当：<b>' + esc(V("person")) + "</b></span></div>" +
@@ -648,7 +758,7 @@ function downloadWord() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = safeFileName((summary || "仕様書") + "_R∞PC") + ".doc";
+  a.download = docFileName() + ".doc";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -688,6 +798,163 @@ function restore() {
 }
 
 function note(msg) { $("saveState").textContent = msg; }
+
+// ═══════════════ Saved presets ═══════════════
+/**
+ * Named snapshots of the whole form, kept in localStorage and grouped by addressee
+ * in the list. Each one records when it was first registered and when it was last
+ * overwritten. The logo is deliberately excluded: it is company-wide, not per-preset.
+ */
+function readPresets() {
+  try {
+    const list = JSON.parse(localStorage.getItem(PRESET_KEY) || "[]");
+    return Array.isArray(list) ? list : [];
+  } catch (e) { return []; }
+}
+
+function writePresets(list) {
+  try {
+    localStorage.setItem(PRESET_KEY, JSON.stringify(list));
+    return true;
+  } catch (e) {
+    // Most likely the 5MB quota: retry without the product images.
+    try {
+      localStorage.setItem(PRESET_KEY, JSON.stringify(list.map((p) => ({ ...p, image: null }))));
+      note("保存容量が上限に達したため、登録内容から商品画像を除いて保存しました");
+      return true;
+    } catch (e2) {
+      alert("保存できませんでした。保存容量の上限です。不要な登録を削除してください。");
+      return false;
+    }
+  }
+}
+
+function snapshot() {
+  const fields = {};
+  FIELD_IDS.forEach((id) => { fields[id] = V(id); });
+  return { fields, showPrice: $("showPrice").checked, image: imageData };
+}
+
+function applySnapshot(snap) {
+  const f = (snap && snap.fields) || {};
+  if (f.cpuSeries) { $("cpuSeries").value = f.cpuSeries; rebuildGenOptions(f.cpuGen); }
+  else { $("cpuSeries").value = ""; rebuildGenOptions(null); }
+  FIELD_IDS.forEach((id) => {
+    if (id === "cpuSeries" || id === "cpuGen") return;
+    if ($(id)) $(id).value = typeof f[id] === "string" ? f[id] : "";
+  });
+  $("showPrice").checked = snap.showPrice !== false;
+  setImage(snap.image || null);
+  syncPriceRow();
+  refreshCpuAuto();
+  save();
+}
+
+function autoPresetName() {
+  return [V("maker"), V("productName"), cpuInfo().label, V("memory")].filter(Boolean).join(" ") || "無題の条件";
+}
+
+const fmtTime = (iso) => {
+  const d = new Date(iso);
+  if (isNaN(d)) return "-";
+  const pad = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "/" + pad(d.getMonth() + 1) + "/" + pad(d.getDate()) +
+    " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+};
+
+function savePreset() {
+  const now = new Date().toISOString();
+  const list = readPresets();
+  const entry = {
+    id: "p" + Date.now() + Math.random().toString(36).slice(2, 7),
+    name: V("presetName") || autoPresetName(),
+    addressee: V("addressee"),
+    honorific: V("honorific"),
+    savedAt: now,
+    updatedAt: now,
+    ...snapshot(),
+  };
+  list.push(entry);
+  if (writePresets(list)) {
+    $("presetName").value = "";
+    renderPresets();
+    note("「" + entry.name + "」を登録しました（" + fmtTime(now) + "）");
+  }
+}
+
+function overwritePreset(id) {
+  const list = readPresets();
+  const i = list.findIndex((p) => p.id === id);
+  if (i < 0) return;
+  if (!confirm("「" + list[i].name + "」を現在の入力内容で上書きします。よろしいですか？")) return;
+  const now = new Date().toISOString();
+  list[i] = {
+    ...list[i],
+    name: V("presetName") || list[i].name,
+    addressee: V("addressee"),
+    honorific: V("honorific"),
+    updatedAt: now,
+    ...snapshot(),
+  };
+  if (writePresets(list)) { renderPresets(); note("上書きしました（" + fmtTime(now) + "）"); }
+}
+
+function loadPreset(id) {
+  const entry = readPresets().find((p) => p.id === id);
+  if (!entry) return;
+  applySnapshot(entry);
+  $("presetName").value = entry.name;
+  renderPresets();
+  note("「" + entry.name + "」を呼び出しました");
+  if (inPreview()) renderPreview();
+}
+
+function deletePreset(id) {
+  const list = readPresets();
+  const entry = list.find((p) => p.id === id);
+  if (!entry) return;
+  if (!confirm("「" + entry.name + "」を削除します。よろしいですか？")) return;
+  if (writePresets(list.filter((p) => p.id !== id))) { renderPresets(); note("削除しました"); }
+}
+
+/** Grouped by addressee, newest first inside each group. */
+function renderPresets() {
+  const list = readPresets();
+  const box = $("presetList");
+  if (!list.length) {
+    box.innerHTML = '<div class="pst-empty">登録された条件はまだありません。</div>';
+    return;
+  }
+  const groups = new Map();
+  list.forEach((p) => {
+    const key = p.addressee || "";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  });
+  const keys = [...groups.keys()].sort((a, b) => {
+    if (!a) return 1;            // 宛名なしは最後
+    if (!b) return -1;
+    return a.localeCompare(b, "ja");
+  });
+
+  box.innerHTML = keys.map((key) => {
+    const items = groups.get(key).slice().sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+    const head = key ? esc(key + (items[0].honorific ? "　" + items[0].honorific : "")) : "（宛名なし）";
+    return '<div class="pgrp"><div class="pgrp-hd"><span>' + head +
+      '</span><span class="count">' + items.length + "件</span></div>" +
+      items.map((p) => {
+        const times = "登録: " + fmtTime(p.savedAt) +
+          (p.updatedAt !== p.savedAt ? "　／　更新: " + fmtTime(p.updatedAt) : "");
+        return '<div class="pst"><div><div class="nm">' + esc(p.name) + "</div>" +
+          '<div class="tm">' + times + "</div></div>" +
+          '<div class="acts">' +
+          '<button class="mini-btn" type="button" data-act="load" data-id="' + p.id + '">呼び出し</button>' +
+          '<button class="mini-btn" type="button" data-act="over" data-id="' + p.id + '">上書き</button>' +
+          '<button class="mini-btn" type="button" data-act="del" data-id="' + p.id + '">削除</button>' +
+          "</div></div>";
+      }).join("") + "</div>";
+  }).join("");
+}
 
 function resetAll() {
   if (!confirm("入力内容をすべて初期状態に戻します。よろしいですか？")) return;
@@ -731,8 +998,26 @@ function init() {
   $("tabEdit").addEventListener("click", showEdit);
   $("tabPreview").addEventListener("click", showPreview);
   $("btnWord").addEventListener("click", downloadWord);
-  $("btnPdf").addEventListener("click", () => window.print());
+  $("btnPdf").addEventListener("click", () => {
+    // Browsers seed the "Save as PDF" file name from document.title.
+    const prev = document.title;
+    document.title = docFileName();
+    window.print();
+    setTimeout(() => { document.title = prev; }, 1000);
+  });
   $("btnReset").addEventListener("click", resetAll);
+
+  // presets
+  $("btnPresetSave").addEventListener("click", savePreset);
+  $("presetList").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const id = btn.getAttribute("data-id");
+    if (btn.dataset.act === "load") loadPreset(id);
+    else if (btn.dataset.act === "over") overwritePreset(id);
+    else if (btn.dataset.act === "del") deletePreset(id);
+  });
+  renderPresets();
 
   // CPU cascade
   $("cpuSeries").addEventListener("change", () => { rebuildGenOptions(null); refreshCpuAuto(); });
