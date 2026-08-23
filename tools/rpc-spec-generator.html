@@ -629,6 +629,10 @@ function buildRows() {
   return rows;
 }
 
+/** Meta line parts. Each is omitted entirely when its field is blank. */
+const yearLine = () => (V("targetYear") ? V("targetYear") + "年度入学生向け" : "");
+const personLine = () => (V("person") ? V("person") : "");
+
 const isDraft = () => $("isDraft").checked;
 const docTypeLabel = () => (isDraft() ? "暫定仕様書" : "製品仕様書");
 
@@ -663,8 +667,12 @@ function renderPreview() {
     '<span class="doc-type' + (isDraft() ? " draft" : "") + '">' + esc(docTypeLabel()) + "</span></div>" +
     (addresseeLine() ? '<div class="sh-addr">' + esc(addresseeLine()) + "</div>" : "") +
     '<div class="sh-sum">' + esc(getSummary()) + "</div>" +
-    '<div class="sh-meta"><span>' + esc(V("targetYear")) + "年度入学生向け</span>" +
-    "<span>担当：<b>" + esc(V("person")) + "</b></span></div>" +
+    (yearLine() || personLine()
+      ? '<div class="sh-meta">' +
+        "<span>" + esc(yearLine()) + "</span>" +
+        (personLine() ? "<span>担当：<b>" + esc(personLine()) + "</b></span>" : "") +
+        "</div>"
+      : "") +
     '<div class="sh-body">';
 
   if (imageData) html += '<div class="img-center"><img src="' + imageData + '" alt="商品画像" /></div>';
@@ -755,8 +763,11 @@ function downloadWord() {
     "</span>" + logoMarkup("28px") + "</div>" +
     (addresseeLine() ? '<div class="addr">' + esc(addresseeLine()) + "</div>" : "") +
     '<div class="summary">' + esc(summary) + "</div>" +
-    '<div class="meta"><span>' + esc(V("targetYear")) + "年度入学生向け</span>" +
-    '<span class="rt">担当：<b>' + esc(V("person")) + "</b></span></div>" +
+    (yearLine() || personLine()
+      ? '<div class="meta"><span>' + esc(yearLine()) + "</span>" +
+        (personLine() ? '<span class="rt">担当：<b>' + esc(personLine()) + "</b></span>" : "") +
+        "</div>"
+      : "") +
     (imageData ? '<div class="img-box"><img src="' + imageData + '" /></div>' : "") +
     "<table>" + trs + "</table>" +
     (priceShown()
