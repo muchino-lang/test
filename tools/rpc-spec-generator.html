@@ -837,7 +837,15 @@ function note(msg) { $("saveState").textContent = msg; }
 function readPresets() {
   try {
     const list = JSON.parse(localStorage.getItem(PRESET_KEY) || "[]");
-    return Array.isArray(list) ? list : [];
+    if (!Array.isArray(list)) return [];
+    // Presets written before the 敬称 field existed carry no honorific at all.
+    return list.map((p) => {
+      if (p && p.honorific == null) {
+        const fallback = DEFAULTS.honorific || "御中";
+        return { ...p, honorific: fallback, fields: { ...(p.fields || {}), honorific: fallback } };
+      }
+      return p;
+    });
   } catch (e) { return []; }
 }
 
@@ -870,7 +878,11 @@ function applySnapshot(snap) {
   else { $("cpuSeries").value = ""; rebuildGenOptions(null); }
   FIELD_IDS.forEach((id) => {
     if (id === "cpuSeries" || id === "cpuGen") return;
-    if ($(id)) $(id).value = typeof f[id] === "string" ? f[id] : "";
+    if (!$(id)) return;
+    // A key present as "" was deliberately cleared and stays cleared. A key that is
+    // absent means the preset was saved before the field existed, so fall back to
+    // that field's default (this is what used to drop the 敬称).
+    $(id).value = typeof f[id] === "string" ? f[id] : (DEFAULTS[id] || "");
   });
   $("showPrice").checked = snap.showPrice !== false;
   $("isDraft").checked = !!snap.isDraft;
@@ -971,6 +983,7 @@ function renderPresets() {
   box.innerHTML = keys.map((key) => {
     const items = groups.get(key).slice().sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
     const head = key ? esc(key + (items[0].honorific ? "　" + items[0].honorific : "")) : "（宛名なし）";
+
     return '<div class="pgrp"><div class="pgrp-hd"><span>' + head +
       '</span><span class="count">' + items.length + "件</span></div>" +
       items.map((p) => {
