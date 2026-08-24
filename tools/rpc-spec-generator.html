@@ -401,7 +401,7 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
         </div>
       </div>
     </div>
-    <p class="hint" style="margin:8px 0">登録した内容は宛名ごとにまとめて表示されます。保存日時・更新日時も記録されます。</p>
+    <p class="hint" style="margin:8px 0">登録名には宛名を含めて構いません。一覧は宛名ごとにまとめて表示され、各行では重複する宛名部分を省いて表示します（登録名そのものは変わりません）。保存日時・更新日時も記録されます。</p>
     <div id="presetList"></div>
   </div>
 
@@ -926,6 +926,11 @@ function restore() {
 
 function note(msg) { $("saveState").textContent = msg; }
 
+/** Shows what the name will be if the box is left empty. */
+function syncPresetHint() {
+  $("presetName").placeholder = "未入力の場合: " + autoPresetName();
+}
+
 // ═══════════════ Saved presets ═══════════════
 /**
  * Named snapshots of the whole form, kept in localStorage and grouped by addressee
@@ -995,8 +1000,26 @@ function applySnapshot(snap) {
   save();
 }
 
+/**
+ * Names are expected to carry the addressee, so the generated one leads with it.
+ * The list then hides that prefix again per row (see displayPresetName) because the
+ * group heading already states it — the stored name always keeps it in full.
+ */
 function autoPresetName() {
-  return [V("maker"), V("productName"), cpuInfo().label, V("memory")].filter(Boolean).join(" ") || "無題の条件";
+  const spec = [V("maker"), V("productName"), cpuInfo().label, V("memory")].filter(Boolean).join(" ");
+  return [V("addressee"), spec].filter(Boolean).join("　") || "無題の条件";
+}
+
+/** Strips a leading "宛名（＋敬称）" from a name for display inside its own group. */
+function displayPresetName(entry) {
+  const name = String(entry.name || "");
+  const addr = String(entry.addressee || "");
+  if (!addr || name.indexOf(addr) !== 0) return name;
+  const sep = /^[\s　_\-–—/／:：|｜、,]+/;
+  let rest = name.slice(addr.length).replace(sep, "");
+  const hon = String(entry.honorific || "");
+  if (hon && rest.indexOf(hon) === 0) rest = rest.slice(hon.length).replace(sep, "");
+  return rest || name;
 }
 
 const fmtTime = (iso) => {
@@ -1010,9 +1033,12 @@ const fmtTime = (iso) => {
 function savePreset() {
   const now = new Date().toISOString();
   const list = readPresets();
+  const name = V("presetName") || autoPresetName();
+  const dup = list.some((p) => p.name === name && (p.addressee || "") === V("addressee"));
+  if (dup && !confirm("同じ宛名に「" + name + "」という登録が既にあります。別の登録として追加しますか？\n（既存を差し替える場合は、その行の「上書き」をお使いください）")) return;
   const entry = {
     id: "p" + Date.now() + Math.random().toString(36).slice(2, 7),
-    name: V("presetName") || autoPresetName(),
+    name: name,
     addressee: V("addressee"),
     honorific: V("honorific"),
     savedAt: now,
@@ -1049,6 +1075,7 @@ function loadPreset(id) {
   if (!entry) return;
   applySnapshot(entry);
   $("presetName").value = entry.name;
+  syncPresetHint();
   renderPresets();
   note("「" + entry.name + "」を呼び出しました");
   if (inPreview()) renderPreview();
@@ -1091,7 +1118,8 @@ function renderPresets() {
       items.map((p) => {
         const times = "登録: " + fmtTime(p.savedAt) +
           (p.updatedAt !== p.savedAt ? "　／　更新: " + fmtTime(p.updatedAt) : "");
-        return '<div class="pst"><div><div class="nm">' + esc(p.name) + "</div>" +
+        const shown = displayPresetName(p);
+        return '<div class="pst"><div><div class="nm" title="' + esc(p.name) + '">' + esc(shown) + "</div>" +
           '<div class="tm">' + times + "</div></div>" +
           '<div class="acts">' +
           '<button class="mini-btn" type="button" data-act="load" data-id="' + p.id + '">呼び出し</button>' +
@@ -1172,6 +1200,9 @@ function init() {
   $("btnReset").addEventListener("click", resetAll);
 
   // presets
+  syncPresetHint();
+  $("cpuSeries").addEventListener("change", syncPresetHint);
+  $("cpuGen").addEventListener("change", syncPresetHint);
   $("btnPresetSave").addEventListener("click", savePreset);
   $("presetList").addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-act]");
@@ -1202,6 +1233,7 @@ function init() {
   // any edit -> autosave (+ live preview when the sheet is on screen)
   $("editPanel").addEventListener("input", (e) => {
     if (e.target.id === "modelYear" || e.target.id === "cpuSeries" || e.target.id === "cpuGen") refreshCpuAuto();
+    if (e.target.id !== "presetName") syncPresetHint();
     save();
     if (inPreview()) renderPreview();
   });
