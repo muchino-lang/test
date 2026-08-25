@@ -1,0 +1,88 @@
+{
+  "workOrders": [
+    {
+      "no": "MU26082501",
+      "title": "☆生産指示【差替】",
+      "client": "大学在庫生産",
+      "salesRep": "内野槙夫",
+      "issuedDate": "2026-08-25",
+      "dueDate": "2026-09-08",
+      "shipMethod": "時間指定 午前中 / 納品書同梱 あり",
+      "paymentTerms": "翌月末",
+      "notes": [
+        "【差替】U9312→U9311に誤記修正",
+        "type-C thunderbolt を商品詳細に追加。大体ついてると思いますが、生産時確認下さい",
+        "CPUの末尾SKU（i5 1145G7の45G7の部分）を報告してください",
+        "PPOEM製品はPPOEM製品であることをわかるように在庫保管ください",
+        "※田中さんが70台ほどR∞PC基準で法人使用予定です、とのこと（by 朝長さん）",
+        "指示書合計: 814台（197 + 31 + 196 + 390）"
+      ]
+    }
+  ],
+  "lots": [
+    {
+      "id": "N081-26071603",
+      "workOrderNo": "MU26082501",
+      "arrivalMonth": "2026-07",
+      "status": "未着手",
+      "modelName": "LIFEBOOK U9311",
+      "supplier": "",
+      "receivedQty": 0,
+      "rpcEstimateQty": 197,
+      "rpcConfirmedQty": 0,
+      "productionStartDate": "",
+      "expectedCompletionDate": "2026-09-08",
+      "project": "大学在庫生産",
+      "allocatedQty": 0,
+      "remarks": "Core i5 1145G7/RAM 16GB/type-C thunderbolt/新品SSD 500GB/ドライブレス/1920×1080/13.3/無線LAN/カメラ有/標準バッテリー(確認ください) ｜ 付属品: AC、ノートンPPOEM ｜ ストレージ: 新品SSD500GB×197 ｜ ソフト: ノートン360デラックス(PPOEM版)×197 ｜ ステッカー: 有 ｜ OS: 11P64 MAR ｜ ログイン方法: ようこそスタート ｜ 清掃/検査: RPC Academy"
+    },
+    {
+      "id": "N081-26070601",
+      "workOrderNo": "MU26082501",
+      "arrivalMonth": "2026-07",
+      "status": "未着手",
+      "modelName": "LIFEBOOK U9311",
+      "supplier": "",
+      "receivedQty": 0,
+      "rpcEstimateQty": 31,
+      "rpcConfirmedQty": 0,
+      "productionStartDate": "",
+      "expectedCompletionDate": "2026-09-08",
+      "project": "大学在庫生産",
+      "allocatedQty": 0,
+      "remarks": "Core i5 1145G7/RAM 16GB/type-C thunderbolt/新品SSD 500GB/ドライブレス/1920×1080/13.3/無線LAN/カメラ有/標準バッテリー(確認ください) ｜ 付属品: AC、ノートンPPOEM ｜ ストレージ: 新品SSD500GB×31 ｜ ソフト: ノートン360デラックス(PPOEM版)×31 ｜ ステッカー: 有 ｜ OS: 11P64 MAR ｜ ログイン方法: ようこそスタート ｜ 清掃/検査: RPC Academy"
+    },
+    {
+      "id": "N081-26081001",
+      "workOrderNo": "MU26082501",
+      "arrivalMonth": "2026-08",
+      "status": "未着手",
+      "modelName": "LIFEBOOK U9311",
+      "supplier": "",
+      "receivedQty": 0,
+      "rpcEstimateQty": 196,
+      "rpcConfirmedQty": 0,
+      "productionStartDate": "",
+      "expectedCompletionDate": "2026-09-08",
+      "project": "大学在庫生産",
+      "allocatedQty": 0,
+      "remarks": "Core i5 1145G7/RAM 16GB/type-C thunderbolt/新品SSD 500GB/ドライブレス/1920×1080/13.3/無線LAN/カメラ有/標準バッテリー(確認ください) ｜ 付属品: AC、ノートンPPOEM ｜ ストレージ: 新品SSD500GB×196 ｜ ソフト: ノートン360デラックス(PPOEM版)×196 ｜ ステッカー: 付属 ｜ OS: 11P64 MAR ｜ ログイン方法: ようこそスタート ｜ 清掃/検査: RPC Academy"
+    },
+    {
+      "id": "N081-26081002",
+      "workOrderNo": "MU26082501",
+      "arrivalMonth": "2026-08",
+      "status": "未着手",
+      "modelName": "LIFEBOOK U9311",
+      "supplier": "",
+      "receivedQty": 0,
+      "rpcEstimateQty": 390,
+      "rpcConfirmedQty": 0,
+      "productionStartDate": "",
+      "expectedCompletionDate": "2026-09-08",
+      "project": "大学在庫生産",
+      "allocatedQty": 0,
+      "remarks": "Core i5 1145G7/RAM 16GB/type-C thunderbolt/新品SSD 500GB/ドライブレス/1920×1080/13.3/無線LAN/カメラ有/標準バッテリー(確認ください) ｜ 付属品: AC、ノートンPPOEM ｜ ストレージ: 新品SSD500GB×390 ｜ ソフト: ノートン360デラックス(PPOEM版)×390 ｜ ステッカー: 付属 ｜ OS: 11P64 MAR ｜ ログイン方法: ようこそスタート ｜ 清掃/検査: RPC Academy"
+    }
+  ]
+}
