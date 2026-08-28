@@ -11,6 +11,7 @@
   --ok:#1C7A5C; --ok-soft:#DCEFE7;
   --warn:#9A6412; --warn-soft:#F6EBD6;
   --late:#B33A2B; --late-soft:#F8E2DE;
+  --new:#7A3E8F; --new-soft:#F0E4F5;
   --shadow:0 1px 2px rgba(23,26,34,.06),0 8px 24px rgba(23,26,34,.07);
   --radius:8px;
 }
@@ -23,6 +24,7 @@
     --ok:#57C79B; --ok-soft:#13302A;
     --warn:#E0A852; --warn-soft:#332714;
     --late:#F08172; --late-soft:#3A1E1C;
+    --new:#C79BE0; --new-soft:#2C1E36;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
   }
 }
@@ -34,6 +36,7 @@
   --ok:#57C79B; --ok-soft:#13302A;
   --warn:#E0A852; --warn-soft:#332714;
   --late:#F08172; --late-soft:#3A1E1C;
+  --new:#C79BE0; --new-soft:#2C1E36;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
 }
 *{box-sizing:border-box}
@@ -43,118 +46,112 @@ body{
   font-size:13px; line-height:1.6; -webkit-font-smoothing:antialiased;
 }
 h1,h2,h3,.disp{font-family:"Zen Kaku Gothic New","Noto Sans JP",sans-serif;text-wrap:balance}
-.mono,.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.mono,.num,.d,.yen{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
 button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+a{color:var(--accent)}
 
-/* ---------- header ---------- */
-header{
-  position:sticky; top:0; z-index:40; background:var(--surface);
-  border-bottom:1px solid var(--line);
-}
+header{position:sticky;top:0;z-index:40;background:var(--surface);border-bottom:1px solid var(--line)}
 .head-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:14px 20px 10px}
 .brand{font-size:17px;font-weight:900;letter-spacing:.02em;margin:0}
 .brand span{color:var(--accent)}
 .sub{color:var(--ink-3);font-size:11.5px;letter-spacing:.04em}
-.savepill{
-  margin-left:auto;display:inline-flex;align-items:center;gap:6px;
-  font-size:11px;letter-spacing:.06em;color:var(--ink-2);
-  background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;
-}
+.savepill{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.06em;
+  color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
 .savedot{width:6px;height:6px;border-radius:50%;background:var(--ok)}
 .savepill[data-s="saving"] .savedot{background:var(--warn)}
 .savepill[data-s="local"] .savedot{background:var(--ink-3)}
 
 .kpis{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 12px}
-.kpi{
-  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);
-  padding:8px 12px;min-width:104px;
-}
+.kpi{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:8px 12px;min-width:100px}
 .kpi b{display:block;font-size:20px;font-weight:700;line-height:1.2;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 .kpi small{display:block;font-size:10.5px;letter-spacing:.08em;color:var(--ink-3)}
-.kpi.late b{color:var(--late)} .kpi.soon b{color:var(--warn)} .kpi.done b{color:var(--ok)}
+.kpi.late b{color:var(--late)} .kpi.soon b{color:var(--warn)} .kpi.done b{color:var(--ok)} .kpi.new b{color:var(--new)}
 
 .bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 20px 12px}
 .tabs{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:2px;gap:2px}
-.tabs button{
-  background:none;border:0;padding:6px 14px;border-radius:6px;cursor:pointer;
-  font-size:12.5px;font-weight:500;color:var(--ink-2);
-}
+.tabs button{background:none;border:0;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--ink-2)}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.ctl{
-  background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12.5px;
-}
+.ctl{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12.5px}
 .ctl::placeholder{color:var(--ink-3)}
 input[type="search"].ctl{min-width:180px}
 .spacer{margin-left:auto}
-.btn{
-  background:var(--surface);border:1px solid var(--line-strong);border-radius:6px;
-  padding:6px 12px;font-size:12.5px;cursor:pointer;font-weight:500;
-}
+.btn{background:var(--surface);border:1px solid var(--line-strong);border-radius:6px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-weight:500}
 .btn:hover{background:var(--surface-2)}
-.btn-p{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn-p:hover{background:var(--accent-2)}
 
 main{padding:16px 20px 60px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
 
-/* ---------- table ---------- */
 .tablewrap{overflow-x:auto}
-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1080px}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
 th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
-thead th{
-  position:sticky;top:0;z-index:10;background:var(--surface-2);
-  font-size:10.5px;letter-spacing:.09em;color:var(--ink-2);font-weight:700;white-space:nowrap;
-  border-bottom:1px solid var(--line-strong);
-}
+thead th{position:sticky;top:0;z-index:10;background:var(--surface-2);font-size:10.5px;letter-spacing:.09em;
+  color:var(--ink-2);font-weight:700;white-space:nowrap;border-bottom:1px solid var(--line-strong)}
 tbody tr:hover{background:var(--surface-2)}
 tbody tr[data-open="1"]{background:var(--accent-soft)}
-.c-name{position:sticky;left:0;z-index:5;background:var(--surface);border-right:1px solid var(--line);min-width:196px}
+.c-name{position:sticky;left:0;z-index:5;background:var(--surface);border-right:1px solid var(--line);min-width:200px}
 tbody tr:hover .c-name{background:var(--surface-2)}
 tbody tr[data-open="1"] .c-name{background:var(--accent-soft)}
 thead .c-name{background:var(--surface-2);z-index:12}
 .sname{font-weight:700;font-size:13px;cursor:pointer;background:none;border:0;padding:0;text-align:left;display:block;width:100%}
 .sname:hover{color:var(--accent)}
 .smeta{font-size:10.5px;color:var(--ink-3);letter-spacing:.03em}
-.owner{
-  display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;
-  background:var(--surface-3);color:var(--ink-2);white-space:nowrap;
-}
+.owner{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--surface-3);color:var(--ink-2);white-space:nowrap}
+.tag-new{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:1px 5px;border-radius:3px;
+  background:var(--new-soft);color:var(--new);margin-left:5px;vertical-align:1px}
 
-/* stage cell */
 .stage{display:flex;align-items:center;gap:7px;white-space:nowrap}
-.cb{
-  appearance:none;width:16px;height:16px;flex:none;border:1.5px solid var(--line-strong);
-  border-radius:4px;background:var(--surface);cursor:pointer;position:relative;
-}
+.cb{appearance:none;width:16px;height:16px;flex:none;border:1.5px solid var(--line-strong);border-radius:4px;
+  background:var(--surface);cursor:pointer;position:relative}
 .cb:hover{border-color:var(--accent)}
 .cb:checked{background:var(--ok);border-color:var(--ok)}
-.cb:checked::after{
-  content:"";position:absolute;left:4.5px;top:1px;width:4px;height:9px;
-  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg);
-}
-.d{font-size:11.5px;color:var(--ink-2);font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.cb:checked::after{content:"";position:absolute;left:4.5px;top:1px;width:4px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg)}
+.d{font-size:11.5px;color:var(--ink-2)}
 .d.late{color:var(--late);font-weight:600}
 .d.soon{color:var(--warn);font-weight:600}
 .d.ok{color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:1px}
+.link{font-size:11px;color:var(--accent);text-decoration:none;border-bottom:1px dotted currentColor}
+.nolink{font-size:11px;color:var(--ink-3)}
 .method{font-size:11.5px;color:var(--ink-2)}
 .prog{display:flex;gap:3px}
-.pd{width:15px;height:5px;border-radius:2px;background:var(--surface-3)}
-.pd.on{background:var(--ok)}
-.pd.bad{background:var(--late)}
+.pd{width:12px;height:5px;border-radius:2px;background:var(--surface-3)}
+.pd.on{background:var(--ok)} .pd.bad{background:var(--late)}
 .empty{padding:40px 20px;text-align:center;color:var(--ink-3)}
 
-/* ---------- gantt ---------- */
+/* price grid */
+.pricewrap{overflow-x:auto}
+#tbl-price{min-width:1120px}
+#tbl-price td{padding:4px 10px}
+.yen{font-size:12px;text-align:right}
+.num-head{text-align:right}
+td.num-cell{text-align:right}
+.pin{
+  width:96px;text-align:right;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;
+  padding:5px 7px;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:12px;
+}
+.pin:focus{background:var(--surface);border-color:var(--accent);outline:none;box-shadow:0 0 0 2px var(--accent-soft)}
+.pin.empty-v{border-color:var(--warn);background:var(--warn-soft)}
+.prev{color:var(--ink-3)}
+.delta{font-size:11.5px}
+.delta.up{color:var(--warn)} .delta.down{color:var(--accent)} .delta.same{color:var(--ink-3)}
+.margin-v{font-size:11.5px;color:var(--ink-2)}
+.margin-v.thin{color:var(--late);font-weight:600}
+.sub-row td{border-bottom:1px solid var(--line)}
+.grp-first td{border-top:2px solid var(--line-strong)}
+.hint{padding:9px 14px;border-top:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);font-size:11.5px}
+.hint b{color:var(--ink)}
+
+/* gantt */
 .gantt{display:flex;overflow-x:auto;position:relative}
-.g-left{position:sticky;left:0;z-index:6;background:var(--surface);border-right:1px solid var(--line-strong);flex:none;width:200px}
-.g-left .g-head,.g-right .g-head{height:44px;border-bottom:1px solid var(--line-strong);background:var(--surface-2)}
-.g-left .g-head{display:flex;align-items:flex-end;padding:0 10px 6px;font-size:10.5px;letter-spacing:.09em;color:var(--ink-2);font-weight:700}
+.g-left{position:sticky;left:0;z-index:6;background:var(--surface);border-right:1px solid var(--line-strong);flex:none;width:210px}
+.g-left .g-head{height:44px;border-bottom:1px solid var(--line-strong);background:var(--surface-2);
+  display:flex;align-items:flex-end;padding:0 10px 6px;font-size:10.5px;letter-spacing:.09em;color:var(--ink-2);font-weight:700}
 .g-row{height:30px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--line);font-size:12px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;gap:6px;cursor:pointer}
 .g-row:hover{background:var(--surface-2)}
 .g-right{position:relative;flex:none}
-.g-head-inner{position:relative;height:44px}
+.g-head-inner{position:relative;height:44px;background:var(--surface-2);border-bottom:1px solid var(--line-strong)}
 .g-month{position:absolute;top:0;height:24px;border-left:1px solid var(--line-strong);padding-left:6px;
   font-size:11px;font-weight:700;color:var(--ink-2);letter-spacing:.04em}
 .g-week{position:absolute;top:24px;height:20px;border-left:1px solid var(--line);padding-left:4px;
@@ -162,77 +159,74 @@ thead .c-name{background:var(--surface-2);z-index:12}
 .g-grid{position:absolute;inset:44px 0 0 0;pointer-events:none}
 .g-vline{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
 .g-vline.m{background:var(--line-strong)}
-.g-band{position:absolute;top:0;bottom:0;background:var(--surface-2);opacity:.55}
-.g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--late);opacity:.7}
-.g-today::after{content:"今日";position:absolute;top:-42px;left:3px;font-size:9.5px;color:var(--late);font-weight:700}
+.g-band{position:absolute;top:0;bottom:0;background:var(--surface-2);opacity:.5}
+.g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--late);opacity:.75}
+.g-todaylab{position:absolute;top:2px;font-size:9.5px;color:var(--late);font-weight:700;z-index:3}
 .g-body{position:relative}
 .g-line{height:30px;border-bottom:1px solid var(--line);position:relative}
 .g-line:hover{background:var(--surface-2)}
-.g-bar{
-  position:absolute;top:8px;height:14px;border-radius:4px;background:var(--accent);
-  opacity:.9;display:flex;align-items:center;
-}
-.g-bar.done{background:var(--ok)}
-.g-bar.late{background:var(--late)}
+.g-bar{position:absolute;top:8px;height:14px;border-radius:4px;background:var(--accent);opacity:.9;display:flex;align-items:center}
+.g-bar.done{background:var(--ok)} .g-bar.late{background:var(--late)}
 .g-bar span{font-size:9.5px;color:#fff;padding:0 5px;white-space:nowrap;overflow:hidden;font-weight:600}
-.mk{position:absolute;top:11px;width:9px;height:9px;transform:rotate(45deg);border-radius:2px;
-  background:var(--surface);border:2px solid var(--accent)}
+.mk{position:absolute;top:11px;width:9px;height:9px;transform:rotate(45deg);border-radius:2px;background:var(--surface);border:2px solid var(--accent)}
 .mk.done{background:var(--ok);border-color:var(--ok)}
 .mk.late{background:var(--late);border-color:var(--late)}
-.mk.flag{transform:none;border-radius:0;clip-path:polygon(0 0,100% 50%,0 100%);width:11px;height:12px;top:9px;
-  background:var(--accent);border:0}
+.mk.ec{transform:none;border-radius:50%;width:10px;height:10px;top:10px}
+.mk.flag{transform:none;border-radius:0;clip-path:polygon(0 0,100% 50%,0 100%);width:11px;height:12px;top:9px;background:var(--accent);border:0}
 .mk.flag.done{background:var(--ok)} .mk.flag.late{background:var(--late)}
 .legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);
   background:var(--surface-2);font-size:11px;color:var(--ink-2);align-items:center}
 .legend i{display:inline-block;vertical-align:middle;margin-right:5px}
 .lg-bar{width:22px;height:9px;border-radius:3px;background:var(--accent)}
 .lg-mk{width:9px;height:9px;transform:rotate(45deg);border:2px solid var(--accent);border-radius:2px}
+.lg-ec{width:10px;height:10px;border-radius:50%;border:2px solid var(--accent)}
 .lg-fl{width:11px;height:12px;background:var(--accent);clip-path:polygon(0 0,100% 50%,0 100%)}
 .lg-td{width:2px;height:12px;background:var(--late)}
 
-/* ---------- drawer ---------- */
+/* drawer */
 .scrim{position:fixed;inset:0;background:rgba(15,18,24,.4);z-index:50}
-.drawer{
-  position:fixed;top:0;right:0;bottom:0;width:min(420px,94vw);z-index:51;
-  background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow);
-  display:flex;flex-direction:column;
-}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,94vw);z-index:51;background:var(--surface);
+  border-left:1px solid var(--line);box-shadow:var(--shadow);display:flex;flex-direction:column}
 .dr-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}
 .dr-head h2{margin:0;font-size:16px;font-weight:700}
 .dr-body{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
 .fld{display:flex;flex-direction:column;gap:5px}
 .fld label{font-size:10.5px;letter-spacing:.09em;color:var(--ink-3);font-weight:700}
-.fld input,.fld select,.fld textarea{
-  background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px;width:100%;
-}
+.fld input,.fld select,.fld textarea{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px;width:100%}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
 .close{margin-left:auto;background:none;border:0;font-size:20px;cursor:pointer;color:var(--ink-3);line-height:1}
 .close:hover{color:var(--ink)}
+.dr-sec{font-size:10.5px;letter-spacing:.09em;color:var(--ink-3);font-weight:700;border-top:1px solid var(--line);padding-top:12px}
+.item-card{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:10px}
+.item-card h4{margin:0 0 8px;font-size:12.5px;font-weight:700}
+.item-card .row2{gap:8px}
+.item-card .fld input{background:var(--surface)}
 
-/* ---------- notion tab ---------- */
-.doc{padding:22px 26px;max-width:76ch}
+/* doc */
+.doc{padding:22px 26px;max-width:78ch}
 .doc h2{font-size:18px;margin:0 0 4px}
-.doc h3{font-size:13.5px;margin:22px 0 6px;letter-spacing:.02em}
+.doc h3{font-size:13.5px;margin:22px 0 6px}
 .doc p{color:var(--ink-2);margin:6px 0}
 .doc ol,.doc ul{color:var(--ink-2);padding-left:20px;margin:6px 0}
 .doc li{margin:3px 0}
 .doc table{min-width:0;font-size:12.5px}
 .doc code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-family:"IBM Plex Mono",monospace;font-size:11.5px}
-.note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 6px 6px 0;color:var(--ink-2)}
+.note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 6px 6px 0;color:var(--ink-2);margin:10px 0}
 .hide{display:none!important}
 </style>
 
 <header>
   <div class="head-top">
     <h1 class="brand">チラシ進行<span>台帳</span></h1>
-    <span class="sub">50校 ／ 機種提示・意向回収・チラシ調整・納品</span>
+    <span class="sub">50校 ／ 機種提示・意向回収・価格決定・ECサイトURL・チラシ調整・納品</span>
     <span class="savepill" id="savepill" data-s="ok"><span class="savedot"></span><span id="savetext">保存済み</span></span>
   </div>
   <div class="kpis" id="kpis"></div>
   <div class="bar">
     <div class="tabs" role="tablist">
       <button role="tab" id="tab-list" aria-selected="true">チェックリスト</button>
+      <button role="tab" id="tab-price" aria-selected="false">価格表</button>
       <button role="tab" id="tab-gantt" aria-selected="false">ガント</button>
       <button role="tab" id="tab-notion" aria-selected="false">Notion設計</button>
     </div>
@@ -245,6 +239,8 @@ thead .c-name{background:var(--surface-2);z-index:12}
       <option value="soon">14日以内の期日</option>
       <option value="open">未完了</option>
       <option value="done">完了</option>
+      <option value="price">今年価格が未入力</option>
+      <option value="new">新規開拓校</option>
     </select>
     <span class="spacer"></span>
     <button class="btn" id="csv">CSVを書き出す</button>
@@ -255,16 +251,34 @@ thead .c-name{background:var(--surface-2);z-index:12}
   <section class="panel" id="view-list"><div class="tablewrap"><table>
     <thead><tr>
       <th class="c-name">学校</th><th>担当</th><th>機種提示</th><th>実施意向回収</th>
-      <th>チラシ調整期間</th><th>納品方法</th><th>納品期日</th><th>進捗</th>
+      <th>価格</th><th>ECサイトURL</th><th>チラシ調整期間</th><th>納品方法</th><th>納品期日</th><th>進捗</th>
     </tr></thead>
     <tbody id="tbody"></tbody>
   </table></div></section>
+
+  <section class="panel hide" id="view-price">
+    <div class="pricewrap"><table id="tbl-price">
+      <thead><tr>
+        <th class="c-name">学校</th><th>機種</th>
+        <th class="num-head">昨年 掲載</th><th class="num-head">今年 掲載</th><th class="num-head">前年比</th>
+        <th class="num-head">昨年 卸</th><th class="num-head">今年 卸</th><th class="num-head">粗利率</th>
+        <th class="num-head">昨年 台数</th><th class="num-head">昨年 売上</th>
+      </tr></thead>
+      <tbody id="tbody-price"></tbody>
+    </table></div>
+    <div class="hint">
+      <b>入力のしかた：</b>黄色いセルが未入力です。<b>Enter</b>で下のセル、<b>Tab</b>で右のセルへ移動します。
+      Excelから列をコピーして貼り付けると、下方向にまとめて入る（複数列も可）ので、手元の表からの流し込みができます。
+      新規開拓校は昨年データがないため「—」表示です。
+    </div>
+  </section>
 
   <section class="panel hide" id="view-gantt">
     <div class="gantt" id="gantt"></div>
     <div class="legend">
       <span><i class="lg-bar"></i>チラシ調整期間</span>
-      <span><i class="lg-mk"></i>機種提示 ／ 意向回収</span>
+      <span><i class="lg-mk"></i>機種提示／意向回収</span>
+      <span><i class="lg-ec"></i>ECサイトURL</span>
       <span><i class="lg-fl"></i>納品期日</span>
       <span><i class="lg-td"></i>今日</span>
       <span style="color:var(--late)">赤＝期日超過の未完了</span>
@@ -274,118 +288,134 @@ thead .c-name{background:var(--surface-2);z-index:12}
 
   <section class="panel hide" id="view-notion"><div class="doc">
     <h2>Notionに移すときの設計</h2>
-    <p>このHTMLは検証用です。運用に耐えると判断できたら、下の設計そのままでNotionに載せ替えられます。CSVの列名はNotionのプロパティ名に一致させてあります。</p>
+    <p>このHTMLは検証用です。運用に耐えると判断できたら、下の設計でNotionに載せ替えられます。CSVの列名はNotionのプロパティ名に一致させてあります。</p>
 
-    <h3>データベースは1つで足ります</h3>
-    <p>「学校」を1レコード（1ページ）とし、工程は列で持ちます。工程を別DBに分ける方式（学校DB × タスクDB）は、50校×4工程＝200件になり、チェックの一覧性が落ちます。工程数が今後増える見込みがなければ1DB構成が扱いやすいです。</p>
+    <h3>データベースは2つに分けます</h3>
+    <p>工程の管理（学校ごとに1行）と、価格の決定（学校×機種ごとに1行）は粒度が違います。1つのDBに混ぜると、2機種以上ある学校で価格が入りません。</p>
+    <ul>
+      <li><b>学校DB</b>（50件）… 工程のチェックと期日。PMが見る台帳。</li>
+      <li><b>価格DB</b>（学校×機種＝約100件）… 昨年価格と今年価格。リレーションで学校DBに紐づけます。</li>
+    </ul>
 
-    <h3>プロパティ</h3>
+    <h3>学校DB のプロパティ</h3>
     <div class="tablewrap"><table>
       <thead><tr><th>プロパティ名</th><th>種類</th><th>用途</th></tr></thead>
       <tbody>
         <tr><td>学校名</td><td>タイトル</td><td>主キー</td></tr>
         <tr><td>地区</td><td>セレクト</td><td>エリア別の絞り込み</td></tr>
-        <tr><td>担当</td><td>ユーザー</td><td>自分のフィルタービュー用</td></tr>
+        <tr><td>担当</td><td>ユーザー</td><td>担当別ビュー</td></tr>
+        <tr><td>区分</td><td>セレクト</td><td>継続／新規開拓</td></tr>
         <tr><td>生徒数</td><td>数値</td><td>部数の目安</td></tr>
-        <tr><td>機種提示日</td><td>日付</td><td>先方への提示</td></tr>
-        <tr><td>機種提示済</td><td>チェックボックス</td><td>—</td></tr>
-        <tr><td>意向回収期日</td><td>日付</td><td>実施意向の締切</td></tr>
-        <tr><td>意向回収済</td><td>チェックボックス</td><td>—</td></tr>
-        <tr><td>チラシ調整期間</td><td>日付（終了日あり）</td><td>ガントの帯になる</td></tr>
-        <tr><td>チラシ確定</td><td>チェックボックス</td><td>—</td></tr>
+        <tr><td>機種提示日 / 機種提示済</td><td>日付 / チェックボックス</td><td>先方への提示</td></tr>
+        <tr><td>意向回収期日 / 意向回収済</td><td>日付 / チェックボックス</td><td>実施意向の締切</td></tr>
+        <tr><td>価格確定</td><td>ロールアップ</td><td>価格DBの入力完了数を集計</td></tr>
+        <tr><td>EC公開期日 / EC公開済 / ECサイトURL</td><td>日付 / チェックボックス / URL</td><td>チラシのQR用</td></tr>
+        <tr><td>チラシ調整期間 / チラシ確定</td><td>日付（終了日あり）/ チェックボックス</td><td>ガントの帯になる</td></tr>
         <tr><td>納品方法</td><td>セレクト</td><td>一括／個別配送／手渡し／直送</td></tr>
-        <tr><td>納品期日</td><td>日付</td><td>最終期日</td></tr>
-        <tr><td>納品済</td><td>チェックボックス</td><td>—</td></tr>
-        <tr><td>進捗</td><td>数式</td><td>チェック4つの合計 ÷ 4</td></tr>
-        <tr><td>状態</td><td>数式</td><td>未完了かつ期日超過なら「遅延」</td></tr>
+        <tr><td>納品期日 / 納品済</td><td>日付 / チェックボックス</td><td>最終期日</td></tr>
+        <tr><td>進捗 / 状態</td><td>数式</td><td>チェック6つの割合／期日超過の判定</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>価格DB のプロパティ</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>プロパティ名</th><th>種類</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>学校</td><td>リレーション</td><td>学校DBへ紐づけ</td></tr>
+        <tr><td>機種</td><td>タイトル</td><td>チラシ掲載単位</td></tr>
+        <tr><td>昨年 掲載価格 / 昨年 卸価格 / 昨年 台数</td><td>数値</td><td>去年実績。読み取り専用のつもりで</td></tr>
+        <tr><td>今年 掲載価格 / 今年 卸価格</td><td>数値</td><td>PMが決めて入れる欄</td></tr>
+        <tr><td>前年比 / 粗利率</td><td>数式</td><td>今年÷昨年、(掲載−卸)÷掲載</td></tr>
       </tbody>
     </table></div>
 
     <h3>ビューの作り方</h3>
     <ol>
-      <li><b>チェックリスト</b>：テーブルビュー。地区でグループ化し、チェックボックス4列を並べる（この画面と同じ）。</li>
-      <li><b>ガント</b>：タイムラインビュー。表示する日付に「チラシ調整期間」を指定すると帯になり、「納品期日」を別プロパティとして重ねて表示できます。</li>
-      <li><b>今週やること</b>：フィルター「いずれかの期日が今日〜7日後」。朝の確認用。</li>
-      <li><b>遅延</b>：フィルター「状態＝遅延」。ここが常に空になるのが運用の目標です。</li>
+      <li><b>チェックリスト</b>（学校DB・テーブル）… 地区でグループ化。チェックボックス列を並べる。</li>
+      <li><b>価格表</b>（価格DB・テーブル）… 学校でグループ化。昨年の3列を左、今年の2列を右に。<b>Notionのテーブルは列を上下に連続入力できる</b>ので、この画面と同じ操作感になります。</li>
+      <li><b>ガント</b>（学校DB・タイムライン）… 表示日付に「チラシ調整期間」、別プロパティとして納品期日を重ねる。</li>
+      <li><b>今週やること</b> / <b>遅延</b>（学校DB・フィルター）… リマインドはここから。</li>
     </ol>
 
     <h3>移行手順</h3>
     <ol>
-      <li>この画面の「CSVを書き出す」でファイルを取得。</li>
-      <li>Notionで空のデータベースを作り、<code>インポート → CSV</code>。</li>
-      <li>取り込み後、各プロパティの種類を上の表どおりに直す（CSVインポート直後はすべてテキストになります）。</li>
-      <li>チラシ調整の開始／終了は2列で入るので、日付プロパティ側で「終了日を含む」に統合します。</li>
-      <li>数式2つ（進捗・状態）を追加し、ビューを4つ作って完了。</li>
+      <li>この画面でCSVを2本書き出す（チェックリスト側＝学校、価格表側＝価格）。</li>
+      <li>Notionで空のDBを2つ作り、それぞれ <code>インポート → CSV</code>。</li>
+      <li>プロパティの種類を上の表どおりに直す（CSV直後はすべてテキストです）。</li>
+      <li>価格DBに「学校」リレーションを追加し、学校名で紐づけ。</li>
+      <li>数式（進捗・状態・前年比・粗利率）を追加し、ビューを作って完了。</li>
     </ol>
 
     <div class="note">
-      <b>検証の観点：</b> Notionで足りるかは「①チェックの更新が現場で回るか ②ガントで期日の詰まりが見えるか ③担当別に絞れるか」の3点です。この画面で1〜2週間実データを入れてみて、詰まらなければNotionへ移して問題ありません。逆に、学校ごとに工程数が変わる・履歴を残したいとなった場合は、学校DBとタスクDBの2本立てに設計を変える判断が要ります。
+      <b>検証の観点：</b>①価格の入力が制作側とPMの間で往復せずに回るか ②ECサイトURLがチラシ調整の前に間に合うか ③ガントで期日の詰まりが見えるか。この3つが確認できればNotionへ移して問題ありません。
+    </div>
+    <div class="note">
+      <b>期日の考え方（ECサイトURL）：</b>チラシにQRコードを載せる想定なので、ECサイトURLの期日はチラシ調整期間の<b>中盤</b>に置いてあります。URL確定がチラシ校了より後ろに倒れると、その学校だけ刷り直しになります。ガントで丸マーカーが帯の右端を越えていないか、そこだけ見てください。
     </div>
   </div></section>
 </main>
 
 <div id="drawer-host"></div>
 
-<script id="app-data" type="application/json">{"today":"2026-08-28","schools":[{"id":"S001","name":"青葉学園高等学校","area":"東京","owner":"岡本","students":120,"modelDate":"2026-09-07","modelDone":false,"intentDate":"2026-09-19","intentDone":false,"flyerStart":"2026-09-24","flyerEnd":"2026-10-04","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-10-18","deliveryDone":false,"note":""},{"id":"S002","name":"第一実業高等学校","area":"東京","owner":"内野","students":320,"modelDate":"2026-09-11","modelDone":false,"intentDate":"2026-09-21","intentDone":false,"flyerStart":"2026-09-28","flyerEnd":"2026-10-12","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-26","deliveryDone":false,"note":""},{"id":"S003","name":"桜丘中等教育学校","area":"東京","owner":"岡本","students":120,"modelDate":"2026-09-08","modelDone":false,"intentDate":"2026-09-20","intentDone":false,"flyerStart":"2026-09-23","flyerEnd":"2026-10-14","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-10-28","deliveryDone":false,"note":""},{"id":"S004","name":"北多摩高等学校","area":"東京","owner":"佐藤","students":80,"modelDate":"2026-09-15","modelDone":false,"intentDate":"2026-09-25","intentDone":false,"flyerStart":"2026-10-02","flyerEnd":"2026-10-23","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-11-06","deliveryDone":false,"note":""},{"id":"S005","name":"目黒学院高等学校","area":"東京","owner":"岡本","students":160,"modelDate":"2026-09-14","modelDone":false,"intentDate":"2026-10-01","intentDone":false,"flyerStart":"2026-10-04","flyerEnd":"2026-10-14","flyerDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-11-04","deliveryDone":false,"note":""},{"id":"S006","name":"江戸川総合高等学校","area":"東京","owner":"岡本","students":80,"modelDate":"2026-09-17","modelDone":false,"intentDate":"2026-09-29","intentDone":false,"flyerStart":"2026-10-04","flyerEnd":"2026-10-14","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-10-28","deliveryDone":false,"note":""},{"id":"S007","name":"武蔵野工業高等学校","area":"東京","owner":"高橋","students":240,"modelDate":"2026-09-18","modelDone":false,"intentDate":"2026-10-05","intentDone":false,"flyerStart":"2026-10-10","flyerEnd":"2026-10-31","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-11-25","deliveryDone":false,"note":""},{"id":"S008","name":"上野商業高等学校","area":"東京","owner":"岡本","students":240,"modelDate":"2026-09-22","modelDone":false,"intentDate":"2026-10-04","intentDone":false,"flyerStart":"2026-10-11","flyerEnd":"2026-10-25","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-11-08","deliveryDone":false,"note":""},{"id":"S009","name":"湘南台高等学校","area":"神奈川","owner":"岡本","students":320,"modelDate":"2026-09-20","modelDone":false,"intentDate":"2026-10-07","intentDone":false,"flyerStart":"2026-10-12","flyerEnd":"2026-10-22","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-11-05","deliveryDone":false,"note":""},{"id":"S010","name":"横浜西陵高等学校","area":"神奈川","owner":"内野","students":120,"modelDate":"2026-09-26","modelDone":false,"intentDate":"2026-10-10","intentDone":false,"flyerStart":"2026-10-13","flyerEnd":"2026-11-03","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-11-28","deliveryDone":false,"note":""},{"id":"S011","name":"川崎総合科学高等学校","area":"神奈川","owner":"内野","students":120,"modelDate":"2026-09-23","modelDone":false,"intentDate":"2026-10-07","intentDone":false,"flyerStart":"2026-10-14","flyerEnd":"2026-11-04","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-11-29","deliveryDone":false,"note":""},{"id":"S012","name":"鎌倉女子学園高等学校","area":"神奈川","owner":"高橋","students":320,"modelDate":"2026-09-26","modelDone":false,"intentDate":"2026-10-06","intentDone":false,"flyerStart":"2026-10-09","flyerEnd":"2026-10-26","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-11-20","deliveryDone":false,"note":""},{"id":"S013","name":"相模原中等教育学校","area":"神奈川","owner":"森田","students":80,"modelDate":"2026-09-24","modelDone":false,"intentDate":"2026-10-11","intentDone":false,"flyerStart":"2026-10-16","flyerEnd":"2026-10-30","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-11-13","deliveryDone":false,"note":""},{"id":"S014","name":"港北学院高等学校","area":"神奈川","owner":"森田","students":400,"modelDate":"2026-10-02","modelDone":false,"intentDate":"2026-10-16","intentDone":false,"flyerStart":"2026-10-19","flyerEnd":"2026-11-02","flyerDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-11-27","deliveryDone":false,"note":""},{"id":"S015","name":"幕張総合高等学校","area":"千葉","owner":"森田","students":240,"modelDate":"2026-09-29","modelDone":false,"intentDate":"2026-10-16","intentDone":false,"flyerStart":"2026-10-21","flyerEnd":"2026-11-07","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-11-25","deliveryDone":false,"note":""},{"id":"S016","name":"市川東高等学校","area":"千葉","owner":"佐藤","students":160,"modelDate":"2026-10-01","modelDone":false,"intentDate":"2026-10-18","intentDone":false,"flyerStart":"2026-10-21","flyerEnd":"2026-11-04","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-11-18","deliveryDone":false,"note":""},{"id":"S017","name":"柏の葉高等学校","area":"千葉","owner":"高橋","students":240,"modelDate":"2026-10-06","modelDone":false,"intentDate":"2026-10-18","intentDone":false,"flyerStart":"2026-10-21","flyerEnd":"2026-11-11","flyerDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-11-29","deliveryDone":false,"note":""},{"id":"S018","name":"船橋工業高等学校","area":"千葉","owner":"佐藤","students":80,"modelDate":"2026-10-03","modelDone":false,"intentDate":"2026-10-20","intentDone":false,"flyerStart":"2026-10-27","flyerEnd":"2026-11-13","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-12-04","deliveryDone":false,"note":""},{"id":"S019","name":"成田国際高等学校","area":"千葉","owner":"内野","students":400,"modelDate":"2026-10-10","modelDone":false,"intentDate":"2026-10-27","intentDone":false,"flyerStart":"2026-11-01","flyerEnd":"2026-11-22","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-12-17","deliveryDone":false,"note":""},{"id":"S020","name":"大宮開成高等学校","area":"埼玉","owner":"佐藤","students":120,"modelDate":"2026-10-06","modelDone":false,"intentDate":"2026-10-18","intentDone":false,"flyerStart":"2026-10-21","flyerEnd":"2026-11-04","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-11-29","deliveryDone":false,"note":""},{"id":"S021","name":"川越西高等学校","area":"埼玉","owner":"岡本","students":120,"modelDate":"2026-10-11","modelDone":false,"intentDate":"2026-10-21","intentDone":false,"flyerStart":"2026-10-24","flyerEnd":"2026-11-03","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-11-21","deliveryDone":false,"note":""},{"id":"S022","name":"所沢商業高等学校","area":"埼玉","owner":"佐藤","students":240,"modelDate":"2026-10-13","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-26","flyerEnd":"2026-11-09","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-12-04","deliveryDone":false,"note":""},{"id":"S023","name":"越谷南高等学校","area":"埼玉","owner":"森田","students":400,"modelDate":"2026-10-14","modelDone":false,"intentDate":"2026-10-28","intentDone":false,"flyerStart":"2026-11-02","flyerEnd":"2026-11-12","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-11-26","deliveryDone":false,"note":""},{"id":"S024","name":"浦和実業高等学校","area":"埼玉","owner":"高橋","students":240,"modelDate":"2026-10-15","modelDone":false,"intentDate":"2026-10-29","intentDone":false,"flyerStart":"2026-11-01","flyerEnd":"2026-11-15","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-11-29","deliveryDone":false,"note":""},{"id":"S025","name":"天王寺学館高等学校","area":"大阪","owner":"岡本","students":280,"modelDate":"2026-10-20","modelDone":false,"intentDate":"2026-11-01","intentDone":false,"flyerStart":"2026-11-08","flyerEnd":"2026-11-18","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-12-06","deliveryDone":false,"note":""},{"id":"S026","name":"豊中北高等学校","area":"大阪","owner":"高橋","students":280,"modelDate":"2026-10-20","modelDone":false,"intentDate":"2026-10-30","intentDone":false,"flyerStart":"2026-11-06","flyerEnd":"2026-11-23","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-12-07","deliveryDone":false,"note":""},{"id":"S027","name":"堺工科高等学校","area":"大阪","owner":"岡本","students":200,"modelDate":"2026-10-19","modelDone":false,"intentDate":"2026-10-31","intentDone":false,"flyerStart":"2026-11-07","flyerEnd":"2026-11-24","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-12-12","deliveryDone":false,"note":""},{"id":"S028","name":"枚方津田高等学校","area":"大阪","owner":"岡本","students":400,"modelDate":"2026-10-24","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-17","flyerEnd":"2026-12-01","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-12-19","deliveryDone":false,"note":""},{"id":"S029","name":"梅田国際高等学校","area":"大阪","owner":"高橋","students":200,"modelDate":"2026-10-25","modelDone":false,"intentDate":"2026-11-04","intentDone":false,"flyerStart":"2026-11-07","flyerEnd":"2026-11-24","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-12-19","deliveryDone":false,"note":""},{"id":"S030","name":"東淀川高等学校","area":"大阪","owner":"内野","students":200,"modelDate":"2026-10-25","modelDone":false,"intentDate":"2026-11-08","intentDone":false,"flyerStart":"2026-11-13","flyerEnd":"2026-11-23","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-12-11","deliveryDone":false,"note":""},{"id":"S031","name":"名古屋東高等学校","area":"愛知","owner":"森田","students":280,"modelDate":"2026-10-24","modelDone":false,"intentDate":"2026-11-07","intentDone":false,"flyerStart":"2026-11-10","flyerEnd":"2026-12-01","flyerDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-12-15","deliveryDone":false,"note":""},{"id":"S032","name":"岡崎工科高等学校","area":"愛知","owner":"佐藤","students":320,"modelDate":"2026-10-31","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-15","flyerEnd":"2026-11-29","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-12-24","deliveryDone":false,"note":""},{"id":"S033","name":"豊田西陵高等学校","area":"愛知","owner":"佐藤","students":160,"modelDate":"2026-10-26","modelDone":false,"intentDate":"2026-11-12","intentDone":false,"flyerStart":"2026-11-17","flyerEnd":"2026-12-08","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-12-22","deliveryDone":false,"note":""},{"id":"S034","name":"一宮商業高等学校","area":"愛知","owner":"岡本","students":400,"modelDate":"2026-10-28","modelDone":false,"intentDate":"2026-11-09","intentDone":false,"flyerStart":"2026-11-16","flyerEnd":"2026-12-07","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-12-25","deliveryDone":false,"note":""},{"id":"S035","name":"刈谷南高等学校","area":"愛知","owner":"岡本","students":160,"modelDate":"2026-10-31","modelDone":false,"intentDate":"2026-11-12","intentDone":false,"flyerStart":"2026-11-15","flyerEnd":"2026-11-25","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-12-09","deliveryDone":false,"note":""},{"id":"S036","name":"博多学園高等学校","area":"福岡","owner":"佐藤","students":240,"modelDate":"2026-11-06","modelDone":false,"intentDate":"2026-11-18","intentDone":false,"flyerStart":"2026-11-21","flyerEnd":"2026-12-01","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-12-22","deliveryDone":false,"note":""},{"id":"S037","name":"小倉南高等学校","area":"福岡","owner":"内野","students":280,"modelDate":"2026-11-08","modelDone":false,"intentDate":"2026-11-22","intentDone":false,"flyerStart":"2026-11-27","flyerEnd":"2026-12-18","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2027-01-05","deliveryDone":false,"note":""},{"id":"S038","name":"久留米工業高等学校","area":"福岡","owner":"岡本","students":80,"modelDate":"2026-11-08","modelDone":false,"intentDate":"2026-11-25","intentDone":false,"flyerStart":"2026-12-02","flyerEnd":"2026-12-16","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2027-01-03","deliveryDone":false,"note":""},{"id":"S039","name":"筑紫丘学院高等学校","area":"福岡","owner":"佐藤","students":160,"modelDate":"2026-11-11","modelDone":false,"intentDate":"2026-11-23","intentDone":false,"flyerStart":"2026-11-30","flyerEnd":"2026-12-10","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-12-28","deliveryDone":false,"note":""},{"id":"S040","name":"札幌白石高等学校","area":"北海道","owner":"岡本","students":400,"modelDate":"2026-11-11","modelDone":false,"intentDate":"2026-11-21","intentDone":false,"flyerStart":"2026-11-28","flyerEnd":"2026-12-08","flyerDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-12-29","deliveryDone":false,"note":""},{"id":"S041","name":"旭川西高等学校","area":"北海道","owner":"内野","students":120,"modelDate":"2026-11-12","modelDone":false,"intentDate":"2026-11-22","intentDone":false,"flyerStart":"2026-11-25","flyerEnd":"2026-12-09","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2026-12-30","deliveryDone":false,"note":""},{"id":"S042","name":"函館港高等学校","area":"北海道","owner":"岡本","students":200,"modelDate":"2026-11-14","modelDone":false,"intentDate":"2026-11-24","intentDone":false,"flyerStart":"2026-11-27","flyerEnd":"2026-12-18","flyerDone":false,"method":"説明会当日手渡し","deliveryDate":"2027-01-08","deliveryDone":false,"note":""},{"id":"S043","name":"仙台青陵高等学校","area":"宮城","owner":"岡本","students":200,"modelDate":"2026-11-14","modelDone":false,"intentDate":"2026-12-01","intentDone":false,"flyerStart":"2026-12-08","flyerEnd":"2026-12-22","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2027-01-12","deliveryDone":false,"note":""},{"id":"S044","name":"石巻工業高等学校","area":"宮城","owner":"高橋","students":120,"modelDate":"2026-11-14","modelDone":false,"intentDate":"2026-12-01","intentDone":false,"flyerStart":"2026-12-04","flyerEnd":"2026-12-25","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2027-01-19","deliveryDone":false,"note":""},{"id":"S045","name":"広島観音高等学校","area":"広島","owner":"佐藤","students":280,"modelDate":"2026-11-18","modelDone":false,"intentDate":"2026-11-28","intentDone":false,"flyerStart":"2026-12-01","flyerEnd":"2026-12-18","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2027-01-01","deliveryDone":false,"note":""},{"id":"S046","name":"福山誠之館高等学校","area":"広島","owner":"森田","students":400,"modelDate":"2026-11-18","modelDone":false,"intentDate":"2026-11-30","intentDone":false,"flyerStart":"2026-12-05","flyerEnd":"2026-12-19","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2027-01-02","deliveryDone":false,"note":""},{"id":"S047","name":"洛北総合高等学校","area":"京都","owner":"高橋","students":320,"modelDate":"2026-11-23","modelDone":false,"intentDate":"2026-12-05","intentDone":false,"flyerStart":"2026-12-08","flyerEnd":"2026-12-29","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2027-01-23","deliveryDone":false,"note":""},{"id":"S048","name":"京都工学院高等学校","area":"京都","owner":"高橋","students":400,"modelDate":"2026-11-21","modelDone":false,"intentDate":"2026-12-05","intentDone":false,"flyerStart":"2026-12-08","flyerEnd":"2026-12-25","flyerDone":false,"method":"業者直送（分割）","deliveryDate":"2027-01-08","deliveryDone":false,"note":""},{"id":"S049","name":"神戸海洋高等学校","area":"兵庫","owner":"岡本","students":120,"modelDate":"2026-11-26","modelDone":false,"intentDate":"2026-12-06","intentDone":false,"flyerStart":"2026-12-11","flyerEnd":"2026-12-28","flyerDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2027-01-18","deliveryDone":false,"note":""},{"id":"S050","name":"西宮甲山高等学校","area":"兵庫","owner":"高橋","students":80,"modelDate":"2026-11-29","modelDone":false,"intentDate":"2026-12-11","intentDone":false,"flyerStart":"2026-12-14","flyerEnd":"2026-12-24","flyerDone":false,"method":"個別配送（自宅）","deliveryDate":"2027-01-14","deliveryDone":false,"note":""}]}</script>
+<script id="app-data" type="application/json">{"today":"2026-08-28","schools":[{"id":"S001","name":"青葉学園高等学校","area":"東京","owner":"岡本","students":280,"isNew":false,"modelDate":"2026-09-06","modelDone":false,"intentDate":"2026-09-23","intentDone":false,"flyerStart":"2026-09-30","flyerEnd":"2026-10-10","flyerDone":false,"ecDate":"2026-10-03","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-10-24","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":65000,"wholePrev":50000,"unitsPrev":93,"listNow":68000,"wholeNow":52000}]},{"id":"S002","name":"第一実業高等学校","area":"東京","owner":"佐藤","students":200,"isNew":false,"modelDate":"2026-09-12","modelDone":false,"intentDate":"2026-09-22","intentDone":false,"flyerStart":"2026-09-29","flyerEnd":"2026-10-20","flyerDone":false,"ecDate":"2026-10-06","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-11-03","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":69000,"wholePrev":54000,"unitsPrev":46,"listNow":71000,"wholeNow":59000}]},{"id":"S003","name":"桜丘中等教育学校","area":"東京","owner":"内野","students":200,"isNew":false,"modelDate":"2026-09-13","modelDone":false,"intentDate":"2026-09-25","intentDone":false,"flyerStart":"2026-09-30","flyerEnd":"2026-10-10","flyerDone":false,"ecDate":"2026-10-03","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-10-24","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":56000,"unitsPrev":62,"listNow":67000,"wholeNow":56000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":187000,"wholePrev":147000,"unitsPrev":72,"listNow":194000,"wholeNow":158000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":135000,"unitsPrev":48,"listNow":181000,"wholeNow":144000}]},{"id":"S004","name":"北多摩高等学校","area":"東京","owner":"森田","students":240,"isNew":false,"modelDate":"2026-09-12","modelDone":false,"intentDate":"2026-09-29","intentDone":false,"flyerStart":"2026-10-06","flyerEnd":"2026-10-16","flyerDone":false,"ecDate":"2026-10-11","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-10-30","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":157000,"wholePrev":128000,"unitsPrev":131,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":65000,"wholePrev":52000,"unitsPrev":102,"listNow":67000,"wholeNow":52000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":131000,"wholePrev":100000,"unitsPrev":111,"listNow":134000,"wholeNow":107000}]},{"id":"S005","name":"目黒学院高等学校","area":"東京","owner":"佐藤","students":280,"isNew":true,"modelDate":"2026-09-15","modelDone":false,"intentDate":"2026-09-29","intentDone":false,"flyerStart":"2026-10-02","flyerEnd":"2026-10-19","flyerDone":false,"ecDate":"2026-10-07","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-11-13","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S006","name":"江戸川総合高等学校","area":"東京","owner":"森田","students":240,"isNew":true,"modelDate":"2026-09-14","modelDone":false,"intentDate":"2026-09-24","intentDone":false,"flyerStart":"2026-09-29","flyerEnd":"2026-10-13","flyerDone":false,"ecDate":"2026-10-06","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-03","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S007","name":"武蔵野工業高等学校","area":"東京","owner":"高橋","students":320,"isNew":false,"modelDate":"2026-09-17","modelDone":false,"intentDate":"2026-09-29","intentDone":false,"flyerStart":"2026-10-06","flyerEnd":"2026-10-16","flyerDone":false,"ecDate":"2026-10-13","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-10","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":194000,"wholePrev":154000,"unitsPrev":80,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":51000,"unitsPrev":128,"listNow":69000,"wholeNow":56000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":161000,"wholePrev":131000,"unitsPrev":65,"listNow":166000,"wholeNow":136000}]},{"id":"S008","name":"上野商業高等学校","area":"東京","owner":"高橋","students":120,"isNew":false,"modelDate":"2026-09-16","modelDone":false,"intentDate":"2026-10-03","intentDone":false,"flyerStart":"2026-10-08","flyerEnd":"2026-10-29","flyerDone":false,"ecDate":"2026-10-13","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-11-19","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":158000,"wholePrev":127000,"unitsPrev":52,"listNow":161000,"wholeNow":136000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":134000,"wholePrev":110000,"unitsPrev":62,"listNow":null,"wholeNow":null}]},{"id":"S009","name":"湘南台高等学校","area":"神奈川","owner":"森田","students":200,"isNew":false,"modelDate":"2026-09-20","modelDone":false,"intentDate":"2026-10-04","intentDone":false,"flyerStart":"2026-10-07","flyerEnd":"2026-10-21","flyerDone":false,"ecDate":"2026-10-12","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-11","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":178000,"wholePrev":139000,"unitsPrev":74,"listNow":178000,"wholeNow":136000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":191000,"wholePrev":150000,"unitsPrev":87,"listNow":null,"wholeNow":null}]},{"id":"S010","name":"横浜西陵高等学校","area":"神奈川","owner":"佐藤","students":200,"isNew":false,"modelDate":"2026-09-22","modelDone":false,"intentDate":"2026-10-02","intentDone":false,"flyerStart":"2026-10-05","flyerEnd":"2026-10-19","flyerDone":false,"ecDate":"2026-10-08","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-13","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":176000,"wholePrev":148000,"unitsPrev":98,"listNow":185000,"wholeNow":154000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":187000,"wholePrev":153000,"unitsPrev":103,"listNow":null,"wholeNow":null}]},{"id":"S011","name":"川崎総合科学高等学校","area":"神奈川","owner":"佐藤","students":320,"isNew":false,"modelDate":"2026-09-24","modelDone":false,"intentDate":"2026-10-08","intentDone":false,"flyerStart":"2026-10-11","flyerEnd":"2026-11-01","flyerDone":false,"ecDate":"2026-10-18","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-26","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":170000,"wholePrev":131000,"unitsPrev":75,"listNow":null,"wholeNow":null}]},{"id":"S012","name":"鎌倉女子学園高等学校","area":"神奈川","owner":"佐藤","students":80,"isNew":false,"modelDate":"2026-09-25","modelDone":false,"intentDate":"2026-10-07","intentDone":false,"flyerStart":"2026-10-14","flyerEnd":"2026-10-28","flyerDone":false,"ecDate":"2026-10-21","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-11","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":68000,"wholePrev":53000,"unitsPrev":43,"listNow":73000,"wholeNow":56000}]},{"id":"S013","name":"相模原中等教育学校","area":"神奈川","owner":"内野","students":80,"isNew":false,"modelDate":"2026-09-30","modelDone":false,"intentDate":"2026-10-14","intentDone":false,"flyerStart":"2026-10-19","flyerEnd":"2026-11-09","flyerDone":false,"ecDate":"2026-10-26","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-11-27","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":199000,"wholePrev":167000,"unitsPrev":18,"listNow":207000,"wholeNow":174000},{"model":"Eモデル Chromebook 14型","listPrev":68000,"wholePrev":55000,"unitsPrev":37,"listNow":69000,"wholeNow":56000}]},{"id":"S014","name":"港北学院高等学校","area":"神奈川","owner":"岡本","students":200,"isNew":false,"modelDate":"2026-09-30","modelDone":false,"intentDate":"2026-10-17","intentDone":false,"flyerStart":"2026-10-20","flyerEnd":"2026-10-30","flyerDone":false,"ecDate":"2026-10-27","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-17","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":155000,"wholePrev":126000,"unitsPrev":92,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":54000,"unitsPrev":73,"listNow":70000,"wholeNow":56000}]},{"id":"S015","name":"幕張総合高等学校","area":"千葉","owner":"佐藤","students":320,"isNew":false,"modelDate":"2026-09-29","modelDone":false,"intentDate":"2026-10-13","intentDone":false,"flyerStart":"2026-10-20","flyerEnd":"2026-11-10","flyerDone":false,"ecDate":"2026-10-23","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-28","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":193000,"wholePrev":148000,"unitsPrev":86,"listNow":203000,"wholeNow":169000}]},{"id":"S016","name":"市川東高等学校","area":"千葉","owner":"森田","students":400,"isNew":true,"modelDate":"2026-09-30","modelDone":false,"intentDate":"2026-10-17","intentDone":false,"flyerStart":"2026-10-20","flyerEnd":"2026-10-30","flyerDone":false,"ecDate":"2026-10-27","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-24","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S017","name":"柏の葉高等学校","area":"千葉","owner":"高橋","students":280,"isNew":false,"modelDate":"2026-10-02","modelDone":false,"intentDate":"2026-10-16","intentDone":false,"flyerStart":"2026-10-21","flyerEnd":"2026-11-07","flyerDone":false,"ecDate":"2026-10-24","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-21","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":191000,"wholePrev":156000,"unitsPrev":103,"listNow":206000,"wholeNow":171000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":161000,"wholePrev":124000,"unitsPrev":77,"listNow":171000,"wholeNow":134000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":169000,"wholePrev":135000,"unitsPrev":144,"listNow":null,"wholeNow":null}]},{"id":"S018","name":"船橋工業高等学校","area":"千葉","owner":"高橋","students":80,"isNew":true,"modelDate":"2026-10-06","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-30","flyerEnd":"2026-11-09","flyerDone":false,"ecDate":"2026-11-04","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-11-30","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S019","name":"成田国際高等学校","area":"千葉","owner":"岡本","students":240,"isNew":false,"modelDate":"2026-10-10","modelDone":false,"intentDate":"2026-10-24","intentDone":false,"flyerStart":"2026-10-27","flyerEnd":"2026-11-10","flyerDone":false,"ecDate":"2026-11-03","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-11-24","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":186000,"wholePrev":158000,"unitsPrev":80,"listNow":null,"wholeNow":null}]},{"id":"S020","name":"大宮開成高等学校","area":"埼玉","owner":"岡本","students":160,"isNew":true,"modelDate":"2026-10-11","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-26","flyerEnd":"2026-11-12","flyerDone":false,"ecDate":"2026-10-29","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-11-26","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S021","name":"川越西高等学校","area":"埼玉","owner":"森田","students":80,"isNew":false,"modelDate":"2026-10-11","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-28","flyerEnd":"2026-11-07","flyerDone":false,"ecDate":"2026-11-02","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-28","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":158000,"wholePrev":128000,"unitsPrev":20,"listNow":170000,"wholeNow":131000}]},{"id":"S022","name":"所沢商業高等学校","area":"埼玉","owner":"森田","students":200,"isNew":false,"modelDate":"2026-10-12","modelDone":false,"intentDate":"2026-10-26","intentDone":false,"flyerStart":"2026-11-02","flyerEnd":"2026-11-16","flyerDone":false,"ecDate":"2026-11-05","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-12-07","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":202000,"wholePrev":169000,"unitsPrev":37,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":139000,"wholePrev":111000,"unitsPrev":40,"listNow":null,"wholeNow":null}]},{"id":"S023","name":"越谷南高等学校","area":"埼玉","owner":"内野","students":240,"isNew":false,"modelDate":"2026-10-15","modelDone":false,"intentDate":"2026-10-29","intentDone":false,"flyerStart":"2026-11-01","flyerEnd":"2026-11-15","flyerDone":false,"ecDate":"2026-11-06","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-12-03","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":161000,"wholePrev":136000,"unitsPrev":91,"listNow":173000,"wholeNow":136000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":134000,"wholePrev":102000,"unitsPrev":77,"listNow":139000,"wholeNow":108000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":175000,"wholePrev":133000,"unitsPrev":66,"listNow":181000,"wholeNow":138000}]},{"id":"S024","name":"浦和実業高等学校","area":"埼玉","owner":"佐藤","students":280,"isNew":false,"modelDate":"2026-10-13","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-30","flyerEnd":"2026-11-13","flyerDone":false,"ecDate":"2026-11-06","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-12-08","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":176000,"wholePrev":136000,"unitsPrev":135,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":135000,"wholePrev":108000,"unitsPrev":123,"listNow":145000,"wholeNow":120000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":195000,"wholePrev":162000,"unitsPrev":52,"listNow":null,"wholeNow":null}]},{"id":"S025","name":"天王寺学館高等学校","area":"大阪","owner":"内野","students":80,"isNew":true,"modelDate":"2026-10-15","modelDone":false,"intentDate":"2026-10-29","intentDone":false,"flyerStart":"2026-11-01","flyerEnd":"2026-11-22","flyerDone":false,"ecDate":"2026-11-06","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-06","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S026","name":"豊中北高等学校","area":"大阪","owner":"森田","students":240,"isNew":false,"modelDate":"2026-10-20","modelDone":false,"intentDate":"2026-10-30","intentDone":false,"flyerStart":"2026-11-06","flyerEnd":"2026-11-16","flyerDone":false,"ecDate":"2026-11-13","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-11","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":132000,"wholePrev":109000,"unitsPrev":63,"listNow":null,"wholeNow":null}]},{"id":"S027","name":"堺工科高等学校","area":"大阪","owner":"森田","students":120,"isNew":false,"modelDate":"2026-10-17","modelDone":false,"intentDate":"2026-11-03","intentDone":false,"flyerStart":"2026-11-10","flyerEnd":"2026-11-20","flyerDone":false,"ecDate":"2026-11-15","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-08","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":137000,"wholePrev":113000,"unitsPrev":49,"listNow":142000,"wholeNow":114000},{"model":"Eモデル Chromebook 14型","listPrev":69000,"wholePrev":53000,"unitsPrev":31,"listNow":73000,"wholeNow":57000}]},{"id":"S028","name":"枚方津田高等学校","area":"大阪","owner":"佐藤","students":240,"isNew":false,"modelDate":"2026-10-22","modelDone":false,"intentDate":"2026-11-03","intentDone":false,"flyerStart":"2026-11-08","flyerEnd":"2026-11-29","flyerDone":false,"ecDate":"2026-11-11","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-12-13","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":153000,"wholePrev":129000,"unitsPrev":125,"listNow":154000,"wholeNow":127000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":190000,"wholePrev":151000,"unitsPrev":96,"listNow":null,"wholeNow":null},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":171000,"wholePrev":132000,"unitsPrev":75,"listNow":183000,"wholeNow":146000}]},{"id":"S029","name":"梅田国際高等学校","area":"大阪","owner":"高橋","students":280,"isNew":false,"modelDate":"2026-10-25","modelDone":false,"intentDate":"2026-11-11","intentDone":false,"flyerStart":"2026-11-16","flyerEnd":"2026-11-30","flyerDone":false,"ecDate":"2026-11-21","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-25","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":130000,"wholePrev":108000,"unitsPrev":137,"listNow":140000,"wholeNow":115000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":160000,"wholePrev":126000,"unitsPrev":88,"listNow":173000,"wholeNow":141000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":172000,"wholePrev":137000,"unitsPrev":78,"listNow":173000,"wholeNow":144000}]},{"id":"S030","name":"東淀川高等学校","area":"大阪","owner":"内野","students":320,"isNew":false,"modelDate":"2026-10-24","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-17","flyerEnd":"2026-12-01","flyerDone":false,"ecDate":"2026-11-22","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-22","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":201000,"wholePrev":170000,"unitsPrev":122,"listNow":null,"wholeNow":null}]},{"id":"S031","name":"名古屋東高等学校","area":"愛知","owner":"森田","students":160,"isNew":false,"modelDate":"2026-10-29","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-17","flyerEnd":"2026-12-08","flyerDone":false,"ecDate":"2026-11-22","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-12-22","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":192000,"wholePrev":151000,"unitsPrev":72,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":65000,"wholePrev":53000,"unitsPrev":46,"listNow":null,"wholeNow":null}]},{"id":"S032","name":"岡崎工科高等学校","area":"愛知","owner":"佐藤","students":400,"isNew":true,"modelDate":"2026-10-26","modelDone":false,"intentDate":"2026-11-05","intentDone":false,"flyerStart":"2026-11-08","flyerEnd":"2026-11-29","flyerDone":false,"ecDate":"2026-11-15","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-17","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S033","name":"豊田西陵高等学校","area":"愛知","owner":"佐藤","students":280,"isNew":false,"modelDate":"2026-10-27","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-17","flyerEnd":"2026-12-04","flyerDone":false,"ecDate":"2026-11-20","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-22","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":69000,"wholePrev":57000,"unitsPrev":93,"listNow":72000,"wholeNow":57000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":172000,"wholePrev":132000,"unitsPrev":79,"listNow":null,"wholeNow":null}]},{"id":"S034","name":"一宮商業高等学校","area":"愛知","owner":"内野","students":240,"isNew":true,"modelDate":"2026-10-29","modelDone":false,"intentDate":"2026-11-15","intentDone":false,"flyerStart":"2026-11-20","flyerEnd":"2026-12-11","flyerDone":false,"ecDate":"2026-11-27","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2027-01-05","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S035","name":"刈谷南高等学校","area":"愛知","owner":"高橋","students":320,"isNew":false,"modelDate":"2026-11-05","modelDone":false,"intentDate":"2026-11-22","intentDone":false,"flyerStart":"2026-11-29","flyerEnd":"2026-12-09","flyerDone":false,"ecDate":"2026-12-04","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-23","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":190000,"wholePrev":147000,"unitsPrev":172,"listNow":203000,"wholeNow":167000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":179000,"wholePrev":150000,"unitsPrev":67,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":149000,"wholePrev":115000,"unitsPrev":125,"listNow":158000,"wholeNow":134000}]},{"id":"S036","name":"博多学園高等学校","area":"福岡","owner":"高橋","students":240,"isNew":false,"modelDate":"2026-10-31","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-13","flyerEnd":"2026-11-27","flyerDone":false,"ecDate":"2026-11-18","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-12-22","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":64000,"wholePrev":50000,"unitsPrev":84,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":157000,"wholePrev":132000,"unitsPrev":85,"listNow":160000,"wholeNow":135000}]},{"id":"S037","name":"小倉南高等学校","area":"福岡","owner":"高橋","students":280,"isNew":true,"modelDate":"2026-11-05","modelDone":false,"intentDate":"2026-11-22","intentDone":false,"flyerStart":"2026-11-25","flyerEnd":"2026-12-09","flyerDone":false,"ecDate":"2026-11-30","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2027-01-03","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S038","name":"久留米工業高等学校","area":"福岡","owner":"岡本","students":400,"isNew":false,"modelDate":"2026-11-06","modelDone":false,"intentDate":"2026-11-18","intentDone":false,"flyerStart":"2026-11-21","flyerEnd":"2026-12-01","flyerDone":false,"ecDate":"2026-11-26","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-19","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":132000,"wholePrev":103000,"unitsPrev":184,"listNow":142000,"wholeNow":114000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":170000,"wholePrev":133000,"unitsPrev":133,"listNow":null,"wholeNow":null}]},{"id":"S039","name":"筑紫丘学院高等学校","area":"福岡","owner":"内野","students":80,"isNew":false,"modelDate":"2026-11-05","modelDone":false,"intentDate":"2026-11-17","intentDone":false,"flyerStart":"2026-11-20","flyerEnd":"2026-12-04","flyerDone":false,"ecDate":"2026-11-27","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-29","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":173000,"wholePrev":145000,"unitsPrev":40,"listNow":null,"wholeNow":null}]},{"id":"S040","name":"札幌白石高等学校","area":"北海道","owner":"佐藤","students":280,"isNew":false,"modelDate":"2026-11-08","modelDone":false,"intentDate":"2026-11-25","intentDone":false,"flyerStart":"2026-11-28","flyerEnd":"2026-12-19","flyerDone":false,"ecDate":"2026-12-03","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2027-01-09","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":129000,"unitsPrev":93,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":156000,"wholePrev":129000,"unitsPrev":89,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":191000,"wholePrev":159000,"unitsPrev":59,"listNow":null,"wholeNow":null}]},{"id":"S041","name":"旭川西高等学校","area":"北海道","owner":"内野","students":320,"isNew":false,"modelDate":"2026-11-11","modelDone":false,"intentDate":"2026-11-23","intentDone":false,"flyerStart":"2026-11-28","flyerEnd":"2026-12-19","flyerDone":false,"ecDate":"2026-12-03","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2027-01-02","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":192000,"wholePrev":154000,"unitsPrev":152,"listNow":195000,"wholeNow":149000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":156000,"wholePrev":124000,"unitsPrev":97,"listNow":null,"wholeNow":null}]},{"id":"S042","name":"函館港高等学校","area":"北海道","owner":"高橋","students":80,"isNew":false,"modelDate":"2026-11-15","modelDone":false,"intentDate":"2026-11-29","intentDone":false,"flyerStart":"2026-12-04","flyerEnd":"2026-12-14","flyerDone":false,"ecDate":"2026-12-09","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-28","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":158000,"wholePrev":127000,"unitsPrev":37,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":201000,"wholePrev":167000,"unitsPrev":18,"listNow":201000,"wholeNow":170000}]},{"id":"S043","name":"仙台青陵高等学校","area":"宮城","owner":"森田","students":320,"isNew":false,"modelDate":"2026-11-13","modelDone":false,"intentDate":"2026-11-27","intentDone":false,"flyerStart":"2026-12-02","flyerEnd":"2026-12-12","flyerDone":false,"ecDate":"2026-12-07","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-30","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":128000,"unitsPrev":123,"listNow":181000,"wholeNow":152000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":202000,"wholePrev":158000,"unitsPrev":67,"listNow":210000,"wholeNow":173000}]},{"id":"S044","name":"石巻工業高等学校","area":"宮城","owner":"高橋","students":240,"isNew":true,"modelDate":"2026-11-16","modelDone":false,"intentDate":"2026-12-03","intentDone":false,"flyerStart":"2026-12-10","flyerEnd":"2026-12-24","flyerDone":false,"ecDate":"2026-12-17","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2027-01-07","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S045","name":"広島観音高等学校","area":"広島","owner":"高橋","students":160,"isNew":false,"modelDate":"2026-11-16","modelDone":false,"intentDate":"2026-12-03","intentDone":false,"flyerStart":"2026-12-06","flyerEnd":"2026-12-20","flyerDone":false,"ecDate":"2026-12-09","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2027-01-07","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":53000,"unitsPrev":87,"listNow":67000,"wholeNow":56000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":177000,"wholePrev":150000,"unitsPrev":34,"listNow":189000,"wholeNow":158000}]},{"id":"S046","name":"福山誠之館高等学校","area":"広島","owner":"内野","students":280,"isNew":false,"modelDate":"2026-11-17","modelDone":false,"intentDate":"2026-11-27","intentDone":false,"flyerStart":"2026-11-30","flyerEnd":"2026-12-14","flyerDone":false,"ecDate":"2026-12-03","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-28","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":198000,"wholePrev":162000,"unitsPrev":51,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":138000,"wholePrev":109000,"unitsPrev":54,"listNow":138000,"wholeNow":117000}]},{"id":"S047","name":"洛北総合高等学校","area":"京都","owner":"佐藤","students":240,"isNew":false,"modelDate":"2026-11-24","modelDone":false,"intentDate":"2026-12-08","intentDone":false,"flyerStart":"2026-12-13","flyerEnd":"2026-12-30","flyerDone":false,"ecDate":"2026-12-20","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2027-01-17","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":135000,"unitsPrev":86,"listNow":179000,"wholeNow":147000}]},{"id":"S048","name":"京都工学院高等学校","area":"京都","owner":"森田","students":80,"isNew":false,"modelDate":"2026-11-22","modelDone":false,"intentDate":"2026-12-06","intentDone":false,"flyerStart":"2026-12-11","flyerEnd":"2026-12-28","flyerDone":false,"ecDate":"2026-12-16","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2027-01-22","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":50000,"unitsPrev":37,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":137000,"wholePrev":109000,"unitsPrev":26,"listNow":null,"wholeNow":null}]},{"id":"S049","name":"神戸海洋高等学校","area":"兵庫","owner":"森田","students":160,"isNew":false,"modelDate":"2026-11-27","modelDone":false,"intentDate":"2026-12-07","intentDone":false,"flyerStart":"2026-12-12","flyerEnd":"2026-12-29","flyerDone":false,"ecDate":"2026-12-19","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2027-01-23","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":155000,"wholePrev":127000,"unitsPrev":82,"listNow":163000,"wholeNow":129000},{"model":"Eモデル Chromebook 14型","listPrev":67000,"wholePrev":52000,"unitsPrev":45,"listNow":72000,"wholeNow":55000}]},{"id":"S050","name":"西宮甲山高等学校","area":"兵庫","owner":"佐藤","students":120,"isNew":false,"modelDate":"2026-11-29","modelDone":false,"intentDate":"2026-12-09","intentDone":false,"flyerStart":"2026-12-14","flyerEnd":"2026-12-24","flyerDone":false,"ecDate":"2026-12-19","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2027-01-18","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":176000,"wholePrev":137000,"unitsPrev":42,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":187000,"wholePrev":158000,"unitsPrev":28,"listNow":189000,"wholeNow":160000}]}]}</script>
 <script>
 const BOOT_HTML = '<!doctype html>\n' + document.documentElement.outerHTML;
-
 const DATA = JSON.parse(document.getElementById('app-data').textContent);
 const TODAY = new Date(DATA.today + 'T00:00:00');
 let state = DATA;
-try {
-  const cached = localStorage.getItem('flyer-tracker');
-  if (cached) state = JSON.parse(cached);
-} catch (e) {}
+try { const c = localStorage.getItem('flyer-tracker-v2'); if (c) state = JSON.parse(c); } catch (e) {}
 
 const METHODS = ['一括納品（学校搬入）','個別配送（自宅）','説明会当日手渡し','業者直送（分割）'];
 const STAGES = [
-  {key:'modelDone',  date:'modelDate',    label:'機種提示'},
-  {key:'intentDone', date:'intentDate',   label:'実施意向回収'},
-  {key:'flyerDone',  date:'flyerEnd',     label:'チラシ調整'},
+  {key:'modelDone',    date:'modelDate',    label:'機種提示'},
+  {key:'intentDone',   date:'intentDate',   label:'実施意向回収'},
+  {key:'ecDone',       date:'ecDate',       label:'ECサイトURL'},
+  {key:'flyerDone',    date:'flyerEnd',     label:'チラシ調整'},
   {key:'deliveryDone', date:'deliveryDate', label:'納品'}
 ];
+const PRICE_FIELDS = ['listNow','wholeNow'];
 
 let artifactApi = null, publishTimer = null, openId = null;
 const ui = {view:'list', q:'', owner:'', area:'', status:''};
 
-/* ---------- helpers ---------- */
 const d = s => new Date(s + 'T00:00:00');
 const days = (a,b) => Math.round((b - a) / 86400000);
 const fmt = s => { const x = d(s); return (x.getMonth()+1) + '/' + x.getDate(); };
 const fmtFull = s => { const x = d(s); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
-function dateClass(dateStr, done){
+const yen = v => (v === null || v === undefined || v === '') ? '—' : '¥' + Number(v).toLocaleString('ja-JP');
+function dateClass(s, done){
   if (done) return 'ok';
-  const n = days(TODAY, d(dateStr));
-  if (n < 0) return 'late';
-  if (n <= 14) return 'soon';
-  return '';
+  const n = days(TODAY, d(s));
+  return n < 0 ? 'late' : (n <= 14 ? 'soon' : '');
 }
 const isLate = s => STAGES.some(st => !s[st.key] && days(TODAY, d(s[st.date])) < 0);
 const isSoon = s => STAGES.some(st => !s[st.key] && days(TODAY, d(s[st.date])) >= 0 && days(TODAY, d(s[st.date])) <= 14);
 const doneCount = s => STAGES.filter(st => s[st.key]).length;
+const priceOpen = s => s.items.filter(it => it.listNow == null || it.wholeNow == null).length;
+const priceFixed = s => priceOpen(s) === 0;
 
 function filtered(){
   return state.schools.filter(s => {
     if (ui.q && !s.name.includes(ui.q)) return false;
     if (ui.owner && s.owner !== ui.owner) return false;
     if (ui.area && s.area !== ui.area) return false;
-    if (ui.status === 'late' && !isLate(s)) return false;
-    if (ui.status === 'soon' && !isSoon(s)) return false;
-    if (ui.status === 'open' && doneCount(s) === 4) return false;
-    if (ui.status === 'done' && doneCount(s) !== 4) return false;
+    if (ui.status === 'late'  && !isLate(s)) return false;
+    if (ui.status === 'soon'  && !isSoon(s)) return false;
+    if (ui.status === 'open'  && doneCount(s) === STAGES.length) return false;
+    if (ui.status === 'done'  && doneCount(s) !== STAGES.length) return false;
+    if (ui.status === 'price' && priceFixed(s)) return false;
+    if (ui.status === 'new'   && !s.isNew) return false;
     return true;
   });
 }
 
-/* ---------- persistence ---------- */
+/* persistence */
 function setSave(s, text){
-  const p = document.getElementById('savepill');
-  p.dataset.s = s;
+  document.getElementById('savepill').dataset.s = s;
   document.getElementById('savetext').textContent = text;
 }
 function persist(){
-  try { localStorage.setItem('flyer-tracker', JSON.stringify(state)); } catch (e) {}
+  try { localStorage.setItem('flyer-tracker-v2', JSON.stringify(state)); } catch (e) {}
   if (!artifactApi) { setSave('local', 'この端末に保存'); return; }
   setSave('saving', '保存中…');
   clearTimeout(publishTimer);
@@ -393,8 +423,7 @@ function persist(){
     const json = JSON.stringify(state).replace(/</g, '\\u003c');
     const html = BOOT_HTML.replace(
       /(<script id="app-data" type="application\/json">)[\s\S]*?(<\/script>)/,
-      (m, a, b) => a + json + b
-    );
+      (m, a, b) => a + json + b);
     try { await artifactApi.publish(html); setSave('ok', '全員に保存済み'); }
     catch (e) { setSave('local', e && e.code === 'conflict' ? '他の更新を優先しました' : 'この端末に保存'); }
   }, 1200);
@@ -405,72 +434,138 @@ function persist(){
   setSave(artifactApi ? 'ok' : 'local', artifactApi ? '保存済み' : 'この端末に保存');
 })();
 
-/* ---------- KPI ---------- */
+/* KPI */
 function renderKpis(){
   const all = state.schools;
   const late = all.filter(isLate).length;
   const soon = all.filter(s => !isLate(s) && isSoon(s)).length;
-  const done = all.filter(s => doneCount(s) === 4).length;
-  const rate = Math.round(all.reduce((a,s) => a + doneCount(s), 0) / (all.length * 4) * 100);
+  const pOpen = all.filter(s => !priceFixed(s)).length;
+  const done = all.filter(s => doneCount(s) === STAGES.length).length;
+  const rate = Math.round(all.reduce((a,s) => a + doneCount(s), 0) / (all.length * STAGES.length) * 100);
   document.getElementById('kpis').innerHTML = [
-    ['対象校', all.length + '', ''],
-    ['期日超過', late + '', 'late'],
-    ['14日以内', soon + '', 'soon'],
-    ['納品まで完了', done + '', 'done'],
-    ['全工程の進捗', rate + '%', '']
+    ['対象校', all.length, ''],
+    ['うち新規開拓', all.filter(s => s.isNew).length, 'new'],
+    ['期日超過', late, 'late'],
+    ['14日以内', soon, 'soon'],
+    ['価格 未確定', pOpen, 'soon'],
+    ['全工程 完了', done, 'done'],
+    ['進捗', rate + '%', '']
   ].map(([l,v,c]) => `<div class="kpi ${c}"><b>${v}</b><small>${l}</small></div>`).join('');
 }
 
-/* ---------- checklist ---------- */
+/* checklist */
 function stageCell(s, st){
-  const cls = dateClass(s[st.date], s[st.key]);
   return `<div class="stage">
-    <input type="checkbox" class="cb" data-id="${s.id}" data-k="${st.key}" ${s[st.key] ? 'checked' : ''}
-           aria-label="${s.name} ${st.label}">
-    <span class="d ${cls}">${fmt(s[st.date])}</span>
-  </div>`;
+    <input type="checkbox" class="cb" data-id="${s.id}" data-k="${st.key}" ${s[st.key] ? 'checked' : ''} aria-label="${s.name} ${st.label}">
+    <span class="d ${dateClass(s[st.date], s[st.key])}">${fmt(s[st.date])}</span></div>`;
 }
 function renderList(){
-  const rows = filtered();
-  const tb = document.getElementById('tbody');
-  if (!rows.length){ tb.innerHTML = `<tr><td colspan="8" class="empty">条件に合う学校がありません</td></tr>`; return; }
+  const rows = filtered(), tb = document.getElementById('tbody');
+  if (!rows.length){ tb.innerHTML = `<tr><td colspan="10" class="empty">条件に合う学校がありません</td></tr>`; return; }
   tb.innerHTML = rows.map(s => {
-    const late = isLate(s), n = doneCount(s);
-    const dots = STAGES.map((st,i) =>
-      `<span class="pd ${s[st.key] ? 'on' : (!s[st.key] && days(TODAY, d(s[st.date])) < 0 ? 'bad' : '')}"></span>`).join('');
-    const fcls = dateClass(s.flyerEnd, s.flyerDone);
+    const dots = STAGES.map(st =>
+      `<span class="pd ${s[st.key] ? 'on' : (days(TODAY, d(s[st.date])) < 0 ? 'bad' : '')}"></span>`).join('');
+    const open = priceOpen(s);
+    const priceCell = open
+      ? `<span class="d soon">未入力 ${open}/${s.items.length}</span>`
+      : `<span class="d ok">確定 ${s.items.length}機種</span>`;
+    const ec = s.ecUrl
+      ? `<a class="link" href="${s.ecUrl}" target="_blank" rel="noopener">${s.ecUrl.replace('https://','')}</a>`
+      : `<span class="nolink">未作成</span>`;
     return `<tr data-id="${s.id}" data-open="${openId === s.id ? 1 : 0}">
       <td class="c-name">
-        <button class="sname" data-detail="${s.id}">${s.name}</button>
+        <button class="sname" data-detail="${s.id}">${s.name}${s.isNew ? '<span class="tag-new">新規</span>' : ''}</button>
         <span class="smeta">${s.area}・${s.students}名</span>
       </td>
       <td><span class="owner">${s.owner}</span></td>
       <td>${stageCell(s, STAGES[0])}</td>
       <td>${stageCell(s, STAGES[1])}</td>
+      <td>${priceCell}</td>
       <td><div class="stage">
-        <input type="checkbox" class="cb" data-id="${s.id}" data-k="flyerDone" ${s.flyerDone ? 'checked' : ''}
-               aria-label="${s.name} チラシ調整">
-        <span class="d ${fcls}">${fmt(s.flyerStart)} – ${fmt(s.flyerEnd)}</span>
+        <input type="checkbox" class="cb" data-id="${s.id}" data-k="ecDone" ${s.ecDone ? 'checked' : ''} aria-label="${s.name} ECサイトURL">
+        <span class="d ${dateClass(s.ecDate, s.ecDone)}">${fmt(s.ecDate)}</span>${ec}
+      </div></td>
+      <td><div class="stage">
+        <input type="checkbox" class="cb" data-id="${s.id}" data-k="flyerDone" ${s.flyerDone ? 'checked' : ''} aria-label="${s.name} チラシ調整">
+        <span class="d ${dateClass(s.flyerEnd, s.flyerDone)}">${fmt(s.flyerStart)} – ${fmt(s.flyerEnd)}</span>
       </div></td>
       <td class="method">${s.method}</td>
-      <td>${stageCell(s, STAGES[3])}</td>
-      <td><div class="prog" title="${n}/4 工程完了">${dots}</div></td>
+      <td>${stageCell(s, STAGES[4])}</td>
+      <td><div class="prog" title="${doneCount(s)}/${STAGES.length} 工程完了">${dots}</div></td>
     </tr>`;
   }).join('');
 }
 
-/* ---------- gantt ---------- */
+/* price sheet */
+function renderPrice(){
+  const rows = filtered(), tb = document.getElementById('tbody-price');
+  if (!rows.length){ tb.innerHTML = `<tr><td colspan="10" class="empty">条件に合う学校がありません</td></tr>`; return; }
+  let html = '';
+  rows.forEach(s => {
+    s.items.forEach((it, idx) => {
+      const delta = (it.listPrev && it.listNow)
+        ? (() => { const p = Math.round((it.listNow / it.listPrev - 1) * 1000) / 10;
+            const c = p > 0 ? 'up' : (p < 0 ? 'down' : 'same');
+            return `<span class="delta ${c}">${p > 0 ? '+' : ''}${p.toFixed(1)}%</span>`; })()
+        : `<span class="delta same">—</span>`;
+      const m = (it.listNow && it.wholeNow)
+        ? (() => { const r = Math.round((1 - it.wholeNow / it.listNow) * 1000) / 10;
+            return `<span class="margin-v ${r < 15 ? 'thin' : ''}">${r.toFixed(1)}%</span>`; })()
+        : `<span class="margin-v">—</span>`;
+      const rev = (it.listPrev && it.unitsPrev) ? yen(it.listPrev * it.unitsPrev) : '—';
+      const inp = (f) => `<input class="pin ${it[f] == null ? 'empty-v' : ''}" inputmode="numeric"
+          data-id="${s.id}" data-idx="${idx}" data-p="${f}" value="${it[f] == null ? '' : it[f]}"
+          aria-label="${s.name} ${it.model} ${f === 'listNow' ? '今年掲載価格' : '今年卸価格'}">`;
+      html += `<tr class="${idx === 0 ? 'grp-first' : 'sub-row'}" data-id="${s.id}">
+        <td class="c-name">${idx === 0
+          ? `<button class="sname" data-detail="${s.id}">${s.name}${s.isNew ? '<span class="tag-new">新規</span>' : ''}</button>
+             <span class="smeta">${s.area}・${s.students}名・${s.owner}</span>` : ''}</td>
+        <td style="font-size:12px">${it.model}</td>
+        <td class="num-cell"><span class="yen prev">${yen(it.listPrev)}</span></td>
+        <td class="num-cell">${inp('listNow')}</td>
+        <td class="num-cell">${delta}</td>
+        <td class="num-cell"><span class="yen prev">${yen(it.wholePrev)}</span></td>
+        <td class="num-cell">${inp('wholeNow')}</td>
+        <td class="num-cell">${m}</td>
+        <td class="num-cell"><span class="yen prev">${it.unitsPrev == null ? '—' : it.unitsPrev + '台'}</span></td>
+        <td class="num-cell"><span class="yen prev">${rev}</span></td>
+      </tr>`;
+    });
+  });
+  tb.innerHTML = html;
+}
+function priceCells(){ return [...document.querySelectorAll('#tbody-price .pin')]; }
+/* 入力中は行だけ更新する（全体を描き直すとフォーカスが飛ぶため） */
+function refreshPriceRow(input){
+  const s = state.schools.find(v => v.id === input.dataset.id);
+  const it = s.items[+input.dataset.idx];
+  const tr = input.closest('tr');
+  tr.querySelectorAll('.pin').forEach(el => el.classList.toggle('empty-v', it[el.dataset.p] == null));
+  const dEl = tr.querySelector('.delta'), mEl = tr.querySelector('.margin-v');
+  if (it.listPrev && it.listNow){
+    const pct = Math.round((it.listNow / it.listPrev - 1) * 1000) / 10;
+    dEl.textContent = (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+    dEl.className = 'delta ' + (pct > 0 ? 'up' : (pct < 0 ? 'down' : 'same'));
+  } else { dEl.textContent = '—'; dEl.className = 'delta same'; }
+  if (it.listNow && it.wholeNow){
+    const r = Math.round((1 - it.wholeNow / it.listNow) * 1000) / 10;
+    mEl.textContent = r.toFixed(1) + '%';
+    mEl.className = 'margin-v' + (r < 15 ? ' thin' : '');
+  } else { mEl.textContent = '—'; mEl.className = 'margin-v'; }
+}
+function setPrice(id, idx, f, raw){
+  const s = state.schools.find(v => v.id === id);
+  const v = String(raw).replace(/[^\d.-]/g, '');
+  s.items[idx][f] = v === '' ? null : Math.round(Number(v));
+}
+
+/* gantt */
 function renderGantt(){
-  const rows = filtered();
-  const host = document.getElementById('gantt');
+  const rows = filtered(), host = document.getElementById('gantt');
   if (!rows.length){ host.innerHTML = `<div class="empty" style="flex:1">条件に合う学校がありません</div>`; return; }
   const all = state.schools;
   let min = d(all[0].modelDate), max = d(all[0].deliveryDate);
-  all.forEach(s => {
-    const a = d(s.modelDate), b = d(s.deliveryDate);
-    if (a < min) min = a;
-    if (b > max) max = b;
-  });
+  all.forEach(s => { const a = d(s.modelDate), b = d(s.deliveryDate); if (a < min) min = a; if (b > max) max = b; });
   min = new Date(min.getTime() - 7 * 86400000);
   max = new Date(max.getTime() + 7 * 86400000);
   const total = days(min, max) + 1, DW = 5.2, W = total * DW;
@@ -480,8 +575,7 @@ function renderGantt(){
   let cur = new Date(min.getFullYear(), min.getMonth(), 1);
   while (cur <= max){
     const next = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
-    const left = Math.max(0, days(min, cur) * DW);
-    const right = Math.min(W, days(min, next) * DW);
+    const left = Math.max(0, days(min, cur) * DW), right = Math.min(W, days(min, next) * DW);
     months += `<div class="g-month" style="left:${left}px;width:${right-left}px">${cur.getMonth()+1}月</div>`;
     grid += `<div class="g-vline m" style="left:${left}px"></div>`;
     if (cur.getMonth() % 2) bands += `<div class="g-band" style="left:${left}px;width:${right-left}px"></div>`;
@@ -494,20 +588,20 @@ function renderGantt(){
     grid += `<div class="g-vline" style="left:${left}px"></div>`;
     w = new Date(w.getTime() + 7 * 86400000);
   }
-  const todayLeft = days(min, TODAY) * DW;
+  const tl = days(min, TODAY) * DW;
 
+  const mk = (s, st, extra) => {
+    const cls = s[st.key] ? 'done' : (days(TODAY, d(s[st.date])) < 0 ? 'late' : '');
+    return `<div class="mk ${extra} ${cls}" style="left:${x(s[st.date]) - 4}px" title="${st.label} ${fmtFull(s[st.date])}"></div>`;
+  };
   const lines = rows.map(s => {
     const bs = x(s.flyerStart), be = x(s.flyerEnd);
     const barCls = s.flyerDone ? 'done' : (days(TODAY, d(s.flyerEnd)) < 0 ? 'late' : '');
-    const mk = (st) => {
-      const cls = s[st.key] ? 'done' : (days(TODAY, d(s[st.date])) < 0 ? 'late' : '');
-      return `<div class="mk ${cls}" style="left:${x(s[st.date]) - 4}px" title="${st.label} ${fmtFull(s[st.date])}"></div>`;
-    };
     const dCls = s.deliveryDone ? 'done' : (days(TODAY, d(s.deliveryDate)) < 0 ? 'late' : '');
     return `<div class="g-line" data-id="${s.id}">
       <div class="g-bar ${barCls}" style="left:${bs}px;width:${Math.max(6, be-bs)}px"
            title="チラシ調整 ${fmtFull(s.flyerStart)} → ${fmtFull(s.flyerEnd)}"><span>調整</span></div>
-      ${mk(STAGES[0])}${mk(STAGES[1])}
+      ${mk(s, STAGES[0], '')}${mk(s, STAGES[1], '')}${mk(s, STAGES[2], 'ec')}
       <div class="mk flag ${dCls}" style="left:${x(s.deliveryDate)}px" title="納品期日 ${fmtFull(s.deliveryDate)}（${s.method}）"></div>
     </div>`;
   }).join('');
@@ -519,14 +613,14 @@ function renderGantt(){
     </div>
     <div class="g-right" style="width:${W}px">
       <div class="g-head-inner">${months}${weeks}
-        <div class="g-today" style="left:${todayLeft}px"></div>
+        <div class="g-today" style="left:${tl}px"></div><div class="g-todaylab" style="left:${tl+4}px">今日</div>
       </div>
-      <div class="g-grid">${bands}${grid}<div class="g-today" style="left:${todayLeft}px"></div></div>
+      <div class="g-grid">${bands}${grid}<div class="g-today" style="left:${tl}px"></div></div>
       <div class="g-body">${lines}</div>
     </div>`;
 }
 
-/* ---------- drawer ---------- */
+/* drawer */
 function renderDrawer(){
   const host = document.getElementById('drawer-host');
   if (!openId){ host.innerHTML = ''; return; }
@@ -534,55 +628,81 @@ function renderDrawer(){
   if (!s){ host.innerHTML = ''; return; }
   const f = (label, key, type) =>
     `<div class="fld"><label for="fx-${key}">${label}</label>
-     <input id="fx-${key}" type="${type}" data-f="${key}" value="${s[key]}"></div>`;
+     <input id="fx-${key}" type="${type}" data-f="${key}" value="${s[key] == null ? '' : s[key]}"></div>`;
+  const items = s.items.map((it, i) => `
+    <div class="item-card">
+      <h4>${it.model}</h4>
+      <div class="row2">
+        <div class="fld"><label>昨年 掲載 / 卸</label>
+          <input value="${yen(it.listPrev)} / ${yen(it.wholePrev)}" disabled></div>
+        <div class="fld"><label>昨年 台数</label>
+          <input value="${it.unitsPrev == null ? '—' : it.unitsPrev + '台'}" disabled></div>
+      </div>
+      <div class="row2" style="margin-top:8px">
+        <div class="fld"><label for="dp-l-${i}">今年 掲載価格</label>
+          <input id="dp-l-${i}" inputmode="numeric" data-id="${s.id}" data-idx="${i}" data-p="listNow" value="${it.listNow == null ? '' : it.listNow}"></div>
+        <div class="fld"><label for="dp-w-${i}">今年 卸価格</label>
+          <input id="dp-w-${i}" inputmode="numeric" data-id="${s.id}" data-idx="${i}" data-p="wholeNow" value="${it.wholeNow == null ? '' : it.wholeNow}"></div>
+      </div>
+    </div>`).join('');
   host.innerHTML = `
    <div class="scrim" data-close="1"></div>
    <aside class="drawer" role="dialog" aria-label="${s.name} の詳細">
      <div class="dr-head">
-       <div><h2>${s.name}</h2><span class="smeta">${s.area}・${s.students}名・担当 ${s.owner}</span></div>
+       <div><h2>${s.name}${s.isNew ? '<span class="tag-new">新規</span>' : ''}</h2>
+         <span class="smeta">${s.area}・${s.students}名・担当 ${s.owner}</span></div>
        <button class="close" data-close="1" aria-label="閉じる">×</button>
      </div>
      <div class="dr-body">
        ${STAGES.map(st => `<label class="chk"><input type="checkbox" class="cb" data-id="${s.id}" data-k="${st.key}" ${s[st.key]?'checked':''}>${st.label}を完了</label>`).join('')}
        <div class="row2">${f('機種提示日','modelDate','date')}${f('意向回収期日','intentDate','date')}</div>
        <div class="row2">${f('調整開始','flyerStart','date')}${f('調整終了','flyerEnd','date')}</div>
+       <div class="row2">${f('EC公開期日','ecDate','date')}${f('納品期日','deliveryDate','date')}</div>
+       ${f('ECサイトURL','ecUrl','url')}
        <div class="fld"><label for="fx-method">納品方法</label>
          <select id="fx-method" data-f="method">${METHODS.map(m => `<option ${m===s.method?'selected':''}>${m}</option>`).join('')}</select></div>
-       ${f('納品期日','deliveryDate','date')}
+       <div class="dr-sec">価格（${s.items.length}機種）</div>
+       ${items}
        <div class="fld"><label for="fx-note">メモ</label><textarea id="fx-note" rows="4" data-f="note">${s.note || ''}</textarea></div>
      </div>
    </aside>`;
 }
 
-/* ---------- render ---------- */
+/* render */
 function render(){
   renderKpis();
   if (ui.view === 'list') renderList();
+  if (ui.view === 'price') renderPrice();
   if (ui.view === 'gantt') renderGantt();
   renderDrawer();
 }
 function setView(v){
   ui.view = v;
-  ['list','gantt','notion'].forEach(k => {
+  ['list','price','gantt','notion'].forEach(k => {
     document.getElementById('view-' + k).classList.toggle('hide', k !== v);
     document.getElementById('tab-' + k).setAttribute('aria-selected', String(k === v));
   });
+  document.getElementById('csv').textContent = v === 'price' ? '価格表CSVを書き出す' : 'CSVを書き出す';
   render();
 }
 
-/* ---------- events ---------- */
+/* events */
 document.addEventListener('change', e => {
   const cb = e.target.closest('.cb');
   if (cb){
-    const s = state.schools.find(v => v.id === cb.dataset.id);
-    s[cb.dataset.k] = cb.checked;
-    persist(); render();
+    state.schools.find(v => v.id === cb.dataset.id)[cb.dataset.k] = cb.checked;
+    persist(); render(); return;
+  }
+  const p = e.target.closest('[data-p]');
+  if (p){
+    setPrice(p.dataset.id, +p.dataset.idx, p.dataset.p, p.value);
+    persist(); renderKpis();
+    if (p.classList.contains('pin')) refreshPriceRow(p); else render();
     return;
   }
   const fld = e.target.closest('[data-f]');
   if (fld && openId){
-    const s = state.schools.find(v => v.id === openId);
-    s[fld.dataset.f] = fld.value;
+    state.schools.find(v => v.id === openId)[fld.dataset.f] = fld.value;
     persist(); render();
   }
 });
@@ -592,6 +712,41 @@ document.addEventListener('input', e => {
     persist();
   }
 });
+/* Enter = 下のセルへ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && openId){ openId = null; render(); return; }
+  const p = e.target.closest('#tbody-price .pin');
+  if (!p) return;
+  if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    const cells = priceCells(), i = cells.indexOf(p), step = (e.key === 'ArrowUp' ? -2 : 2);
+    setPrice(p.dataset.id, +p.dataset.idx, p.dataset.p, p.value);
+    persist(); refreshPriceRow(p); renderKpis();
+    const t = cells[i + step] || cells[i];
+    if (t){ t.focus(); t.select(); }
+  }
+});
+/* Excelからの貼り付け：下・右方向に流し込む */
+document.addEventListener('paste', e => {
+  const p = e.target.closest('#tbody-price .pin');
+  if (!p) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if (!text || !/[\t\r\n]/.test(text.trim())) return;
+  e.preventDefault();
+  const cells = priceCells(), start = cells.indexOf(p);
+  const grid = text.replace(/\r/g, '').split('\n').filter(r => r.length).map(r => r.split('\t'));
+  grid.forEach((row, r) => {
+    row.forEach((val, c) => {
+      const idx = start + r * 2 + c;
+      const cell = cells[idx];
+      if (!cell || String(val).trim() === '') return;
+      if (r > 0 && c === 0 && cell.dataset.p !== p.dataset.p) return;
+      setPrice(cell.dataset.id, +cell.dataset.idx, cell.dataset.p, val);
+    });
+  });
+  persist(); render();
+  const after = priceCells()[start]; if (after) after.focus();
+});
 document.addEventListener('click', e => {
   const det = e.target.closest('[data-detail]');
   if (det){ openId = det.dataset.detail; render(); return; }
@@ -599,8 +754,8 @@ document.addEventListener('click', e => {
   const line = e.target.closest('.g-line');
   if (line){ openId = line.dataset.id; render(); }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && openId){ openId = null; render(); } });
 document.getElementById('tab-list').onclick = () => setView('list');
+document.getElementById('tab-price').onclick = () => setView('price');
 document.getElementById('tab-gantt').onclick = () => setView('gantt');
 document.getElementById('tab-notion').onclick = () => setView('notion');
 document.getElementById('q').oninput = e => { ui.q = e.target.value.trim(); render(); };
@@ -608,33 +763,42 @@ document.getElementById('f-owner').onchange = e => { ui.owner = e.target.value; 
 document.getElementById('f-area').onchange = e => { ui.area = e.target.value; render(); };
 document.getElementById('f-status').onchange = e => { ui.status = e.target.value; render(); };
 
-/* ---------- CSV ---------- */
+/* CSV */
+const esc = v => `"${String(v == null ? '' : v).replace(/"/g,'""')}"`;
+function csvSchools(){
+  const head = ['学校名','地区','担当','区分','生徒数','機種提示日','機種提示済','意向回収期日','意向回収済',
+    'EC公開期日','EC公開済','ECサイトURL','チラシ調整開始','チラシ調整終了','チラシ確定','納品方法','納品期日','納品済','メモ'];
+  const body = state.schools.map(s => [s.name,s.area,s.owner,s.isNew?'新規開拓':'継続',s.students,
+    s.modelDate,s.modelDone?'Yes':'No',s.intentDate,s.intentDone?'Yes':'No',
+    s.ecDate,s.ecDone?'Yes':'No',s.ecUrl,s.flyerStart,s.flyerEnd,s.flyerDone?'Yes':'No',
+    s.method,s.deliveryDate,s.deliveryDone?'Yes':'No',s.note].map(esc).join(','));
+  return [head.map(esc).join(','), ...body].join('\r\n');
+}
+function csvPrices(){
+  const head = ['学校名','区分','機種','昨年 掲載価格','昨年 卸価格','昨年 台数','昨年 売上','今年 掲載価格','今年 卸価格'];
+  const body = [];
+  state.schools.forEach(s => s.items.forEach(it => body.push([s.name, s.isNew?'新規開拓':'継続', it.model,
+    it.listPrev, it.wholePrev, it.unitsPrev, (it.listPrev && it.unitsPrev) ? it.listPrev * it.unitsPrev : '',
+    it.listNow, it.wholeNow].map(esc).join(','))));
+  return [head.map(esc).join(','), ...body].join('\r\n');
+}
 document.getElementById('csv').onclick = async () => {
-  const head = ['学校名','地区','担当','生徒数','機種提示日','機種提示済','意向回収期日','意向回収済',
-                'チラシ調整開始','チラシ調整終了','チラシ確定','納品方法','納品期日','納品済','メモ'];
-  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
-  const body = state.schools.map(s => [s.name,s.area,s.owner,s.students,s.modelDate,s.modelDone?'Yes':'No',
-    s.intentDate,s.intentDone?'Yes':'No',s.flyerStart,s.flyerEnd,s.flyerDone?'Yes':'No',
-    s.method,s.deliveryDate,s.deliveryDone?'Yes':'No',s.note||''].map(esc).join(','));
-  const csv = '﻿' + [head.map(esc).join(','), ...body].join('\r\n');
-  const btn = document.getElementById('csv');
+  const isPrice = ui.view === 'price';
+  const csv = '﻿' + (isPrice ? csvPrices() : csvSchools());
+  const name = isPrice ? 'flyer-prices.csv' : 'flyer-schools.csv';
+  const btn = document.getElementById('csv'), label = btn.textContent;
   let dl = null;
-  try { dl = window.claude && claude.use ? await claude.use('downloads') : null; } catch (e) {}
-  if (dl){
-    try { await dl.save({filename:'flyer-tracker.csv', data: csv}); btn.textContent = 'CSVを書き出す'; return; }
-    catch (e) {}
-  }
+  try { dl = (window.claude && claude.use) ? await claude.use('downloads') : null; } catch (e) {}
+  if (dl){ try { await dl.save({filename:name, data:csv}); return; } catch (e) {} }
   try { await navigator.clipboard.writeText(csv); btn.textContent = 'CSVをコピーしました'; }
   catch (e) { btn.textContent = '書き出せませんでした'; }
-  setTimeout(() => { btn.textContent = 'CSVを書き出す'; }, 2600);
+  setTimeout(() => { btn.textContent = label; }, 2600);
 };
 
-/* ---------- boot ---------- */
-[...new Set(state.schools.map(s => s.owner))].sort().forEach(o => {
-  document.getElementById('f-owner').insertAdjacentHTML('beforeend', `<option value="${o}">担当：${o}</option>`);
-});
-[...new Set(state.schools.map(s => s.area))].forEach(a => {
-  document.getElementById('f-area').insertAdjacentHTML('beforeend', `<option value="${a}">地区：${a}</option>`);
-});
+/* boot */
+[...new Set(state.schools.map(s => s.owner))].sort().forEach(o =>
+  document.getElementById('f-owner').insertAdjacentHTML('beforeend', `<option value="${o}">担当：${o}</option>`));
+[...new Set(state.schools.map(s => s.area))].forEach(a =>
+  document.getElementById('f-area').insertAdjacentHTML('beforeend', `<option value="${a}">地区：${a}</option>`));
 render();
 </script>
