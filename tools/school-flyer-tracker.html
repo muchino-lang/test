@@ -12,6 +12,7 @@
   --warn:#9A6412; --warn-soft:#F6EBD6;
   --late:#B33A2B; --late-soft:#F8E2DE;
   --new:#7A3E8F; --new-soft:#F0E4F5;
+  --sale:#0F7B72; --sale-soft:#DCEFED;
   --shadow:0 1px 2px rgba(23,26,34,.06),0 8px 24px rgba(23,26,34,.07);
   --radius:8px;
 }
@@ -25,6 +26,7 @@
     --warn:#E0A852; --warn-soft:#332714;
     --late:#F08172; --late-soft:#3A1E1C;
     --new:#C79BE0; --new-soft:#2C1E36;
+    --sale:#4FC3B8; --sale-soft:#10312E;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
   }
 }
@@ -37,6 +39,7 @@
   --warn:#E0A852; --warn-soft:#332714;
   --late:#F08172; --late-soft:#3A1E1C;
   --new:#C79BE0; --new-soft:#2C1E36;
+  --sale:#4FC3B8; --sale-soft:#10312E;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
 }
 *{box-sizing:border-box}
@@ -111,6 +114,7 @@ thead .c-name{background:var(--surface-2);z-index:12}
 .d.late{color:var(--late);font-weight:600}
 .d.soon{color:var(--warn);font-weight:600}
 .d.ok{color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:1px}
+.d.fixed{color:var(--ok);font-weight:600}
 .link{font-size:11px;color:var(--accent);text-decoration:none;border-bottom:1px dotted currentColor}
 .nolink{font-size:11px;color:var(--ink-3)}
 .method{font-size:11.5px;color:var(--ink-2)}
@@ -147,42 +151,55 @@ td.num-cell{text-align:right}
 .g-left{position:sticky;left:0;z-index:6;background:var(--surface);border-right:1px solid var(--line-strong);flex:none;width:210px}
 .g-left .g-head{height:44px;border-bottom:1px solid var(--line-strong);background:var(--surface-2);
   display:flex;align-items:flex-end;padding:0 10px 6px;font-size:10.5px;letter-spacing:.09em;color:var(--ink-2);font-weight:700}
-.g-row{height:30px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--line);font-size:12px;
+.g-row{height:32px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--line);font-size:12px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;gap:6px;cursor:pointer}
 .g-row:hover{background:var(--surface-2)}
-.g-right{position:relative;flex:none}
+.g-right{position:relative;flex:none;min-width:calc(100% - 210px)}
 .g-head-inner{position:relative;height:44px;background:var(--surface-2);border-bottom:1px solid var(--line-strong)}
 .g-month{position:absolute;top:0;height:24px;border-left:1px solid var(--line-strong);padding-left:6px;
-  font-size:11px;font-weight:700;color:var(--ink-2);letter-spacing:.04em}
+  font-size:11px;font-weight:700;color:var(--ink-2);letter-spacing:.04em;overflow:hidden;white-space:nowrap}
 .g-week{position:absolute;top:24px;height:20px;border-left:1px solid var(--line);padding-left:4px;
   font-size:9.5px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
+.g-day{position:absolute;top:24px;height:20px;border-left:1px solid var(--line);
+  font-size:9px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace;text-align:center;line-height:20px}
+.g-day.we{color:var(--late)}
 .g-grid{position:absolute;inset:44px 0 0 0;pointer-events:none}
 .g-vline{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
 .g-vline.m{background:var(--line-strong)}
 .g-band{position:absolute;top:0;bottom:0;background:var(--surface-2);opacity:.5}
-.g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--late);opacity:.75}
-.g-todaylab{position:absolute;top:2px;font-size:9.5px;color:var(--late);font-weight:700;z-index:3}
+.g-wend{position:absolute;top:0;bottom:0;background:var(--late-soft);opacity:.45}
+.g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--late);opacity:.8;z-index:2}
+.g-todaylab{position:absolute;top:2px;font-size:9.5px;color:var(--late);font-weight:700;z-index:3;
+  background:var(--surface);padding:0 3px;border-radius:3px;border:1px solid var(--late)}
 .g-body{position:relative}
-.g-line{height:30px;border-bottom:1px solid var(--line);position:relative}
+.g-line{height:32px;border-bottom:1px solid var(--line);position:relative}
 .g-line:hover{background:var(--surface-2)}
-.g-bar{position:absolute;top:8px;height:14px;border-radius:4px;background:var(--accent);opacity:.9;display:flex;align-items:center}
+.g-bar{position:absolute;top:4px;height:11px;border-radius:3px;background:var(--accent);opacity:.92;display:flex;align-items:center}
 .g-bar.done{background:var(--ok)} .g-bar.late{background:var(--late)}
-.g-bar span{font-size:9.5px;color:#fff;padding:0 5px;white-space:nowrap;overflow:hidden;font-weight:600}
-.mk{position:absolute;top:11px;width:9px;height:9px;transform:rotate(45deg);border-radius:2px;background:var(--surface);border:2px solid var(--accent)}
+.g-bar.sale{top:18px;height:9px;background:var(--sale);opacity:.85}
+.g-bar.sale.late{background:var(--late)}
+.g-bar span{font-size:9px;color:#fff;padding:0 4px;white-space:nowrap;overflow:hidden;font-weight:600;line-height:1}
+.mk{position:absolute;top:5px;width:9px;height:9px;transform:rotate(45deg);border-radius:2px;background:var(--surface);border:2px solid var(--accent)}
 .mk.done{background:var(--ok);border-color:var(--ok)}
 .mk.late{background:var(--late);border-color:var(--late)}
-.mk.ec{transform:none;border-radius:50%;width:10px;height:10px;top:10px}
-.mk.flag{transform:none;border-radius:0;clip-path:polygon(0 0,100% 50%,0 100%);width:11px;height:12px;top:9px;background:var(--accent);border:0}
+.mk.ec{transform:none;border-radius:50%;width:10px;height:10px;top:4px}
+.mk.flag{transform:none;border-radius:0;clip-path:polygon(0 0,100% 50%,0 100%);width:11px;height:11px;top:17px;background:var(--accent);border:0}
 .mk.flag.done{background:var(--ok)} .mk.flag.late{background:var(--late)}
 .legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);
   background:var(--surface-2);font-size:11px;color:var(--ink-2);align-items:center}
 .legend i{display:inline-block;vertical-align:middle;margin-right:5px}
 .lg-bar{width:22px;height:9px;border-radius:3px;background:var(--accent)}
+.lg-sale{width:22px;height:9px;border-radius:3px;background:var(--sale)}
 .lg-mk{width:9px;height:9px;transform:rotate(45deg);border:2px solid var(--accent);border-radius:2px}
 .lg-ec{width:10px;height:10px;border-radius:50%;border:2px solid var(--accent)}
 .lg-fl{width:11px;height:12px;background:var(--accent);clip-path:polygon(0 0,100% 50%,0 100%)}
 .lg-td{width:2px;height:12px;background:var(--late)}
-
+.g-zoom{display:flex;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:2px}
+.g-zoom button{background:none;border:0;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11.5px;color:var(--ink-2)}
+.g-zoom button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:700}
+.g-toolbar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);
+  background:var(--surface-2);flex-wrap:wrap}
+.g-toolbar .lab{font-size:10.5px;letter-spacing:.09em;color:var(--ink-3);font-weight:700}
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(15,18,24,.4);z-index:50}
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,94vw);z-index:51;background:var(--surface);
@@ -214,12 +231,38 @@ td.num-cell{text-align:right}
 .doc code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-family:"IBM Plex Mono",monospace;font-size:11.5px}
 .note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 6px 6px 0;color:var(--ink-2);margin:10px 0}
 .hide{display:none!important}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-p:hover{background:var(--accent-2)}
+.btn-danger{color:var(--late);border-color:var(--late)}
+.btn-danger:hover{background:var(--late-soft)}
+.btn-xs{font-size:11px;padding:3px 8px;border-radius:5px;background:var(--surface);border:1px solid var(--line-strong);cursor:pointer}
+.btn-xs:hover{background:var(--surface-2)}
+.modal-wrap{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(15,18,24,.45)}
+.modal{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow);width:min(720px,96vw);max-height:88vh;display:flex;flex-direction:column}
+.modal .dr-head{border-radius:10px 10px 0 0}
+.modal-body{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.seg{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px;width:fit-content}
+.seg button{background:none;border:0;padding:5px 14px;border-radius:5px;cursor:pointer;font-size:12.5px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:700}
+#imp-text{width:100%;min-height:190px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
+  padding:9px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;line-height:1.5;white-space:pre;overflow:auto}
+.cols{font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);
+  border-radius:6px;padding:9px 11px;line-height:1.7}
+.cols code{background:var(--surface);padding:1px 5px;border-radius:3px;font-size:11px}
+.imp-msg{font-size:12px;color:var(--ink-2)}
+.imp-msg.err{color:var(--late)}
+.item-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.item-head input{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:5px 8px;font-size:12.5px}
+.dr-foot{padding:12px 18px;border-top:1px solid var(--line)}
 </style>
 
 <header>
   <div class="head-top">
     <h1 class="brand">チラシ進行<span>台帳</span></h1>
-    <span class="sub">50校 ／ 機種提示・意向回収・価格決定・ECサイトURL・チラシ調整・納品</span>
+    <span class="sub">50校 ／ 機種提示・意向回収・価格決定・ECサイトURL・チラシ調整・販売開始・納品</span>
     <span class="savepill" id="savepill" data-s="ok"><span class="savedot"></span><span id="savetext">保存済み</span></span>
   </div>
   <div class="kpis" id="kpis"></div>
@@ -242,7 +285,15 @@ td.num-cell{text-align:right}
       <option value="price">今年価格が未入力</option>
       <option value="new">新規開拓校</option>
     </select>
+    <select class="ctl" id="f-sort">
+      <option value="sale">並び：販売開始が早い順</option>
+      <option value="name">並び：学校名</option>
+      <option value="delivery">並び：納品期日が早い順</option>
+      <option value="late">並び：遅延が多い順</option>
+    </select>
     <span class="spacer"></span>
+    <button class="btn btn-p" id="add-school">＋ 学校を追加</button>
+    <button class="btn" id="import">取り込み</button>
     <button class="btn" id="csv">CSVを書き出す</button>
   </div>
 </header>
@@ -251,7 +302,7 @@ td.num-cell{text-align:right}
   <section class="panel" id="view-list"><div class="tablewrap"><table>
     <thead><tr>
       <th class="c-name">学校</th><th>担当</th><th>機種提示</th><th>実施意向回収</th>
-      <th>価格</th><th>ECサイトURL</th><th>チラシ調整期間</th><th>納品方法</th><th>納品期日</th><th>進捗</th>
+      <th>価格</th><th>ECサイトURL</th><th>チラシ調整期間</th><th>販売開始</th><th>納品方法</th><th>納品期日</th><th>進捗</th>
     </tr></thead>
     <tbody id="tbody"></tbody>
   </table></div></section>
@@ -274,11 +325,22 @@ td.num-cell{text-align:right}
   </section>
 
   <section class="panel hide" id="view-gantt">
+    <div class="g-toolbar">
+      <span class="lab">目盛り</span>
+      <div class="g-zoom" id="zoom">
+        <button data-z="month" aria-pressed="true">月</button>
+        <button data-z="week" aria-pressed="false">週</button>
+        <button data-z="day" aria-pressed="false">日</button>
+      </div>
+      <button class="btn" id="gotoday">今日へ</button>
+      <span class="lab">日表示では土日に色が付きます</span>
+    </div>
     <div class="gantt" id="gantt"></div>
     <div class="legend">
       <span><i class="lg-bar"></i>チラシ調整期間</span>
       <span><i class="lg-mk"></i>機種提示／意向回収</span>
       <span><i class="lg-ec"></i>ECサイトURL</span>
+      <span><i class="lg-sale"></i>販売期間（販売開始→納品）</span>
       <span><i class="lg-fl"></i>納品期日</span>
       <span><i class="lg-td"></i>今日</span>
       <span style="color:var(--late)">赤＝期日超過の未完了</span>
@@ -311,6 +373,7 @@ td.num-cell{text-align:right}
         <tr><td>価格確定</td><td>ロールアップ</td><td>価格DBの入力完了数を集計</td></tr>
         <tr><td>EC公開期日 / EC公開済 / ECサイトURL</td><td>日付 / チェックボックス / URL</td><td>チラシのQR用</td></tr>
         <tr><td>チラシ調整期間 / チラシ確定</td><td>日付（終了日あり）/ チェックボックス</td><td>ガントの帯になる</td></tr>
+        <tr><td>販売開始日 / 販売開始済</td><td>日付 / チェックボックス</td><td>学校ごとにバラつく。並び替えの基準</td></tr>
         <tr><td>納品方法</td><td>セレクト</td><td>一括／個別配送／手渡し／直送</td></tr>
         <tr><td>納品期日 / 納品済</td><td>日付 / チェックボックス</td><td>最終期日</td></tr>
         <tr><td>進捗 / 状態</td><td>数式</td><td>チェック6つの割合／期日超過の判定</td></tr>
@@ -333,7 +396,8 @@ td.num-cell{text-align:right}
     <ol>
       <li><b>チェックリスト</b>（学校DB・テーブル）… 地区でグループ化。チェックボックス列を並べる。</li>
       <li><b>価格表</b>（価格DB・テーブル）… 学校でグループ化。昨年の3列を左、今年の2列を右に。<b>Notionのテーブルは列を上下に連続入力できる</b>ので、この画面と同じ操作感になります。</li>
-      <li><b>ガント</b>（学校DB・タイムライン）… 表示日付に「チラシ調整期間」、別プロパティとして納品期日を重ねる。</li>
+      <li><b>ガント</b>（学校DB・タイムライン）… 表示日付に「チラシ調整期間」、別プロパティとして販売開始日・納品期日を重ねる。Notionのタイムラインも月／週／日で目盛りを切り替えられます。</li>
+      <li><b>販売開始順</b>（学校DB・テーブル）… 販売開始日で昇順。開始が近い学校から潰していくための一覧。</li>
       <li><b>今週やること</b> / <b>遅延</b>（学校DB・フィルター）… リマインドはここから。</li>
     </ol>
 
@@ -356,14 +420,15 @@ td.num-cell{text-align:right}
 </main>
 
 <div id="drawer-host"></div>
+<div id="modal-host"></div>
 
-<script id="app-data" type="application/json">{"today":"2026-08-28","schools":[{"id":"S001","name":"青葉学園高等学校","area":"東京","owner":"岡本","students":280,"isNew":false,"modelDate":"2026-09-06","modelDone":false,"intentDate":"2026-09-23","intentDone":false,"flyerStart":"2026-09-30","flyerEnd":"2026-10-10","flyerDone":false,"ecDate":"2026-10-03","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-10-24","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":65000,"wholePrev":50000,"unitsPrev":93,"listNow":68000,"wholeNow":52000}]},{"id":"S002","name":"第一実業高等学校","area":"東京","owner":"佐藤","students":200,"isNew":false,"modelDate":"2026-09-12","modelDone":false,"intentDate":"2026-09-22","intentDone":false,"flyerStart":"2026-09-29","flyerEnd":"2026-10-20","flyerDone":false,"ecDate":"2026-10-06","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-11-03","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":69000,"wholePrev":54000,"unitsPrev":46,"listNow":71000,"wholeNow":59000}]},{"id":"S003","name":"桜丘中等教育学校","area":"東京","owner":"内野","students":200,"isNew":false,"modelDate":"2026-09-13","modelDone":false,"intentDate":"2026-09-25","intentDone":false,"flyerStart":"2026-09-30","flyerEnd":"2026-10-10","flyerDone":false,"ecDate":"2026-10-03","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-10-24","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":56000,"unitsPrev":62,"listNow":67000,"wholeNow":56000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":187000,"wholePrev":147000,"unitsPrev":72,"listNow":194000,"wholeNow":158000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":135000,"unitsPrev":48,"listNow":181000,"wholeNow":144000}]},{"id":"S004","name":"北多摩高等学校","area":"東京","owner":"森田","students":240,"isNew":false,"modelDate":"2026-09-12","modelDone":false,"intentDate":"2026-09-29","intentDone":false,"flyerStart":"2026-10-06","flyerEnd":"2026-10-16","flyerDone":false,"ecDate":"2026-10-11","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-10-30","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":157000,"wholePrev":128000,"unitsPrev":131,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":65000,"wholePrev":52000,"unitsPrev":102,"listNow":67000,"wholeNow":52000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":131000,"wholePrev":100000,"unitsPrev":111,"listNow":134000,"wholeNow":107000}]},{"id":"S005","name":"目黒学院高等学校","area":"東京","owner":"佐藤","students":280,"isNew":true,"modelDate":"2026-09-15","modelDone":false,"intentDate":"2026-09-29","intentDone":false,"flyerStart":"2026-10-02","flyerEnd":"2026-10-19","flyerDone":false,"ecDate":"2026-10-07","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-11-13","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S006","name":"江戸川総合高等学校","area":"東京","owner":"森田","students":240,"isNew":true,"modelDate":"2026-09-14","modelDone":false,"intentDate":"2026-09-24","intentDone":false,"flyerStart":"2026-09-29","flyerEnd":"2026-10-13","flyerDone":false,"ecDate":"2026-10-06","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-03","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S007","name":"武蔵野工業高等学校","area":"東京","owner":"高橋","students":320,"isNew":false,"modelDate":"2026-09-17","modelDone":false,"intentDate":"2026-09-29","intentDone":false,"flyerStart":"2026-10-06","flyerEnd":"2026-10-16","flyerDone":false,"ecDate":"2026-10-13","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-10","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":194000,"wholePrev":154000,"unitsPrev":80,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":51000,"unitsPrev":128,"listNow":69000,"wholeNow":56000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":161000,"wholePrev":131000,"unitsPrev":65,"listNow":166000,"wholeNow":136000}]},{"id":"S008","name":"上野商業高等学校","area":"東京","owner":"高橋","students":120,"isNew":false,"modelDate":"2026-09-16","modelDone":false,"intentDate":"2026-10-03","intentDone":false,"flyerStart":"2026-10-08","flyerEnd":"2026-10-29","flyerDone":false,"ecDate":"2026-10-13","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-11-19","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":158000,"wholePrev":127000,"unitsPrev":52,"listNow":161000,"wholeNow":136000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":134000,"wholePrev":110000,"unitsPrev":62,"listNow":null,"wholeNow":null}]},{"id":"S009","name":"湘南台高等学校","area":"神奈川","owner":"森田","students":200,"isNew":false,"modelDate":"2026-09-20","modelDone":false,"intentDate":"2026-10-04","intentDone":false,"flyerStart":"2026-10-07","flyerEnd":"2026-10-21","flyerDone":false,"ecDate":"2026-10-12","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-11","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":178000,"wholePrev":139000,"unitsPrev":74,"listNow":178000,"wholeNow":136000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":191000,"wholePrev":150000,"unitsPrev":87,"listNow":null,"wholeNow":null}]},{"id":"S010","name":"横浜西陵高等学校","area":"神奈川","owner":"佐藤","students":200,"isNew":false,"modelDate":"2026-09-22","modelDone":false,"intentDate":"2026-10-02","intentDone":false,"flyerStart":"2026-10-05","flyerEnd":"2026-10-19","flyerDone":false,"ecDate":"2026-10-08","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-13","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":176000,"wholePrev":148000,"unitsPrev":98,"listNow":185000,"wholeNow":154000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":187000,"wholePrev":153000,"unitsPrev":103,"listNow":null,"wholeNow":null}]},{"id":"S011","name":"川崎総合科学高等学校","area":"神奈川","owner":"佐藤","students":320,"isNew":false,"modelDate":"2026-09-24","modelDone":false,"intentDate":"2026-10-08","intentDone":false,"flyerStart":"2026-10-11","flyerEnd":"2026-11-01","flyerDone":false,"ecDate":"2026-10-18","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-26","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":170000,"wholePrev":131000,"unitsPrev":75,"listNow":null,"wholeNow":null}]},{"id":"S012","name":"鎌倉女子学園高等学校","area":"神奈川","owner":"佐藤","students":80,"isNew":false,"modelDate":"2026-09-25","modelDone":false,"intentDate":"2026-10-07","intentDone":false,"flyerStart":"2026-10-14","flyerEnd":"2026-10-28","flyerDone":false,"ecDate":"2026-10-21","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-11","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":68000,"wholePrev":53000,"unitsPrev":43,"listNow":73000,"wholeNow":56000}]},{"id":"S013","name":"相模原中等教育学校","area":"神奈川","owner":"内野","students":80,"isNew":false,"modelDate":"2026-09-30","modelDone":false,"intentDate":"2026-10-14","intentDone":false,"flyerStart":"2026-10-19","flyerEnd":"2026-11-09","flyerDone":false,"ecDate":"2026-10-26","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-11-27","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":199000,"wholePrev":167000,"unitsPrev":18,"listNow":207000,"wholeNow":174000},{"model":"Eモデル Chromebook 14型","listPrev":68000,"wholePrev":55000,"unitsPrev":37,"listNow":69000,"wholeNow":56000}]},{"id":"S014","name":"港北学院高等学校","area":"神奈川","owner":"岡本","students":200,"isNew":false,"modelDate":"2026-09-30","modelDone":false,"intentDate":"2026-10-17","intentDone":false,"flyerStart":"2026-10-20","flyerEnd":"2026-10-30","flyerDone":false,"ecDate":"2026-10-27","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-17","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":155000,"wholePrev":126000,"unitsPrev":92,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":54000,"unitsPrev":73,"listNow":70000,"wholeNow":56000}]},{"id":"S015","name":"幕張総合高等学校","area":"千葉","owner":"佐藤","students":320,"isNew":false,"modelDate":"2026-09-29","modelDone":false,"intentDate":"2026-10-13","intentDone":false,"flyerStart":"2026-10-20","flyerEnd":"2026-11-10","flyerDone":false,"ecDate":"2026-10-23","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-11-28","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":193000,"wholePrev":148000,"unitsPrev":86,"listNow":203000,"wholeNow":169000}]},{"id":"S016","name":"市川東高等学校","area":"千葉","owner":"森田","students":400,"isNew":true,"modelDate":"2026-09-30","modelDone":false,"intentDate":"2026-10-17","intentDone":false,"flyerStart":"2026-10-20","flyerEnd":"2026-10-30","flyerDone":false,"ecDate":"2026-10-27","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-24","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S017","name":"柏の葉高等学校","area":"千葉","owner":"高橋","students":280,"isNew":false,"modelDate":"2026-10-02","modelDone":false,"intentDate":"2026-10-16","intentDone":false,"flyerStart":"2026-10-21","flyerEnd":"2026-11-07","flyerDone":false,"ecDate":"2026-10-24","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-21","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":191000,"wholePrev":156000,"unitsPrev":103,"listNow":206000,"wholeNow":171000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":161000,"wholePrev":124000,"unitsPrev":77,"listNow":171000,"wholeNow":134000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":169000,"wholePrev":135000,"unitsPrev":144,"listNow":null,"wholeNow":null}]},{"id":"S018","name":"船橋工業高等学校","area":"千葉","owner":"高橋","students":80,"isNew":true,"modelDate":"2026-10-06","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-30","flyerEnd":"2026-11-09","flyerDone":false,"ecDate":"2026-11-04","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-11-30","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S019","name":"成田国際高等学校","area":"千葉","owner":"岡本","students":240,"isNew":false,"modelDate":"2026-10-10","modelDone":false,"intentDate":"2026-10-24","intentDone":false,"flyerStart":"2026-10-27","flyerEnd":"2026-11-10","flyerDone":false,"ecDate":"2026-11-03","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-11-24","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":186000,"wholePrev":158000,"unitsPrev":80,"listNow":null,"wholeNow":null}]},{"id":"S020","name":"大宮開成高等学校","area":"埼玉","owner":"岡本","students":160,"isNew":true,"modelDate":"2026-10-11","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-26","flyerEnd":"2026-11-12","flyerDone":false,"ecDate":"2026-10-29","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-11-26","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S021","name":"川越西高等学校","area":"埼玉","owner":"森田","students":80,"isNew":false,"modelDate":"2026-10-11","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-28","flyerEnd":"2026-11-07","flyerDone":false,"ecDate":"2026-11-02","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-11-28","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":158000,"wholePrev":128000,"unitsPrev":20,"listNow":170000,"wholeNow":131000}]},{"id":"S022","name":"所沢商業高等学校","area":"埼玉","owner":"森田","students":200,"isNew":false,"modelDate":"2026-10-12","modelDone":false,"intentDate":"2026-10-26","intentDone":false,"flyerStart":"2026-11-02","flyerEnd":"2026-11-16","flyerDone":false,"ecDate":"2026-11-05","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-12-07","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":202000,"wholePrev":169000,"unitsPrev":37,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":139000,"wholePrev":111000,"unitsPrev":40,"listNow":null,"wholeNow":null}]},{"id":"S023","name":"越谷南高等学校","area":"埼玉","owner":"内野","students":240,"isNew":false,"modelDate":"2026-10-15","modelDone":false,"intentDate":"2026-10-29","intentDone":false,"flyerStart":"2026-11-01","flyerEnd":"2026-11-15","flyerDone":false,"ecDate":"2026-11-06","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2026-12-03","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":161000,"wholePrev":136000,"unitsPrev":91,"listNow":173000,"wholeNow":136000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":134000,"wholePrev":102000,"unitsPrev":77,"listNow":139000,"wholeNow":108000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":175000,"wholePrev":133000,"unitsPrev":66,"listNow":181000,"wholeNow":138000}]},{"id":"S024","name":"浦和実業高等学校","area":"埼玉","owner":"佐藤","students":280,"isNew":false,"modelDate":"2026-10-13","modelDone":false,"intentDate":"2026-10-23","intentDone":false,"flyerStart":"2026-10-30","flyerEnd":"2026-11-13","flyerDone":false,"ecDate":"2026-11-06","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-12-08","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":176000,"wholePrev":136000,"unitsPrev":135,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":135000,"wholePrev":108000,"unitsPrev":123,"listNow":145000,"wholeNow":120000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":195000,"wholePrev":162000,"unitsPrev":52,"listNow":null,"wholeNow":null}]},{"id":"S025","name":"天王寺学館高等学校","area":"大阪","owner":"内野","students":80,"isNew":true,"modelDate":"2026-10-15","modelDone":false,"intentDate":"2026-10-29","intentDone":false,"flyerStart":"2026-11-01","flyerEnd":"2026-11-22","flyerDone":false,"ecDate":"2026-11-06","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-06","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S026","name":"豊中北高等学校","area":"大阪","owner":"森田","students":240,"isNew":false,"modelDate":"2026-10-20","modelDone":false,"intentDate":"2026-10-30","intentDone":false,"flyerStart":"2026-11-06","flyerEnd":"2026-11-16","flyerDone":false,"ecDate":"2026-11-13","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-11","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":132000,"wholePrev":109000,"unitsPrev":63,"listNow":null,"wholeNow":null}]},{"id":"S027","name":"堺工科高等学校","area":"大阪","owner":"森田","students":120,"isNew":false,"modelDate":"2026-10-17","modelDone":false,"intentDate":"2026-11-03","intentDone":false,"flyerStart":"2026-11-10","flyerEnd":"2026-11-20","flyerDone":false,"ecDate":"2026-11-15","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-08","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":137000,"wholePrev":113000,"unitsPrev":49,"listNow":142000,"wholeNow":114000},{"model":"Eモデル Chromebook 14型","listPrev":69000,"wholePrev":53000,"unitsPrev":31,"listNow":73000,"wholeNow":57000}]},{"id":"S028","name":"枚方津田高等学校","area":"大阪","owner":"佐藤","students":240,"isNew":false,"modelDate":"2026-10-22","modelDone":false,"intentDate":"2026-11-03","intentDone":false,"flyerStart":"2026-11-08","flyerEnd":"2026-11-29","flyerDone":false,"ecDate":"2026-11-11","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-12-13","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":153000,"wholePrev":129000,"unitsPrev":125,"listNow":154000,"wholeNow":127000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":190000,"wholePrev":151000,"unitsPrev":96,"listNow":null,"wholeNow":null},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":171000,"wholePrev":132000,"unitsPrev":75,"listNow":183000,"wholeNow":146000}]},{"id":"S029","name":"梅田国際高等学校","area":"大阪","owner":"高橋","students":280,"isNew":false,"modelDate":"2026-10-25","modelDone":false,"intentDate":"2026-11-11","intentDone":false,"flyerStart":"2026-11-16","flyerEnd":"2026-11-30","flyerDone":false,"ecDate":"2026-11-21","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-25","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":130000,"wholePrev":108000,"unitsPrev":137,"listNow":140000,"wholeNow":115000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":160000,"wholePrev":126000,"unitsPrev":88,"listNow":173000,"wholeNow":141000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":172000,"wholePrev":137000,"unitsPrev":78,"listNow":173000,"wholeNow":144000}]},{"id":"S030","name":"東淀川高等学校","area":"大阪","owner":"内野","students":320,"isNew":false,"modelDate":"2026-10-24","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-17","flyerEnd":"2026-12-01","flyerDone":false,"ecDate":"2026-11-22","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-22","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":201000,"wholePrev":170000,"unitsPrev":122,"listNow":null,"wholeNow":null}]},{"id":"S031","name":"名古屋東高等学校","area":"愛知","owner":"森田","students":160,"isNew":false,"modelDate":"2026-10-29","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-17","flyerEnd":"2026-12-08","flyerDone":false,"ecDate":"2026-11-22","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-12-22","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":192000,"wholePrev":151000,"unitsPrev":72,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":65000,"wholePrev":53000,"unitsPrev":46,"listNow":null,"wholeNow":null}]},{"id":"S032","name":"岡崎工科高等学校","area":"愛知","owner":"佐藤","students":400,"isNew":true,"modelDate":"2026-10-26","modelDone":false,"intentDate":"2026-11-05","intentDone":false,"flyerStart":"2026-11-08","flyerEnd":"2026-11-29","flyerDone":false,"ecDate":"2026-11-15","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-17","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S033","name":"豊田西陵高等学校","area":"愛知","owner":"佐藤","students":280,"isNew":false,"modelDate":"2026-10-27","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-17","flyerEnd":"2026-12-04","flyerDone":false,"ecDate":"2026-11-20","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-22","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":69000,"wholePrev":57000,"unitsPrev":93,"listNow":72000,"wholeNow":57000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":172000,"wholePrev":132000,"unitsPrev":79,"listNow":null,"wholeNow":null}]},{"id":"S034","name":"一宮商業高等学校","area":"愛知","owner":"内野","students":240,"isNew":true,"modelDate":"2026-10-29","modelDone":false,"intentDate":"2026-11-15","intentDone":false,"flyerStart":"2026-11-20","flyerEnd":"2026-12-11","flyerDone":false,"ecDate":"2026-11-27","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2027-01-05","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S035","name":"刈谷南高等学校","area":"愛知","owner":"高橋","students":320,"isNew":false,"modelDate":"2026-11-05","modelDone":false,"intentDate":"2026-11-22","intentDone":false,"flyerStart":"2026-11-29","flyerEnd":"2026-12-09","flyerDone":false,"ecDate":"2026-12-04","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2026-12-23","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":190000,"wholePrev":147000,"unitsPrev":172,"listNow":203000,"wholeNow":167000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":179000,"wholePrev":150000,"unitsPrev":67,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":149000,"wholePrev":115000,"unitsPrev":125,"listNow":158000,"wholeNow":134000}]},{"id":"S036","name":"博多学園高等学校","area":"福岡","owner":"高橋","students":240,"isNew":false,"modelDate":"2026-10-31","modelDone":false,"intentDate":"2026-11-10","intentDone":false,"flyerStart":"2026-11-13","flyerEnd":"2026-11-27","flyerDone":false,"ecDate":"2026-11-18","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2026-12-22","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":64000,"wholePrev":50000,"unitsPrev":84,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":157000,"wholePrev":132000,"unitsPrev":85,"listNow":160000,"wholeNow":135000}]},{"id":"S037","name":"小倉南高等学校","area":"福岡","owner":"高橋","students":280,"isNew":true,"modelDate":"2026-11-05","modelDone":false,"intentDate":"2026-11-22","intentDone":false,"flyerStart":"2026-11-25","flyerEnd":"2026-12-09","flyerDone":false,"ecDate":"2026-11-30","ecDone":false,"ecUrl":"","method":"業者直送（分割）","deliveryDate":"2027-01-03","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S038","name":"久留米工業高等学校","area":"福岡","owner":"岡本","students":400,"isNew":false,"modelDate":"2026-11-06","modelDone":false,"intentDate":"2026-11-18","intentDone":false,"flyerStart":"2026-11-21","flyerEnd":"2026-12-01","flyerDone":false,"ecDate":"2026-11-26","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-19","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":132000,"wholePrev":103000,"unitsPrev":184,"listNow":142000,"wholeNow":114000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":170000,"wholePrev":133000,"unitsPrev":133,"listNow":null,"wholeNow":null}]},{"id":"S039","name":"筑紫丘学院高等学校","area":"福岡","owner":"内野","students":80,"isNew":false,"modelDate":"2026-11-05","modelDone":false,"intentDate":"2026-11-17","intentDone":false,"flyerStart":"2026-11-20","flyerEnd":"2026-12-04","flyerDone":false,"ecDate":"2026-11-27","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-29","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":173000,"wholePrev":145000,"unitsPrev":40,"listNow":null,"wholeNow":null}]},{"id":"S040","name":"札幌白石高等学校","area":"北海道","owner":"佐藤","students":280,"isNew":false,"modelDate":"2026-11-08","modelDone":false,"intentDate":"2026-11-25","intentDone":false,"flyerStart":"2026-11-28","flyerEnd":"2026-12-19","flyerDone":false,"ecDate":"2026-12-03","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2027-01-09","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":129000,"unitsPrev":93,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":156000,"wholePrev":129000,"unitsPrev":89,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":191000,"wholePrev":159000,"unitsPrev":59,"listNow":null,"wholeNow":null}]},{"id":"S041","name":"旭川西高等学校","area":"北海道","owner":"内野","students":320,"isNew":false,"modelDate":"2026-11-11","modelDone":false,"intentDate":"2026-11-23","intentDone":false,"flyerStart":"2026-11-28","flyerEnd":"2026-12-19","flyerDone":false,"ecDate":"2026-12-03","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2027-01-02","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":192000,"wholePrev":154000,"unitsPrev":152,"listNow":195000,"wholeNow":149000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":156000,"wholePrev":124000,"unitsPrev":97,"listNow":null,"wholeNow":null}]},{"id":"S042","name":"函館港高等学校","area":"北海道","owner":"高橋","students":80,"isNew":false,"modelDate":"2026-11-15","modelDone":false,"intentDate":"2026-11-29","intentDone":false,"flyerStart":"2026-12-04","flyerEnd":"2026-12-14","flyerDone":false,"ecDate":"2026-12-09","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-28","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":158000,"wholePrev":127000,"unitsPrev":37,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":201000,"wholePrev":167000,"unitsPrev":18,"listNow":201000,"wholeNow":170000}]},{"id":"S043","name":"仙台青陵高等学校","area":"宮城","owner":"森田","students":320,"isNew":false,"modelDate":"2026-11-13","modelDone":false,"intentDate":"2026-11-27","intentDone":false,"flyerStart":"2026-12-02","flyerEnd":"2026-12-12","flyerDone":false,"ecDate":"2026-12-07","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-30","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":128000,"unitsPrev":123,"listNow":181000,"wholeNow":152000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":202000,"wholePrev":158000,"unitsPrev":67,"listNow":210000,"wholeNow":173000}]},{"id":"S044","name":"石巻工業高等学校","area":"宮城","owner":"高橋","students":240,"isNew":true,"modelDate":"2026-11-16","modelDone":false,"intentDate":"2026-12-03","intentDone":false,"flyerStart":"2026-12-10","flyerEnd":"2026-12-24","flyerDone":false,"ecDate":"2026-12-17","ecDone":false,"ecUrl":"","method":"説明会当日手渡し","deliveryDate":"2027-01-07","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S045","name":"広島観音高等学校","area":"広島","owner":"高橋","students":160,"isNew":false,"modelDate":"2026-11-16","modelDone":false,"intentDate":"2026-12-03","intentDone":false,"flyerStart":"2026-12-06","flyerEnd":"2026-12-20","flyerDone":false,"ecDate":"2026-12-09","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2027-01-07","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":53000,"unitsPrev":87,"listNow":67000,"wholeNow":56000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":177000,"wholePrev":150000,"unitsPrev":34,"listNow":189000,"wholeNow":158000}]},{"id":"S046","name":"福山誠之館高等学校","area":"広島","owner":"内野","students":280,"isNew":false,"modelDate":"2026-11-17","modelDone":false,"intentDate":"2026-11-27","intentDone":false,"flyerStart":"2026-11-30","flyerEnd":"2026-12-14","flyerDone":false,"ecDate":"2026-12-03","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2026-12-28","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":198000,"wholePrev":162000,"unitsPrev":51,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":138000,"wholePrev":109000,"unitsPrev":54,"listNow":138000,"wholeNow":117000}]},{"id":"S047","name":"洛北総合高等学校","area":"京都","owner":"佐藤","students":240,"isNew":false,"modelDate":"2026-11-24","modelDone":false,"intentDate":"2026-12-08","intentDone":false,"flyerStart":"2026-12-13","flyerEnd":"2026-12-30","flyerDone":false,"ecDate":"2026-12-20","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2027-01-17","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":135000,"unitsPrev":86,"listNow":179000,"wholeNow":147000}]},{"id":"S048","name":"京都工学院高等学校","area":"京都","owner":"森田","students":80,"isNew":false,"modelDate":"2026-11-22","modelDone":false,"intentDate":"2026-12-06","intentDone":false,"flyerStart":"2026-12-11","flyerEnd":"2026-12-28","flyerDone":false,"ecDate":"2026-12-16","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2027-01-22","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":50000,"unitsPrev":37,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":137000,"wholePrev":109000,"unitsPrev":26,"listNow":null,"wholeNow":null}]},{"id":"S049","name":"神戸海洋高等学校","area":"兵庫","owner":"森田","students":160,"isNew":false,"modelDate":"2026-11-27","modelDone":false,"intentDate":"2026-12-07","intentDone":false,"flyerStart":"2026-12-12","flyerEnd":"2026-12-29","flyerDone":false,"ecDate":"2026-12-19","ecDone":false,"ecUrl":"","method":"個別配送（自宅）","deliveryDate":"2027-01-23","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":155000,"wholePrev":127000,"unitsPrev":82,"listNow":163000,"wholeNow":129000},{"model":"Eモデル Chromebook 14型","listPrev":67000,"wholePrev":52000,"unitsPrev":45,"listNow":72000,"wholeNow":55000}]},{"id":"S050","name":"西宮甲山高等学校","area":"兵庫","owner":"佐藤","students":120,"isNew":false,"modelDate":"2026-11-29","modelDone":false,"intentDate":"2026-12-09","intentDone":false,"flyerStart":"2026-12-14","flyerEnd":"2026-12-24","flyerDone":false,"ecDate":"2026-12-19","ecDone":false,"ecUrl":"","method":"一括納品（学校搬入）","deliveryDate":"2027-01-18","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":176000,"wholePrev":137000,"unitsPrev":42,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":187000,"wholePrev":158000,"unitsPrev":28,"listNow":189000,"wholeNow":160000}]}]}</script>
+<script id="app-data" type="application/json">{"today":"2026-08-28","schools":[{"id":"S001","name":"青葉学園高等学校","area":"東京","owner":"内野","students":320,"isNew":false,"modelDate":"2026-07-08","modelDone":true,"intentDate":"2026-07-25","intentDone":true,"flyerStart":"2026-08-01","flyerEnd":"2026-08-11","flyerDone":false,"ecDate":"2026-08-04","ecDone":false,"ecUrl":"","saleStart":"2026-08-14","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-09-01","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":169000,"wholePrev":135000,"unitsPrev":155,"listNow":172000,"wholeNow":140000}]},{"id":"S002","name":"第一実業高等学校","area":"東京","owner":"森田","students":200,"isNew":true,"modelDate":"2026-07-10","modelDone":true,"intentDate":"2026-07-20","intentDone":true,"flyerStart":"2026-07-27","flyerEnd":"2026-08-13","flyerDone":true,"ecDate":"2026-07-30","ecDone":true,"ecUrl":"https://shop.example.jp/school-002","saleStart":"2026-08-23","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-08-31","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S003","name":"桜丘中等教育学校","area":"東京","owner":"内野","students":240,"isNew":false,"modelDate":"2026-07-13","modelDone":false,"intentDate":"2026-07-30","intentDone":false,"flyerStart":"2026-08-04","flyerEnd":"2026-08-18","flyerDone":false,"ecDate":"2026-08-09","ecDone":false,"ecUrl":"","saleStart":"2026-08-23","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-09-05","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":136000,"wholePrev":104000,"unitsPrev":88,"listNow":140000,"wholeNow":118000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":193000,"wholePrev":163000,"unitsPrev":50,"listNow":null,"wholeNow":null},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":179000,"wholePrev":149000,"unitsPrev":73,"listNow":186000,"wholeNow":155000}]},{"id":"S004","name":"北多摩高等学校","area":"東京","owner":"森田","students":120,"isNew":false,"modelDate":"2026-07-15","modelDone":true,"intentDate":"2026-07-25","intentDone":true,"flyerStart":"2026-07-28","flyerEnd":"2026-08-14","flyerDone":true,"ecDate":"2026-08-04","ecDone":false,"ecUrl":"","saleStart":"2026-08-24","saleDone":true,"method":"個別配送（自宅）","deliveryDate":"2026-09-04","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":150000,"wholePrev":117000,"unitsPrev":38,"listNow":155000,"wholeNow":125000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":180000,"wholePrev":150000,"unitsPrev":59,"listNow":186000,"wholeNow":147000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":200000,"wholePrev":169000,"unitsPrev":28,"listNow":204000,"wholeNow":159000}]},{"id":"S005","name":"目黒学院高等学校","area":"東京","owner":"岡本","students":320,"isNew":false,"modelDate":"2026-07-14","modelDone":true,"intentDate":"2026-07-26","intentDone":true,"flyerStart":"2026-07-31","flyerEnd":"2026-08-17","flyerDone":true,"ecDate":"2026-08-07","ecDone":true,"ecUrl":"https://shop.example.jp/school-005","saleStart":"2026-08-24","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-09-04","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":194000,"wholePrev":154000,"unitsPrev":80,"listNow":196000,"wholeNow":160000},{"model":"Eモデル Chromebook 14型","listPrev":64000,"wholePrev":52000,"unitsPrev":121,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":149000,"wholePrev":116000,"unitsPrev":102,"listNow":null,"wholeNow":null}]},{"id":"S006","name":"江戸川総合高等学校","area":"東京","owner":"佐藤","students":280,"isNew":false,"modelDate":"2026-07-15","modelDone":false,"intentDate":"2026-08-01","intentDone":false,"flyerStart":"2026-08-06","flyerEnd":"2026-08-27","flyerDone":false,"ecDate":"2026-08-11","ecDone":false,"ecUrl":"","saleStart":"2026-09-03","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-09-10","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":194000,"wholePrev":151000,"unitsPrev":149,"listNow":205000,"wholeNow":173000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":178000,"wholePrev":140000,"unitsPrev":117,"listNow":190000,"wholeNow":153000}]},{"id":"S007","name":"武蔵野工業高等学校","area":"東京","owner":"高橋","students":80,"isNew":false,"modelDate":"2026-07-21","modelDone":true,"intentDate":"2026-08-04","intentDone":true,"flyerStart":"2026-08-11","flyerEnd":"2026-08-25","flyerDone":true,"ecDate":"2026-08-14","ecDone":true,"ecUrl":"https://shop.example.jp/school-007","saleStart":"2026-08-30","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-09-19","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":135000,"wholePrev":105000,"unitsPrev":32,"listNow":144000,"wholeNow":119000}]},{"id":"S008","name":"上野商業高等学校","area":"東京","owner":"佐藤","students":120,"isNew":true,"modelDate":"2026-07-18","modelDone":true,"intentDate":"2026-07-30","intentDone":true,"flyerStart":"2026-08-04","flyerEnd":"2026-08-21","flyerDone":true,"ecDate":"2026-08-07","ecDone":true,"ecUrl":"https://shop.example.jp/school-008","saleStart":"2026-08-26","saleDone":true,"method":"業者直送（分割）","deliveryDate":"2026-09-15","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S009","name":"湘南台高等学校","area":"神奈川","owner":"内野","students":160,"isNew":false,"modelDate":"2026-07-23","modelDone":true,"intentDate":"2026-08-06","intentDone":false,"flyerStart":"2026-08-09","flyerEnd":"2026-08-30","flyerDone":false,"ecDate":"2026-08-16","ecDone":false,"ecUrl":"","saleStart":"2026-09-09","saleDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-09-24","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":169000,"wholePrev":142000,"unitsPrev":76,"listNow":180000,"wholeNow":153000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":157000,"wholePrev":124000,"unitsPrev":61,"listNow":157000,"wholeNow":133000}]},{"id":"S010","name":"横浜西陵高等学校","area":"神奈川","owner":"岡本","students":320,"isNew":false,"modelDate":"2026-07-28","modelDone":true,"intentDate":"2026-08-09","intentDone":true,"flyerStart":"2026-08-12","flyerEnd":"2026-08-29","flyerDone":false,"ecDate":"2026-08-15","ecDone":false,"ecUrl":"","saleStart":"2026-09-03","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-09-19","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":160000,"wholePrev":131000,"unitsPrev":154,"listNow":171000,"wholeNow":143000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":131000,"wholePrev":101000,"unitsPrev":118,"listNow":null,"wholeNow":null}]},{"id":"S011","name":"川崎総合科学高等学校","area":"神奈川","owner":"森田","students":80,"isNew":false,"modelDate":"2026-07-24","modelDone":true,"intentDate":"2026-08-05","intentDone":true,"flyerStart":"2026-08-08","flyerEnd":"2026-08-18","flyerDone":true,"ecDate":"2026-08-13","ecDone":true,"ecUrl":"https://shop.example.jp/school-011","saleStart":"2026-08-21","saleDone":true,"method":"個別配送（自宅）","deliveryDate":"2026-09-08","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":168000,"wholePrev":129000,"unitsPrev":27,"listNow":180000,"wholeNow":138000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":133000,"wholePrev":113000,"unitsPrev":32,"listNow":136000,"wholeNow":110000}]},{"id":"S012","name":"鎌倉女子学園高等学校","area":"神奈川","owner":"森田","students":200,"isNew":false,"modelDate":"2026-07-27","modelDone":true,"intentDate":"2026-08-08","intentDone":false,"flyerStart":"2026-08-13","flyerEnd":"2026-09-03","flyerDone":false,"ecDate":"2026-08-16","ecDone":false,"ecUrl":"","saleStart":"2026-09-06","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-09-28","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":152000,"wholePrev":117000,"unitsPrev":93,"listNow":null,"wholeNow":null},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":173000,"wholePrev":135000,"unitsPrev":46,"listNow":183000,"wholeNow":141000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":139000,"wholePrev":108000,"unitsPrev":85,"listNow":147000,"wholeNow":125000}]},{"id":"S013","name":"相模原中等教育学校","area":"神奈川","owner":"高橋","students":280,"isNew":false,"modelDate":"2026-07-28","modelDone":true,"intentDate":"2026-08-11","intentDone":true,"flyerStart":"2026-08-14","flyerEnd":"2026-08-31","flyerDone":false,"ecDate":"2026-08-21","ecDone":false,"ecUrl":"","saleStart":"2026-09-03","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-09-21","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":65000,"wholePrev":55000,"unitsPrev":74,"listNow":66000,"wholeNow":56000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":151000,"wholePrev":125000,"unitsPrev":135,"listNow":null,"wholeNow":null}]},{"id":"S014","name":"港北学院高等学校","area":"神奈川","owner":"内野","students":120,"isNew":true,"modelDate":"2026-08-01","modelDone":true,"intentDate":"2026-08-18","intentDone":true,"flyerStart":"2026-08-25","flyerEnd":"2026-09-04","flyerDone":false,"ecDate":"2026-08-30","ecDone":false,"ecUrl":"","saleStart":"2026-09-11","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-09-18","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":73000,"wholeNow":56000}]},{"id":"S015","name":"幕張総合高等学校","area":"千葉","owner":"佐藤","students":240,"isNew":true,"modelDate":"2026-08-03","modelDone":true,"intentDate":"2026-08-20","intentDone":true,"flyerStart":"2026-08-25","flyerEnd":"2026-09-08","flyerDone":false,"ecDate":"2026-09-01","ecDone":false,"ecUrl":"","saleStart":"2026-09-11","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-09-26","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":182000,"wholeNow":143000}]},{"id":"S016","name":"市川東高等学校","area":"千葉","owner":"内野","students":200,"isNew":false,"modelDate":"2026-08-05","modelDone":false,"intentDate":"2026-08-17","intentDone":false,"flyerStart":"2026-08-22","flyerEnd":"2026-09-01","flyerDone":false,"ecDate":"2026-08-27","ecDone":false,"ecUrl":"","saleStart":"2026-09-08","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-09-15","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":177000,"wholePrev":145000,"unitsPrev":84,"listNow":190000,"wholeNow":161000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":191000,"wholePrev":149000,"unitsPrev":52,"listNow":204000,"wholeNow":168000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":150000,"wholePrev":127000,"unitsPrev":108,"listNow":null,"wholeNow":null}]},{"id":"S017","name":"柏の葉高等学校","area":"千葉","owner":"佐藤","students":160,"isNew":false,"modelDate":"2026-08-04","modelDone":true,"intentDate":"2026-08-21","intentDone":true,"flyerStart":"2026-08-24","flyerEnd":"2026-09-03","flyerDone":false,"ecDate":"2026-08-27","ecDone":false,"ecUrl":"","saleStart":"2026-09-13","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-09-24","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":130000,"wholePrev":103000,"unitsPrev":48,"listNow":130000,"wholeNow":109000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":190000,"wholePrev":148000,"unitsPrev":48,"listNow":194000,"wholeNow":159000}]},{"id":"S018","name":"船橋工業高等学校","area":"千葉","owner":"岡本","students":160,"isNew":true,"modelDate":"2026-08-09","modelDone":true,"intentDate":"2026-08-19","intentDone":true,"flyerStart":"2026-08-22","flyerEnd":"2026-09-01","flyerDone":false,"ecDate":"2026-08-27","ecDone":false,"ecUrl":"","saleStart":"2026-09-11","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-09-15","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":145000,"wholeNow":112000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S019","name":"成田国際高等学校","area":"千葉","owner":"岡本","students":160,"isNew":false,"modelDate":"2026-08-11","modelDone":false,"intentDate":"2026-08-23","intentDone":false,"flyerStart":"2026-08-30","flyerEnd":"2026-09-09","flyerDone":false,"ecDate":"2026-09-06","ecDone":false,"ecUrl":"","saleStart":"2026-09-14","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-09-23","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":159000,"wholePrev":129000,"unitsPrev":65,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":197000,"wholePrev":158000,"unitsPrev":28,"listNow":null,"wholeNow":null}]},{"id":"S020","name":"大宮開成高等学校","area":"埼玉","owner":"森田","students":400,"isNew":false,"modelDate":"2026-08-07","modelDone":true,"intentDate":"2026-08-24","intentDone":true,"flyerStart":"2026-08-29","flyerEnd":"2026-09-15","flyerDone":false,"ecDate":"2026-09-01","ecDone":false,"ecUrl":"","saleStart":"2026-09-20","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-03","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":201000,"wholePrev":158000,"unitsPrev":78,"listNow":211000,"wholeNow":167000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":157000,"wholePrev":129000,"unitsPrev":163,"listNow":163000,"wholeNow":131000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":181000,"wholePrev":139000,"unitsPrev":104,"listNow":191000,"wholeNow":150000}]},{"id":"S021","name":"川越西高等学校","area":"埼玉","owner":"森田","students":400,"isNew":false,"modelDate":"2026-08-12","modelDone":true,"intentDate":"2026-08-24","intentDone":true,"flyerStart":"2026-08-29","flyerEnd":"2026-09-19","flyerDone":false,"ecDate":"2026-09-01","ecDone":false,"ecUrl":"","saleStart":"2026-09-22","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-10","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":201000,"wholePrev":170000,"unitsPrev":83,"listNow":213000,"wholeNow":167000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":172000,"wholePrev":140000,"unitsPrev":165,"listNow":174000,"wholeNow":138000}]},{"id":"S022","name":"所沢商業高等学校","area":"埼玉","owner":"高橋","students":320,"isNew":false,"modelDate":"2026-08-11","modelDone":true,"intentDate":"2026-08-21","intentDone":true,"flyerStart":"2026-08-26","flyerEnd":"2026-09-16","flyerDone":false,"ecDate":"2026-09-02","ecDone":false,"ecUrl":"","saleStart":"2026-09-26","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-07","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":149000,"wholePrev":123000,"unitsPrev":156,"listNow":160000,"wholeNow":132000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":140000,"wholePrev":110000,"unitsPrev":101,"listNow":151000,"wholeNow":123000}]},{"id":"S023","name":"越谷南高等学校","area":"埼玉","owner":"高橋","students":280,"isNew":false,"modelDate":"2026-08-17","modelDone":true,"intentDate":"2026-08-27","intentDone":true,"flyerStart":"2026-09-01","flyerEnd":"2026-09-11","flyerDone":false,"ecDate":"2026-09-04","ecDone":false,"ecUrl":"","saleStart":"2026-09-18","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-09-29","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":139000,"wholePrev":116000,"unitsPrev":115,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":195000,"wholePrev":161000,"unitsPrev":55,"listNow":207000,"wholeNow":169000}]},{"id":"S024","name":"浦和実業高等学校","area":"埼玉","owner":"佐藤","students":240,"isNew":true,"modelDate":"2026-08-17","modelDone":true,"intentDate":"2026-08-29","intentDone":false,"flyerStart":"2026-09-01","flyerEnd":"2026-09-22","flyerDone":false,"ecDate":"2026-09-06","ecDone":false,"ecUrl":"","saleStart":"2026-09-29","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-13","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":140000,"wholeNow":108000},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":73000,"wholeNow":59000}]},{"id":"S025","name":"天王寺学館高等学校","area":"大阪","owner":"高橋","students":120,"isNew":false,"modelDate":"2026-08-21","modelDone":false,"intentDate":"2026-09-07","intentDone":false,"flyerStart":"2026-09-12","flyerEnd":"2026-09-26","flyerDone":false,"ecDate":"2026-09-15","ecDone":false,"ecUrl":"","saleStart":"2026-10-01","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-10-10","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":171000,"wholePrev":139000,"unitsPrev":60,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":134000,"wholePrev":107000,"unitsPrev":44,"listNow":138000,"wholeNow":106000}]},{"id":"S026","name":"豊中北高等学校","area":"大阪","owner":"森田","students":320,"isNew":true,"modelDate":"2026-08-20","modelDone":true,"intentDate":"2026-09-01","intentDone":false,"flyerStart":"2026-09-04","flyerEnd":"2026-09-18","flyerDone":false,"ecDate":"2026-09-09","ecDone":false,"ecUrl":"","saleStart":"2026-09-28","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-13","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":167000,"wholeNow":140000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":186000,"wholeNow":141000}]},{"id":"S027","name":"堺工科高等学校","area":"大阪","owner":"森田","students":80,"isNew":false,"modelDate":"2026-08-19","modelDone":false,"intentDate":"2026-08-29","intentDone":false,"flyerStart":"2026-09-01","flyerEnd":"2026-09-15","flyerDone":false,"ecDate":"2026-09-04","ecDone":false,"ecUrl":"","saleStart":"2026-09-18","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-10-10","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":171000,"wholePrev":144000,"unitsPrev":33,"listNow":173000,"wholeNow":135000}]},{"id":"S028","name":"枚方津田高等学校","area":"大阪","owner":"高橋","students":400,"isNew":true,"modelDate":"2026-08-21","modelDone":true,"intentDate":"2026-09-02","intentDone":false,"flyerStart":"2026-09-07","flyerEnd":"2026-09-21","flyerDone":false,"ecDate":"2026-09-12","ecDone":false,"ecUrl":"","saleStart":"2026-09-24","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-10-05","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":141000,"wholeNow":110000},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S029","name":"梅田国際高等学校","area":"大阪","owner":"岡本","students":80,"isNew":true,"modelDate":"2026-08-24","modelDone":true,"intentDate":"2026-09-10","intentDone":false,"flyerStart":"2026-09-13","flyerEnd":"2026-09-27","flyerDone":false,"ecDate":"2026-09-18","ecDone":false,"ecUrl":"","saleStart":"2026-10-07","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-10-18","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":147000,"wholeNow":121000}]},{"id":"S030","name":"東淀川高等学校","area":"大阪","owner":"森田","students":240,"isNew":true,"modelDate":"2026-08-24","modelDone":true,"intentDate":"2026-09-07","intentDone":false,"flyerStart":"2026-09-10","flyerEnd":"2026-10-01","flyerDone":false,"ecDate":"2026-09-13","ecDone":false,"ecUrl":"","saleStart":"2026-10-06","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-10-22","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":69000,"wholeNow":54000}]},{"id":"S031","name":"名古屋東高等学校","area":"愛知","owner":"森田","students":80,"isNew":false,"modelDate":"2026-08-25","modelDone":false,"intentDate":"2026-09-11","intentDone":false,"flyerStart":"2026-09-14","flyerEnd":"2026-09-24","flyerDone":false,"ecDate":"2026-09-17","ecDone":false,"ecUrl":"","saleStart":"2026-09-29","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-10-19","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":200000,"wholePrev":168000,"unitsPrev":36,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":69000,"wholePrev":54000,"unitsPrev":19,"listNow":null,"wholeNow":null}]},{"id":"S032","name":"岡崎工科高等学校","area":"愛知","owner":"佐藤","students":80,"isNew":false,"modelDate":"2026-08-31","modelDone":false,"intentDate":"2026-09-17","intentDone":false,"flyerStart":"2026-09-22","flyerEnd":"2026-10-13","flyerDone":false,"ecDate":"2026-09-27","ecDone":false,"ecUrl":"","saleStart":"2026-10-18","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-27","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":131000,"wholePrev":105000,"unitsPrev":40,"listNow":null,"wholeNow":null}]},{"id":"S033","name":"豊田西陵高等学校","area":"愛知","owner":"内野","students":280,"isNew":false,"modelDate":"2026-09-02","modelDone":false,"intentDate":"2026-09-16","intentDone":false,"flyerStart":"2026-09-21","flyerEnd":"2026-10-01","flyerDone":false,"ecDate":"2026-09-24","ecDone":false,"ecUrl":"","saleStart":"2026-10-11","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-10-19","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":178000,"wholePrev":143000,"unitsPrev":115,"listNow":187000,"wholeNow":149000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":134000,"wholePrev":107000,"unitsPrev":133,"listNow":136000,"wholeNow":104000},{"model":"Eモデル Chromebook 14型","listPrev":67000,"wholePrev":53000,"unitsPrev":85,"listNow":null,"wholeNow":null}]},{"id":"S034","name":"一宮商業高等学校","area":"愛知","owner":"森田","students":200,"isNew":false,"modelDate":"2026-09-03","modelDone":false,"intentDate":"2026-09-17","intentDone":false,"flyerStart":"2026-09-22","flyerEnd":"2026-10-02","flyerDone":false,"ecDate":"2026-09-27","ecDone":false,"ecUrl":"","saleStart":"2026-10-05","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-16","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":197000,"wholePrev":158000,"unitsPrev":93,"listNow":null,"wholeNow":null}]},{"id":"S035","name":"刈谷南高等学校","area":"愛知","owner":"岡本","students":280,"isNew":true,"modelDate":"2026-09-03","modelDone":false,"intentDate":"2026-09-15","intentDone":false,"flyerStart":"2026-09-18","flyerEnd":"2026-10-05","flyerDone":false,"ecDate":"2026-09-25","ecDone":false,"ecUrl":"","saleStart":"2026-10-10","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-10-23","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S036","name":"博多学園高等学校","area":"福岡","owner":"佐藤","students":280,"isNew":false,"modelDate":"2026-09-04","modelDone":false,"intentDate":"2026-09-16","intentDone":false,"flyerStart":"2026-09-19","flyerEnd":"2026-09-29","flyerDone":false,"ecDate":"2026-09-24","ecDone":false,"ecUrl":"","saleStart":"2026-10-02","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-10-24","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":202000,"wholePrev":158000,"unitsPrev":59,"listNow":210000,"wholeNow":173000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":154000,"wholePrev":120000,"unitsPrev":93,"listNow":null,"wholeNow":null}]},{"id":"S037","name":"小倉南高等学校","area":"福岡","owner":"内野","students":240,"isNew":false,"modelDate":"2026-09-05","modelDone":false,"intentDate":"2026-09-19","intentDone":false,"flyerStart":"2026-09-24","flyerEnd":"2026-10-11","flyerDone":false,"ecDate":"2026-10-01","ecDone":false,"ecUrl":"","saleStart":"2026-10-18","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-11-01","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":189000,"wholePrev":148000,"unitsPrev":68,"listNow":null,"wholeNow":null},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":170000,"wholePrev":130000,"unitsPrev":65,"listNow":177000,"wholeNow":145000}]},{"id":"S038","name":"久留米工業高等学校","area":"福岡","owner":"内野","students":240,"isNew":false,"modelDate":"2026-09-04","modelDone":false,"intentDate":"2026-09-14","intentDone":false,"flyerStart":"2026-09-19","flyerEnd":"2026-10-10","flyerDone":false,"ecDate":"2026-09-22","ecDone":false,"ecUrl":"","saleStart":"2026-10-17","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-10-24","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":151000,"wholePrev":128000,"unitsPrev":94,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":66000,"wholePrev":55000,"unitsPrev":83,"listNow":70000,"wholeNow":59000}]},{"id":"S039","name":"筑紫丘学院高等学校","area":"福岡","owner":"森田","students":200,"isNew":true,"modelDate":"2026-09-08","modelDone":false,"intentDate":"2026-09-22","intentDone":false,"flyerStart":"2026-09-25","flyerEnd":"2026-10-09","flyerDone":false,"ecDate":"2026-09-28","ecDone":false,"ecUrl":"","saleStart":"2026-10-16","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-10-23","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S040","name":"札幌白石高等学校","area":"北海道","owner":"岡本","students":320,"isNew":true,"modelDate":"2026-09-10","modelDone":false,"intentDate":"2026-09-20","intentDone":false,"flyerStart":"2026-09-23","flyerEnd":"2026-10-14","flyerDone":false,"ecDate":"2026-09-26","ecDone":false,"ecUrl":"","saleStart":"2026-10-24","saleDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-10-28","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S041","name":"旭川西高等学校","area":"北海道","owner":"高橋","students":240,"isNew":false,"modelDate":"2026-09-09","modelDone":false,"intentDate":"2026-09-21","intentDone":false,"flyerStart":"2026-09-26","flyerEnd":"2026-10-13","flyerDone":false,"ecDate":"2026-10-03","ecDone":false,"ecUrl":"","saleStart":"2026-10-23","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-11-03","deliveryDone":false,"note":"","items":[{"model":"Aモデル ノート14型 / i5・16GB","listPrev":156000,"wholePrev":124000,"unitsPrev":80,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":141000,"wholePrev":112000,"unitsPrev":60,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":189000,"wholePrev":144000,"unitsPrev":123,"listNow":201000,"wholeNow":160000}]},{"id":"S042","name":"函館港高等学校","area":"北海道","owner":"森田","students":280,"isNew":false,"modelDate":"2026-09-12","modelDone":false,"intentDate":"2026-09-22","intentDone":false,"flyerStart":"2026-09-25","flyerEnd":"2026-10-09","flyerDone":false,"ecDate":"2026-10-02","ecDone":false,"ecUrl":"","saleStart":"2026-10-19","saleDone":false,"method":"説明会当日手渡し","deliveryDate":"2026-10-23","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":171000,"wholePrev":138000,"unitsPrev":146,"listNow":178000,"wholeNow":148000},{"model":"Cモデル 2in1 / i5・8GB","listPrev":140000,"wholePrev":109000,"unitsPrev":63,"listNow":null,"wholeNow":null}]},{"id":"S043","name":"仙台青陵高等学校","area":"宮城","owner":"森田","students":200,"isNew":true,"modelDate":"2026-09-17","modelDone":false,"intentDate":"2026-10-04","intentDone":false,"flyerStart":"2026-10-07","flyerEnd":"2026-10-21","flyerDone":false,"ecDate":"2026-10-14","ecDone":false,"ecUrl":"","saleStart":"2026-10-26","saleDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-11-15","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Eモデル Chromebook 14型","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]},{"id":"S044","name":"石巻工業高等学校","area":"宮城","owner":"森田","students":280,"isNew":false,"modelDate":"2026-09-14","modelDone":false,"intentDate":"2026-09-26","intentDone":false,"flyerStart":"2026-09-29","flyerEnd":"2026-10-13","flyerDone":false,"ecDate":"2026-10-06","ecDone":false,"ecUrl":"","saleStart":"2026-10-16","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-10-27","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":196000,"wholePrev":159000,"unitsPrev":115,"listNow":203000,"wholeNow":165000}]},{"id":"S045","name":"広島観音高等学校","area":"広島","owner":"佐藤","students":200,"isNew":false,"modelDate":"2026-09-19","modelDone":false,"intentDate":"2026-10-06","intentDone":false,"flyerStart":"2026-10-09","flyerEnd":"2026-10-19","flyerDone":false,"ecDate":"2026-10-12","ecDone":false,"ecUrl":"","saleStart":"2026-10-29","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-11-13","deliveryDone":false,"note":"","items":[{"model":"Eモデル Chromebook 14型","listPrev":68000,"wholePrev":54000,"unitsPrev":40,"listNow":70000,"wholeNow":58000},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":194000,"wholePrev":159000,"unitsPrev":39,"listNow":208000,"wholeNow":164000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":158000,"wholePrev":121000,"unitsPrev":91,"listNow":null,"wholeNow":null}]},{"id":"S046","name":"福山誠之館高等学校","area":"広島","owner":"森田","students":200,"isNew":false,"modelDate":"2026-09-21","modelDone":false,"intentDate":"2026-10-01","intentDone":false,"flyerStart":"2026-10-04","flyerEnd":"2026-10-25","flyerDone":false,"ecDate":"2026-10-07","ecDone":false,"ecUrl":"","saleStart":"2026-11-01","saleDone":false,"method":"個別配送（自宅）","deliveryDate":"2026-11-12","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":136000,"wholePrev":106000,"unitsPrev":59,"listNow":null,"wholeNow":null}]},{"id":"S047","name":"洛北総合高等学校","area":"京都","owner":"森田","students":80,"isNew":false,"modelDate":"2026-09-22","modelDone":false,"intentDate":"2026-10-04","intentDone":false,"flyerStart":"2026-10-11","flyerEnd":"2026-10-25","flyerDone":false,"ecDate":"2026-10-16","ecDone":false,"ecUrl":"","saleStart":"2026-11-01","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-11-15","deliveryDone":false,"note":"","items":[{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":170000,"wholePrev":144000,"unitsPrev":34,"listNow":null,"wholeNow":null},{"model":"Dモデル ノート15型 / i7・16GB","listPrev":189000,"wholePrev":157000,"unitsPrev":17,"listNow":199000,"wholeNow":158000}]},{"id":"S048","name":"京都工学院高等学校","area":"京都","owner":"高橋","students":160,"isNew":false,"modelDate":"2026-09-24","modelDone":false,"intentDate":"2026-10-11","intentDone":false,"flyerStart":"2026-10-18","flyerEnd":"2026-11-04","flyerDone":false,"ecDate":"2026-10-23","ecDone":false,"ecUrl":"","saleStart":"2026-11-14","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-11-25","deliveryDone":false,"note":"","items":[{"model":"Cモデル 2in1 / i5・8GB","listPrev":135000,"wholePrev":105000,"unitsPrev":72,"listNow":144000,"wholeNow":113000},{"model":"Aモデル ノート14型 / i5・16GB","listPrev":157000,"wholePrev":133000,"unitsPrev":63,"listNow":null,"wholeNow":null}]},{"id":"S049","name":"神戸海洋高等学校","area":"兵庫","owner":"高橋","students":80,"isNew":false,"modelDate":"2026-09-23","modelDone":false,"intentDate":"2026-10-05","intentDone":false,"flyerStart":"2026-10-10","flyerEnd":"2026-10-31","flyerDone":false,"ecDate":"2026-10-17","ecDone":false,"ecUrl":"","saleStart":"2026-11-10","saleDone":false,"method":"業者直送（分割）","deliveryDate":"2026-11-21","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":196000,"wholePrev":150000,"unitsPrev":16,"listNow":null,"wholeNow":null},{"model":"Bモデル ノート13型 軽量 / i5・16GB","listPrev":172000,"wholePrev":139000,"unitsPrev":30,"listNow":176000,"wholeNow":136000}]},{"id":"S050","name":"西宮甲山高等学校","area":"兵庫","owner":"内野","students":160,"isNew":true,"modelDate":"2026-09-24","modelDone":false,"intentDate":"2026-10-06","intentDone":false,"flyerStart":"2026-10-13","flyerEnd":"2026-11-03","flyerDone":false,"ecDate":"2026-10-16","ecDone":false,"ecUrl":"","saleStart":"2026-11-06","saleDone":false,"method":"一括納品（学校搬入）","deliveryDate":"2026-11-17","deliveryDone":false,"note":"","items":[{"model":"Dモデル ノート15型 / i7・16GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null},{"model":"Cモデル 2in1 / i5・8GB","listPrev":null,"wholePrev":null,"unitsPrev":null,"listNow":null,"wholeNow":null}]}]}</script>
 <script>
 const BOOT_HTML = '<!doctype html>\n' + document.documentElement.outerHTML;
 const DATA = JSON.parse(document.getElementById('app-data').textContent);
 const TODAY = new Date(DATA.today + 'T00:00:00');
 let state = DATA;
-try { const c = localStorage.getItem('flyer-tracker-v2'); if (c) state = JSON.parse(c); } catch (e) {}
+try { const c = localStorage.getItem('flyer-tracker-v3'); if (c) state = JSON.parse(c); } catch (e) {}
 
 const METHODS = ['一括納品（学校搬入）','個別配送（自宅）','説明会当日手渡し','業者直送（分割）'];
 const STAGES = [
@@ -371,12 +436,16 @@ const STAGES = [
   {key:'intentDone',   date:'intentDate',   label:'実施意向回収'},
   {key:'ecDone',       date:'ecDate',       label:'ECサイトURL'},
   {key:'flyerDone',    date:'flyerEnd',     label:'チラシ調整'},
+  {key:'saleDone',     date:'saleStart',    label:'販売開始'},
   {key:'deliveryDone', date:'deliveryDate', label:'納品'}
 ];
 const PRICE_FIELDS = ['listNow','wholeNow'];
 
 let artifactApi = null, publishTimer = null, openId = null;
-const ui = {view:'list', q:'', owner:'', area:'', status:''};
+const ui = {view:'list', q:'', owner:'', area:'', status:'', sort:'sale', zoom:'month'};
+const ZOOM = {month:{dw:3.6}, week:{dw:9.5}, day:{dw:26}};
+const WD = ['日','月','火','水','木','金','土'];
+let gScroll = null, gJump = true;
 
 const d = s => new Date(s + 'T00:00:00');
 const days = (a,b) => Math.round((b - a) / 86400000);
@@ -406,6 +475,14 @@ function filtered(){
     if (ui.status === 'price' && priceFixed(s)) return false;
     if (ui.status === 'new'   && !s.isNew) return false;
     return true;
+  }).sort((a,b) => {
+    if (ui.sort === 'name') return a.name.localeCompare(b.name, 'ja');
+    if (ui.sort === 'delivery') return d(a.deliveryDate) - d(b.deliveryDate) || a.name.localeCompare(b.name,'ja');
+    if (ui.sort === 'late'){
+      const cnt = s => STAGES.filter(st => !s[st.key] && days(TODAY, d(s[st.date])) < 0).length;
+      return cnt(b) - cnt(a) || d(a.saleStart) - d(b.saleStart);
+    }
+    return d(a.saleStart) - d(b.saleStart) || a.name.localeCompare(b.name, 'ja');
   });
 }
 
@@ -415,7 +492,7 @@ function setSave(s, text){
   document.getElementById('savetext').textContent = text;
 }
 function persist(){
-  try { localStorage.setItem('flyer-tracker-v2', JSON.stringify(state)); } catch (e) {}
+  try { localStorage.setItem('flyer-tracker-v3', JSON.stringify(state)); } catch (e) {}
   if (!artifactApi) { setSave('local', 'この端末に保存'); return; }
   setSave('saving', '保存中…');
   clearTimeout(publishTimer);
@@ -448,6 +525,7 @@ function renderKpis(){
     ['期日超過', late, 'late'],
     ['14日以内', soon, 'soon'],
     ['価格 未確定', pOpen, 'soon'],
+    ['7日以内に販売開始', all.filter(s => !s.saleDone && days(TODAY, d(s.saleStart)) >= 0 && days(TODAY, d(s.saleStart)) <= 7).length, 'soon'],
     ['全工程 完了', done, 'done'],
     ['進捗', rate + '%', '']
   ].map(([l,v,c]) => `<div class="kpi ${c}"><b>${v}</b><small>${l}</small></div>`).join('');
@@ -461,14 +539,14 @@ function stageCell(s, st){
 }
 function renderList(){
   const rows = filtered(), tb = document.getElementById('tbody');
-  if (!rows.length){ tb.innerHTML = `<tr><td colspan="10" class="empty">条件に合う学校がありません</td></tr>`; return; }
+  if (!rows.length){ tb.innerHTML = `<tr><td colspan="11" class="empty">条件に合う学校がありません</td></tr>`; return; }
   tb.innerHTML = rows.map(s => {
     const dots = STAGES.map(st =>
       `<span class="pd ${s[st.key] ? 'on' : (days(TODAY, d(s[st.date])) < 0 ? 'bad' : '')}"></span>`).join('');
     const open = priceOpen(s);
     const priceCell = open
       ? `<span class="d soon">未入力 ${open}/${s.items.length}</span>`
-      : `<span class="d ok">確定 ${s.items.length}機種</span>`;
+      : `<span class="d fixed">確定 ${s.items.length}機種</span>`;
     const ec = s.ecUrl
       ? `<a class="link" href="${s.ecUrl}" target="_blank" rel="noopener">${s.ecUrl.replace('https://','')}</a>`
       : `<span class="nolink">未作成</span>`;
@@ -489,8 +567,9 @@ function renderList(){
         <input type="checkbox" class="cb" data-id="${s.id}" data-k="flyerDone" ${s.flyerDone ? 'checked' : ''} aria-label="${s.name} チラシ調整">
         <span class="d ${dateClass(s.flyerEnd, s.flyerDone)}">${fmt(s.flyerStart)} – ${fmt(s.flyerEnd)}</span>
       </div></td>
-      <td class="method">${s.method}</td>
       <td>${stageCell(s, STAGES[4])}</td>
+      <td class="method">${s.method}</td>
+      <td>${stageCell(s, STAGES[5])}</td>
       <td><div class="prog" title="${doneCount(s)}/${STAGES.length} 工程完了">${dots}</div></td>
     </tr>`;
   }).join('');
@@ -555,8 +634,32 @@ function refreshPriceRow(input){
 }
 function setPrice(id, idx, f, raw){
   const s = state.schools.find(v => v.id === id);
+  if (f === 'model'){ s.items[idx].model = String(raw).trim() || '未設定'; return; }
   const v = String(raw).replace(/[^\d.-]/g, '');
   s.items[idx][f] = v === '' ? null : Math.round(Number(v));
+}
+
+/* ---------- 学校・機種の登録 ---------- */
+function newId(){
+  let n = 1;
+  const used = new Set(state.schools.map(s => s.id));
+  while (used.has('S' + String(n).padStart(3, '0'))) n++;
+  return 'S' + String(n).padStart(3, '0');
+}
+function blankSchool(name){
+  const t = TODAY, day = n => new Date(t.getTime() + n * 86400000).toISOString().slice(0, 10);
+  return {
+    id:newId(), name:name || '新しい学校', area:'', owner:'', students:0, isNew:true,
+    modelDate:day(7), modelDone:false, intentDate:day(21), intentDone:false,
+    flyerStart:day(28), flyerEnd:day(45), flyerDone:false,
+    ecDate:day(35), ecDone:false, ecUrl:'',
+    saleStart:day(52), saleDone:false,
+    method:METHODS[0], deliveryDate:day(70), deliveryDone:false,
+    note:'', items:[]
+  };
+}
+function blankItem(name){
+  return {model:name || '新しい機種', listPrev:null, wholePrev:null, unitsPrev:null, listNow:null, wholeNow:null};
 }
 
 /* gantt */
@@ -565,13 +668,21 @@ function renderGantt(){
   if (!rows.length){ host.innerHTML = `<div class="empty" style="flex:1">条件に合う学校がありません</div>`; return; }
   const all = state.schools;
   let min = d(all[0].modelDate), max = d(all[0].deliveryDate);
-  all.forEach(s => { const a = d(s.modelDate), b = d(s.deliveryDate); if (a < min) min = a; if (b > max) max = b; });
+  all.forEach(s => {
+    const a = d(s.modelDate), b = d(s.deliveryDate);
+    if (a < min) min = a;
+    if (b > max) max = b;
+  });
+  if (TODAY < min) min = TODAY;
+  if (TODAY > max) max = TODAY;
   min = new Date(min.getTime() - 7 * 86400000);
   max = new Date(max.getTime() + 7 * 86400000);
-  const total = days(min, max) + 1, DW = 5.2, W = total * DW;
+  const DW = ZOOM[ui.zoom].dw, total = days(min, max) + 1, W = total * DW;
   const x = s => days(min, d(s)) * DW;
+  const dayScale = ui.zoom === 'day', monthScale = ui.zoom === 'month';
 
-  let months = '', weeks = '', grid = '', bands = '';
+  /* 目盛り：月は常に表示、その下は「日」か「週」 */
+  let months = '', ticks = '', grid = '', bands = '';
   let cur = new Date(min.getFullYear(), min.getMonth(), 1);
   while (cur <= max){
     const next = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
@@ -581,12 +692,25 @@ function renderGantt(){
     if (cur.getMonth() % 2) bands += `<div class="g-band" style="left:${left}px;width:${right-left}px"></div>`;
     cur = next;
   }
-  let w = new Date(min); w.setDate(w.getDate() + ((8 - w.getDay()) % 7));
-  while (w <= max){
-    const left = days(min, w) * DW;
-    weeks += `<div class="g-week" style="left:${left}px;width:${7*DW}px">${w.getDate()}</div>`;
-    grid += `<div class="g-vline" style="left:${left}px"></div>`;
-    w = new Date(w.getTime() + 7 * 86400000);
+  if (dayScale){
+    for (let i = 0; i < total; i++){
+      const day = new Date(min.getTime() + i * 86400000), wd = day.getDay(), left = i * DW;
+      const we = (wd === 0 || wd === 6);
+      ticks += `<div class="g-day ${we ? 'we' : ''}" style="left:${left}px;width:${DW}px"
+        title="${day.getMonth()+1}/${day.getDate()}（${WD[wd]}）">${day.getDate()}</div>`;
+      if (we) bands += `<div class="g-wend" style="left:${left}px;width:${DW}px"></div>`;
+      if (wd === 1) grid += `<div class="g-vline" style="left:${left}px"></div>`;
+    }
+  } else {
+    let w = new Date(min);
+    w.setDate(w.getDate() + ((8 - w.getDay()) % 7));
+    while (w <= max){
+      const left = days(min, w) * DW;
+      const lab = ui.zoom === 'week' ? `${w.getMonth()+1}/${w.getDate()}` : `${w.getDate()}`;
+      ticks += `<div class="g-week" style="left:${left}px;width:${7*DW}px">${lab}</div>`;
+      grid += `<div class="g-vline" style="left:${left}px"></div>`;
+      w = new Date(w.getTime() + 7 * 86400000);
+    }
   }
   const tl = days(min, TODAY) * DW;
 
@@ -595,14 +719,18 @@ function renderGantt(){
     return `<div class="mk ${extra} ${cls}" style="left:${x(s[st.date]) - 4}px" title="${st.label} ${fmtFull(s[st.date])}"></div>`;
   };
   const lines = rows.map(s => {
-    const bs = x(s.flyerStart), be = x(s.flyerEnd);
+    const bs = x(s.flyerStart), be = x(s.flyerEnd), bw = Math.max(6, be - bs);
     const barCls = s.flyerDone ? 'done' : (days(TODAY, d(s.flyerEnd)) < 0 ? 'late' : '');
+    const ss = x(s.saleStart), se = x(s.deliveryDate), sw = Math.max(6, se - ss);
+    const saleCls = (!s.saleDone && days(TODAY, d(s.saleStart)) < 0) ? 'late' : '';
     const dCls = s.deliveryDone ? 'done' : (days(TODAY, d(s.deliveryDate)) < 0 ? 'late' : '');
     return `<div class="g-line" data-id="${s.id}">
-      <div class="g-bar ${barCls}" style="left:${bs}px;width:${Math.max(6, be-bs)}px"
-           title="チラシ調整 ${fmtFull(s.flyerStart)} → ${fmtFull(s.flyerEnd)}"><span>調整</span></div>
+      <div class="g-bar ${barCls}" style="left:${bs}px;width:${bw}px"
+           title="チラシ調整 ${fmtFull(s.flyerStart)} → ${fmtFull(s.flyerEnd)}">${(bw > 52 && !monthScale) ? '<span>チラシ調整</span>' : ''}</div>
+      <div class="g-bar sale ${saleCls}" style="left:${ss}px;width:${sw}px"
+           title="販売開始 ${fmtFull(s.saleStart)} → 納品 ${fmtFull(s.deliveryDate)}（${s.method}）">${(sw > 40 && !monthScale) ? '<span>販売</span>' : ''}</div>
       ${mk(s, STAGES[0], '')}${mk(s, STAGES[1], '')}${mk(s, STAGES[2], 'ec')}
-      <div class="mk flag ${dCls}" style="left:${x(s.deliveryDate)}px" title="納品期日 ${fmtFull(s.deliveryDate)}（${s.method}）"></div>
+      <div class="mk flag ${dCls}" style="left:${se}px" title="納品期日 ${fmtFull(s.deliveryDate)}（${s.method}）"></div>
     </div>`;
   }).join('');
 
@@ -612,12 +740,17 @@ function renderGantt(){
       ${rows.map(s => `<div class="g-row" data-detail="${s.id}"><span class="owner">${s.owner}</span>${s.name}</div>`).join('')}
     </div>
     <div class="g-right" style="width:${W}px">
-      <div class="g-head-inner">${months}${weeks}
+      <div class="g-head-inner">${months}${ticks}
         <div class="g-today" style="left:${tl}px"></div><div class="g-todaylab" style="left:${tl+4}px">今日</div>
       </div>
       <div class="g-grid">${bands}${grid}<div class="g-today" style="left:${tl}px"></div></div>
       <div class="g-body">${lines}</div>
     </div>`;
+
+  /* 目盛り変更・「今日へ」では今日の位置に寄せる。それ以外はスクロール位置を保つ */
+  if (gJump){ host.scrollLeft = Math.max(0, tl - 240); gJump = false; }
+  else if (gScroll != null){ host.scrollLeft = gScroll; }
+  host.onscroll = () => { gScroll = host.scrollLeft; };
 }
 
 /* drawer */
@@ -631,7 +764,10 @@ function renderDrawer(){
      <input id="fx-${key}" type="${type}" data-f="${key}" value="${s[key] == null ? '' : s[key]}"></div>`;
   const items = s.items.map((it, i) => `
     <div class="item-card">
-      <h4>${it.model}</h4>
+      <div class="item-head">
+        <input value="${it.model}" data-id="${s.id}" data-idx="${i}" data-p="model" aria-label="機種名">
+        <button class="btn-xs btn-danger" data-del-item="${i}" title="この機種を削除">削除</button>
+      </div>
       <div class="row2">
         <div class="fld"><label>昨年 掲載 / 卸</label>
           <input value="${yen(it.listPrev)} / ${yen(it.wholePrev)}" disabled></div>
@@ -654,19 +790,148 @@ function renderDrawer(){
        <button class="close" data-close="1" aria-label="閉じる">×</button>
      </div>
      <div class="dr-body">
+       <div class="dr-sec">学校情報</div>
+       <div class="row2">
+         <div class="fld"><label for="fx-name">学校名</label><input id="fx-name" data-f="name" value="${s.name}"></div>
+         <div class="fld"><label for="fx-area">地区</label><input id="fx-area" data-f="area" value="${s.area}"></div>
+       </div>
+       <div class="row2">
+         <div class="fld"><label for="fx-owner">担当</label><input id="fx-owner" data-f="owner" value="${s.owner}"></div>
+         <div class="fld"><label for="fx-students">生徒数</label><input id="fx-students" inputmode="numeric" data-f="students" value="${s.students}"></div>
+       </div>
+       <div class="fld"><label for="fx-isNew">区分</label>
+         <select id="fx-isNew" data-f="isNew">
+           <option value="" ${s.isNew ? '' : 'selected'}>継続校</option>
+           <option value="1" ${s.isNew ? 'selected' : ''}>新規開拓校</option>
+         </select></div>
+       <div class="dr-sec">工程</div>
        ${STAGES.map(st => `<label class="chk"><input type="checkbox" class="cb" data-id="${s.id}" data-k="${st.key}" ${s[st.key]?'checked':''}>${st.label}を完了</label>`).join('')}
        <div class="row2">${f('機種提示日','modelDate','date')}${f('意向回収期日','intentDate','date')}</div>
        <div class="row2">${f('調整開始','flyerStart','date')}${f('調整終了','flyerEnd','date')}</div>
-       <div class="row2">${f('EC公開期日','ecDate','date')}${f('納品期日','deliveryDate','date')}</div>
+       <div class="row2">${f('EC公開期日','ecDate','date')}${f('販売開始日','saleStart','date')}</div>
+       ${f('納品期日','deliveryDate','date')}
        ${f('ECサイトURL','ecUrl','url')}
        <div class="fld"><label for="fx-method">納品方法</label>
          <select id="fx-method" data-f="method">${METHODS.map(m => `<option ${m===s.method?'selected':''}>${m}</option>`).join('')}</select></div>
        <div class="dr-sec">価格（${s.items.length}機種）</div>
        ${items}
+       <button class="btn" id="add-item" style="align-self:flex-start">＋ 機種を追加</button>
        <div class="fld"><label for="fx-note">メモ</label><textarea id="fx-note" rows="4" data-f="note">${s.note || ''}</textarea></div>
      </div>
+     <div class="dr-foot"><button class="btn btn-danger" id="del-school">この学校を削除</button></div>
    </aside>`;
 }
+
+/* ---------- 一括取り込み（Excel / スプレッドシートから貼り付け） ---------- */
+const IMP_SCHOOL = {
+  '学校名':'name','地区':'area','担当':'owner','生徒数':'students','区分':'isNew',
+  '機種提示日':'modelDate','意向回収期日':'intentDate','EC公開期日':'ecDate','ECサイトURL':'ecUrl',
+  'チラシ調整開始':'flyerStart','チラシ調整終了':'flyerEnd','販売開始日':'saleStart',
+  '納品方法':'method','納品期日':'deliveryDate','メモ':'note'
+};
+const IMP_PRICE = {
+  '学校名':'school','機種':'model','昨年 掲載価格':'listPrev','昨年 卸価格':'wholePrev',
+  '昨年 台数':'unitsPrev','今年 掲載価格':'listNow','今年 卸価格':'wholeNow'
+};
+let impKind = 'schools';
+
+function parseTable(text){
+  const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim() !== '');
+  if (!lines.length) return null;
+  const split = l => l.includes('\t') ? l.split('\t') : l.split(',');
+  const head = split(lines[0]).map(c => c.replace(/^"|"$/g,'').trim());
+  return {head, rows: lines.slice(1).map(l => split(l).map(c => c.replace(/^"|"$/g,'').trim()))};
+}
+const toNum = v => { const n = String(v).replace(/[^\d.-]/g,''); return n === '' ? null : Math.round(Number(n)); };
+function normDate(v){
+  const m = String(v).trim().match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+  if (!m) return null;
+  return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
+}
+
+function importSchools(t){
+  let added = 0, updated = 0, skipped = 0;
+  const keys = t.head.map(c => IMP_SCHOOL[c] || null);
+  if (!keys.includes('name')) return {error:'「学校名」の列が見つかりません。1行目に見出しを付けてください。'};
+  t.rows.forEach(r => {
+    const name = (r[keys.indexOf('name')] || '').trim();
+    if (!name){ skipped++; return; }
+    let s = state.schools.find(v => v.name === name);
+    if (!s){ s = blankSchool(name); state.schools.push(s); added++; } else updated++;
+    keys.forEach((k, i) => {
+      const raw = (r[i] == null ? '' : r[i]).trim();
+      if (!k || k === 'name' || raw === '') return;
+      if (k === 'students') s.students = toNum(raw) || 0;
+      else if (k === 'isNew') s.isNew = /新規/.test(raw);
+      else if (/Date$|Start$|End$/.test(k)){ const dd = normDate(raw); if (dd) s[k] = dd; }
+      else s[k] = raw;
+    });
+  });
+  return {msg:`学校を${added}件 追加、${updated}件 更新しました。${skipped ? `（学校名が空の${skipped}行は無視）` : ''}`};
+}
+function importPrices(t){
+  let added = 0, updated = 0, missing = 0;
+  const keys = t.head.map(c => IMP_PRICE[c] || null);
+  if (!keys.includes('school') || !keys.includes('model'))
+    return {error:'「学校名」と「機種」の列が必要です。1行目に見出しを付けてください。'};
+  t.rows.forEach(r => {
+    const sname = (r[keys.indexOf('school')] || '').trim();
+    const mname = (r[keys.indexOf('model')] || '').trim();
+    if (!sname || !mname) return;
+    const s = state.schools.find(v => v.name === sname);
+    if (!s){ missing++; return; }
+    let it = s.items.find(v => v.model === mname);
+    if (!it){ it = blankItem(mname); s.items.push(it); added++; } else updated++;
+    keys.forEach((k, i) => {
+      const raw = (r[i] == null ? '' : r[i]).trim();
+      if (!k || k === 'school' || k === 'model' || raw === '') return;
+      it[k] = toNum(raw);
+    });
+  });
+  return {msg:`機種を${added}件 追加、${updated}件 更新しました。${missing ? `${missing}行は学校名が見つからず取り込めていません。` : ''}`};
+}
+
+function openImport(kind){
+  impKind = kind;
+  renderImport();
+}
+function renderImport(msg, isErr){
+  const cols = impKind === 'schools'
+    ? `<code>学校名</code>（必須）<code>地区</code><code>担当</code><code>区分</code>（「新規」を含む文字で新規開拓校）<code>生徒数</code>
+       <code>機種提示日</code><code>意向回収期日</code><code>EC公開期日</code><code>ECサイトURL</code>
+       <code>チラシ調整開始</code><code>チラシ調整終了</code><code>販売開始日</code><code>納品方法</code><code>納品期日</code><code>メモ</code>`
+    : `<code>学校名</code>（必須・既存の学校名と一致させる）<code>機種</code>（必須）
+       <code>昨年 掲載価格</code><code>昨年 卸価格</code><code>昨年 台数</code><code>今年 掲載価格</code><code>今年 卸価格</code>`;
+  const keep = document.getElementById('imp-text');
+  const val = keep ? keep.value : '';
+  document.getElementById('modal-host').innerHTML = `
+    <div class="modal-wrap">
+      <div class="modal" role="dialog" aria-label="データの取り込み">
+        <div class="dr-head">
+          <div><h2>データの取り込み</h2>
+            <span class="smeta">Excel・スプレッドシートの範囲をコピーして、そのまま貼り付けてください</span></div>
+          <button class="close" data-mclose="1" aria-label="閉じる">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="seg" id="imp-kind">
+            <button data-k="schools" aria-pressed="${impKind === 'schools'}">学校を登録</button>
+            <button data-k="prices" aria-pressed="${impKind === 'prices'}">機種・価格を登録</button>
+          </div>
+          <div class="cols"><b>1行目は見出し行にしてください。</b>使える見出し：<br>${cols}<br>
+            日付は <code>2026-09-14</code> か <code>2026/9/14</code>。空欄の列は変更しません。
+            同じ学校名（機種）が既にあれば上書き、なければ新規で追加します。</div>
+          <textarea id="imp-text" spellcheck="false" placeholder="学校名&#9;地区&#9;担当&#9;区分&#9;生徒数&#9;販売開始日&#10;○○高等学校&#9;東京&#9;内野&#9;新規&#9;240&#9;2026/11/2">${val}</textarea>
+          ${msg ? `<p class="imp-msg ${isErr ? 'err' : ''}">${msg}</p>` : ''}
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-p" id="imp-run">取り込む</button>
+          <button class="btn" data-mclose="1">閉じる</button>
+          <span class="imp-msg" style="margin-left:auto">取り込み後も一覧から手直しできます</span>
+        </div>
+      </div>
+    </div>`;
+}
+function closeImport(){ document.getElementById('modal-host').innerHTML = ''; }
 
 /* render */
 function render(){
@@ -702,7 +967,10 @@ document.addEventListener('change', e => {
   }
   const fld = e.target.closest('[data-f]');
   if (fld && openId){
-    state.schools.find(v => v.id === openId)[fld.dataset.f] = fld.value;
+    const s = state.schools.find(v => v.id === openId), k = fld.dataset.f;
+    if (k === 'students') s.students = Math.max(0, Math.round(Number(String(fld.value).replace(/[^\d]/g,'')) || 0));
+    else if (k === 'isNew') s.isNew = fld.value === '1';
+    else s[k] = fld.value;
     persist(); render();
   }
 });
@@ -748,6 +1016,27 @@ document.addEventListener('paste', e => {
   const after = priceCells()[start]; if (after) after.focus();
 });
 document.addEventListener('click', e => {
+  if (e.target.id === 'add-item' && openId){
+    state.schools.find(v => v.id === openId).items.push(blankItem());
+    persist(); render(); return;
+  }
+  const di = e.target.closest('[data-del-item]');
+  if (di && openId){
+    const s = state.schools.find(v => v.id === openId);
+    if (confirm(`「${s.items[+di.dataset.delItem].model}」を削除します。よろしいですか？`)){
+      s.items.splice(+di.dataset.delItem, 1);
+      persist(); render();
+    }
+    return;
+  }
+  if (e.target.id === 'del-school' && openId){
+    const s = state.schools.find(v => v.id === openId);
+    if (confirm(`「${s.name}」を削除します。価格${s.items.length}件も一緒に消えます。よろしいですか？`)){
+      state.schools = state.schools.filter(v => v.id !== openId);
+      openId = null; persist(); render();
+    }
+    return;
+  }
   const det = e.target.closest('[data-detail]');
   if (det){ openId = det.dataset.detail; render(); return; }
   if (e.target.closest('[data-close]')){ openId = null; render(); return; }
@@ -762,15 +1051,46 @@ document.getElementById('q').oninput = e => { ui.q = e.target.value.trim(); rend
 document.getElementById('f-owner').onchange = e => { ui.owner = e.target.value; render(); };
 document.getElementById('f-area').onchange = e => { ui.area = e.target.value; render(); };
 document.getElementById('f-status').onchange = e => { ui.status = e.target.value; render(); };
+document.getElementById('f-sort').onchange = e => { ui.sort = e.target.value; render(); };
+document.getElementById('zoom').onclick = e => {
+  const b = e.target.closest('[data-z]');
+  if (!b) return;
+  ui.zoom = b.dataset.z; gJump = true;
+  [...document.querySelectorAll('#zoom button')].forEach(x =>
+    x.setAttribute('aria-pressed', String(x.dataset.z === ui.zoom)));
+  renderGantt();
+};
+document.getElementById('gotoday').onclick = () => { gJump = true; renderGantt(); };
+document.getElementById('add-school').onclick = () => {
+  const s = blankSchool();
+  state.schools.push(s);
+  openId = s.id; ui.q = ''; document.getElementById('q').value = '';
+  persist(); render();
+  setTimeout(() => { const el = document.getElementById('fx-name'); if (el){ el.focus(); el.select(); } }, 30);
+};
+document.getElementById('import').onclick = () => openImport('schools');
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-mclose]') || e.target.classList.contains('modal-wrap')){ closeImport(); return; }
+  const k = e.target.closest('#imp-kind [data-k]');
+  if (k){ impKind = k.dataset.k; renderImport(); return; }
+  if (e.target.id === 'imp-run'){
+    const t = parseTable(document.getElementById('imp-text').value);
+    if (!t || !t.rows.length){ renderImport('データが空です。見出し行とデータ行を貼り付けてください。', true); return; }
+    const res = impKind === 'schools' ? importSchools(t) : importPrices(t);
+    if (res.error){ renderImport(res.error, true); return; }
+    persist(); render(); renderImport(res.msg, false);
+  }
+});
 
 /* CSV */
 const esc = v => `"${String(v == null ? '' : v).replace(/"/g,'""')}"`;
 function csvSchools(){
   const head = ['学校名','地区','担当','区分','生徒数','機種提示日','機種提示済','意向回収期日','意向回収済',
-    'EC公開期日','EC公開済','ECサイトURL','チラシ調整開始','チラシ調整終了','チラシ確定','納品方法','納品期日','納品済','メモ'];
+    'EC公開期日','EC公開済','ECサイトURL','チラシ調整開始','チラシ調整終了','チラシ確定','販売開始日','販売開始済','納品方法','納品期日','納品済','メモ'];
   const body = state.schools.map(s => [s.name,s.area,s.owner,s.isNew?'新規開拓':'継続',s.students,
     s.modelDate,s.modelDone?'Yes':'No',s.intentDate,s.intentDone?'Yes':'No',
     s.ecDate,s.ecDone?'Yes':'No',s.ecUrl,s.flyerStart,s.flyerEnd,s.flyerDone?'Yes':'No',
+    s.saleStart,s.saleDone?'Yes':'No',
     s.method,s.deliveryDate,s.deliveryDone?'Yes':'No',s.note].map(esc).join(','));
   return [head.map(esc).join(','), ...body].join('\r\n');
 }
