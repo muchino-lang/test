@@ -1066,6 +1066,11 @@ function renderDrawer(){
 }
 
 /* ---------- 一括取り込み（Excel / スプレッドシートから貼り付け） ---------- */
+const IMP_HEAD = {
+  schools: ['学校名','地区','担当','区分','生徒数','協力企業','手数料バック','機種提示日','意向回収期日',
+    'EC公開期日','ECサイトURL','チラシ調整開始','チラシ調整終了','販売開始日','納品方法','納品期日','メモ'],
+  prices: ['学校名','種別','品名','昨年 掲載価格','昨年 卸価格','昨年 台数','今年 掲載価格','今年 卸価格','見込 数量']
+};
 const IMP_SCHOOL = {
   '学校名':'name','地区':'area','担当':'owner','生徒数':'students','区分':'isNew',
   '協力企業':'partner','手数料バック':'rebate',
@@ -1080,12 +1085,24 @@ const IMP_PRICE = {
 };
 let impKind = 'schools';
 
+/* 1行を列に割る。カンマ区切りは "..." の中のカンマを保護する */
+function splitLine(line){
+  if (line.includes('\t')) return line.split('\t').map(c => c.trim());
+  const out = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++){
+    const ch = line[i];
+    if (ch === '"'){
+      if (q && line[i+1] === '"'){ cur += '"'; i++; } else q = !q;
+    } else if (ch === ',' && !q){ out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(c => c.trim());
+}
 function parseTable(text){
-  const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim() !== '');
+  const lines = text.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n').filter(l => l.trim() !== '');
   if (!lines.length) return null;
-  const split = l => l.includes('\t') ? l.split('\t') : l.split(',');
-  const head = split(lines[0]).map(c => c.replace(/^"|"$/g,'').trim());
-  return {head, rows: lines.slice(1).map(l => split(l).map(c => c.replace(/^"|"$/g,'').trim()))};
+  return {head: splitLine(lines[0]), rows: lines.slice(1).map(splitLine)};
 }
 const toNum = v => { const n = String(v).replace(/[^\d.-]/g,''); return n === '' ? null : Math.round(Number(n)); };
 function normDate(v){
@@ -1171,6 +1188,12 @@ function renderImport(msg, isErr){
           <div class="cols"><b>1行目は見出し行にしてください。</b>使える見出し：<br>${cols}<br>
             日付は <code>2026-09-14</code> か <code>2026/9/14</code>。空欄の列は変更しません。
             同じ学校名（機種）が既にあれば上書き、なければ新規で追加します。</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label class="btn" style="margin:0">CSVファイルを選ぶ
+              <input type="file" id="imp-file" accept=".csv,.tsv,.txt,text/csv" hidden></label>
+            <button class="btn" id="imp-tmpl">見出し行をコピー</button>
+            <span class="imp-msg">Excelの範囲をコピーして下に貼り付けてもOK</span>
+          </div>
           <textarea id="imp-text" spellcheck="false" placeholder="学校名&#9;地区&#9;担当&#9;区分&#9;生徒数&#9;販売開始日&#10;○○高等学校&#9;東京&#9;内野&#9;新規&#9;240&#9;2026/11/2">${val}</textarea>
           ${msg ? `<p class="imp-msg ${isErr ? 'err' : ''}">${msg}</p>` : ''}
         </div>
@@ -1359,10 +1382,34 @@ document.getElementById('add-school').onclick = () => {
   setTimeout(() => { const el = document.getElementById('fx-name'); if (el){ el.focus(); el.select(); } }, 30);
 };
 document.getElementById('import').onclick = () => openImport('schools');
+/* CSVファイルの読み込み（Excelが書き出すShift_JISにも対応） */
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'imp-file') return;
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const buf = await f.arrayBuffer();
+  let text = new TextDecoder('utf-8').decode(buf);
+  if (text.includes('\uFFFD')){
+    try { text = new TextDecoder('shift_jis').decode(buf); } catch (err) {}
+  }
+  const ta = document.getElementById('imp-text');
+  if (ta) ta.value = text;
+  const t = parseTable(text);
+  renderImport(`${f.name} を読み込みました（${t ? t.rows.length : 0}行）。内容を確認して［取り込む］を押してください。`, false);
+});
 document.addEventListener('click', e => {
   if (e.target.closest('[data-mclose]') || e.target.classList.contains('modal-wrap')){ closeImport(); return; }
   const k = e.target.closest('#imp-kind [data-k]');
   if (k){ impKind = k.dataset.k; renderImport(); return; }
+  if (e.target.id === 'imp-tmpl'){
+    const line = IMP_HEAD[impKind].join('\t');
+    const ta = document.getElementById('imp-text');
+    if (!ta.value.trim()) ta.value = line + '\n';
+    navigator.clipboard.writeText(line)
+      .then(() => renderImport('見出し行をコピーしました。Excelの1行目に貼り付けて、2行目から入力してください。', false))
+      .catch(() => renderImport('見出し行を下の欄に入れました。', false));
+    return;
+  }
   if (e.target.id === 'imp-run'){
     const t = parseTable(document.getElementById('imp-text').value);
     if (!t || !t.rows.length){ renderImport('データが空です。見出し行とデータ行を貼り付けてください。', true); return; }
