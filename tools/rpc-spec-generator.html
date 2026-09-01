@@ -489,6 +489,11 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
       <button class="mini-btn" type="button" id="qAddFromSpec" style="border-color:var(--pri);color:var(--pri);font-weight:700">現在の仕様書を明細に追加</button>
       <button class="mini-btn" type="button" id="qAddRow">＋ 空の行を追加</button>
       <button class="mini-btn" type="button" id="qClear">全部クリア</button>
+      <label class="tgl" for="qAllClients" style="font-size:11px;margin-left:4px">
+        <input type="checkbox" id="qAllClients" checked />
+        <span class="track" style="width:34px;height:19px"></span>
+        <span>仕様書を作った宛名をすべて表示</span>
+      </label>
     </div>
     <div class="qtbl-wrap">
       <table class="qtbl">
@@ -508,7 +513,9 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
     </div>
     <p class="hint" style="margin-top:6px">
       税抜＝ROUNDUP(税込÷1.1, -1)、コミッション＝エンド売価−卸価格。グレーの列は自動計算です。合計行は画面上の確認用で、xlsx には出力しません。<br>
-      オレンジの行は暫定です。エンド売価が決まったら「確定DL」で確定版の仕様書（Word）が出力され、確定版として登録されます。
+      オレンジの行は暫定です。エンド売価が決まったら「確定PDF」で確定版の仕様書が開き、確定版として登録されます。
+      PDF はブラウザの印刷ダイアログで「送信先／プリンター」を <b>PDF に保存</b> にして保存してください（ファイル名は自動で入ります）。
+      Word が必要な場合は「反映」で読み込んでから、プレビュー画面の「Word」をお使いください。
     </p>
   </div>
 
@@ -882,6 +889,18 @@ function addresseeLine() {
   if (!name) return "";
   const h = V("honorific");
   return h ? name + "　" + h : name;
+}
+
+/** Same naming rule as docFileName, for a snapshot that is not in the form yet. */
+function docFileNameOf(snap) {
+  const f = snap.fields || {};
+  const d = new Date(), pad = (n) => String(n).padStart(2, "0");
+  const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+  const parts = [
+    snap.isDraft ? "暫定" : "", stamp, f.addressee, f.maker, f.productName,
+    cpuLabelOf(f.cpuSeries, f.cpuGen), f.memory, f.storage,
+  ].filter(Boolean);
+  return safeFileName(parts.join("_")) || "製品仕様書";
 }
 
 /** File name built from what was actually entered: 日付_宛名_メーカー_品名_CPU_メモリ */
@@ -1511,19 +1530,47 @@ function qRender() {
     groups.get(k).push(i);
   });
 
+  // Every addressee a spec sheet was registered for is listed too, so no school
+  // silently drops out of the quote view just because it has no line yet.
+  if ($("qAllClients").checked) {
+    const seen = new Set();
+    readPresets().forEach((e) => {
+      const k = String(e.addressee || "");
+      if (!k || groups.has(k) || seen.has(k)) return;
+      seen.add(k);
+      groups.set(k, []);
+      keys.push(k);
+    });
+    keys.sort((a, b) => {
+      const ea = groups.get(a).length ? 0 : 1, eb = groups.get(b).length ? 0 : 1;
+      return ea - eb || String(a || "\uffff").localeCompare(String(b || "\uffff"), "ja");
+    });
+  }
+
   keys.forEach((key) => {
     const idx = groups.get(key);
     const rows = idx.map((i) => qRows[i]);
     const head = document.createElement("tr");
     head.className = "qgrp";
     head.innerHTML = '<td colspan="9">' +
-      (key ? '<button class="mini-btn" type="button" data-qxlsx="' + esc(key) +
+      (key && rows.length ? '<button class="mini-btn" type="button" data-qxlsx="' + esc(key) +
         '" style="float:right">この宛名で xlsx</button>' : "") +
       '<span class="qlabel">' + esc(key || "（宛名なし）") +
-      (key && rows[0].honorific ? "　" + esc(rows[0].honorific) : "") +
-      '<span class="qsub">' + rows.length + " 件　" + esc(qGroupTotal(rows)) + "</span></span>" +
+      (key && rows.length && rows[0].honorific ? "　" + esc(rows[0].honorific) : "") +
+      '<span class="qsub">' + (rows.length
+        ? rows.length + " 件　" + esc(qGroupTotal(rows))
+        : "明細なし") + "</span></span>" +
       "</td>";
     body.appendChild(head);
+
+    if (!rows.length) {
+      const empty = document.createElement("tr");
+      empty.innerHTML = '<td class="qname" colspan="9" style="color:#888">' +
+        "登録済みの仕様書から明細を作成できます　" +
+        '<button class="mini-btn" type="button" data-qfill="' + esc(key) + '">最新の登録から明細を作る</button>' +
+        "</td>";
+      body.appendChild(empty);
+    }
 
     idx.forEach((i) => {
       const r = qRows[i];
@@ -1531,8 +1578,8 @@ function qRender() {
       if (r.draft) tr.className = "qdraft";
       const canDoc = !!r.specFields;
       const acts = canDoc
-        ? '<button class="mini-btn tmp" type="button" data-qdoc="draft" data-i="' + i + '" title="この内容で暫定版の仕様書(Word)をダウンロード">暫定DL</button> ' +
-          '<button class="mini-btn go" type="button" data-qdoc="final" data-i="' + i + '" title="エンド売価で確定版の仕様書(Word)をダウンロードし、確定版として登録">確定DL</button> ' +
+        ? '<button class="mini-btn tmp" type="button" data-qdoc="draft" data-i="' + i + '" title="この内容で暫定版の仕様書を表示し、PDF として保存">暫定PDF</button> ' +
+          '<button class="mini-btn go" type="button" data-qdoc="final" data-i="' + i + '" title="エンド売価で確定版の仕様書を PDF 保存し、確定版として登録">確定PDF</button> ' +
           '<button class="mini-btn" type="button" data-qdoc="load" data-i="' + i + '" title="仕様書タブに読み込む（PDF/印刷用）">反映</button> '
         : "";
       tr.innerHTML =
@@ -1571,11 +1618,50 @@ function rowSnapshot(r, confirmed) {
   };
 }
 
-/** Builds a document from a row without leaving the form on that row's data. */
-function withRowApplied(snap, fn) {
+/**
+ * Shows the row as a sheet and opens the print dialog, where the browser's
+ * "PDF に保存" writes the file — a page cannot hand over a PDF on its own.
+ * document.title seeds the suggested file name. The form is put back once the
+ * dialog closes, unless the caller means to keep the applied content.
+ */
+function printSnapshot(snap, fileName, keepAfter) {
   const keep = snapshot();
   applySnapshot(snap);
-  try { fn(); } finally { applySnapshot(keep); syncPresetHint(); }
+  showPreview();
+
+  const prevTitle = document.title;
+  document.title = fileName;
+  let restored = false;
+  const done = () => {
+    if (restored) return;
+    restored = true;
+    window.removeEventListener("afterprint", done);
+    document.title = prevTitle;
+    if (!keepAfter) { applySnapshot(keep); syncPresetHint(); }
+    showQuote();          // printing is driven from the quote table, so return to it
+  };
+  window.addEventListener("afterprint", done);
+  setTimeout(() => {
+    window.print();
+    setTimeout(done, 500);          // fallback if afterprint never fires
+  }, 60);
+}
+
+/** Newest registered version of each 価格種別 for one client becomes a line. */
+function qFillFromPresets(client) {
+  const mine = readPresets().filter((e) => String(e.addressee || "") === client);
+  if (!mine.length) { alert("この宛名の登録が見つかりません。"); return; }
+  const newest = new Map();
+  mine.forEach((e) => {
+    const k = (e.fields || {}).priceType || "卸価格";
+    const cur = newest.get(k);
+    if (!cur || (Number(e.version) || 0) > (Number(cur.version) || 0)) newest.set(k, e);
+  });
+  const n = qAddRowsFrom([...newest.values()].map((e) => ({
+    fields: e.fields || {}, isDraft: e.isDraft, isDraftPrice: e.isDraftPrice, image: e.image,
+  })));
+  if (!n) { alert("明細に追加できる内容がありませんでした。"); return; }
+  note(client + " の登録から " + n + " 件を明細に追加しました");
 }
 
 function qRowDoc(i, mode) {
@@ -1585,8 +1671,9 @@ function qRowDoc(i, mode) {
     return;
   }
   if (mode === "draft") {
-    withRowApplied(rowSnapshot(r, false), downloadWord);
-    note("暫定版の仕様書をダウンロードしました");
+    const snap = rowSnapshot(r, false);
+    printSnapshot(snap, docFileNameOf(snap), false);
+    note("暫定版の仕様書を印刷ダイアログで開きました（「PDF に保存」を選んでください）");
     return;
   }
 
@@ -1608,14 +1695,14 @@ function qRowDoc(i, mode) {
       "Word をダウンロードし、確定版として登録します。よろしいですか？")) return;
 
   applySnapshot(snap);
-  downloadWord();
   savePreset();                       // files it as the next 宛名 / エンド価格 version
   syncQuoteHint();
   r.draft = false;
   r.priceType = "エンド価格";          // the sheet now states the end price
   r.confirmedAt = new Date().toISOString();
   qSave(); qRender();
-  note("確定版の仕様書を出力し、登録しました（仕様書タブにもこの内容が入っています）");
+  printSnapshot(snap, docFileNameOf(snap), true);
+  note("確定版として登録し、印刷ダイアログを開きました（「PDF に保存」を選んでください）");
 }
 
 /** CPU label from a stored snapshot (same rule as the live form). */
@@ -2023,6 +2110,8 @@ function initQuote() {
     if (doc) { qRowDoc(+doc.getAttribute("data-i"), doc.getAttribute("data-qdoc")); return; }
     const xls = e.target.closest("button[data-qxlsx]");
     if (xls) { qDownload(xls.getAttribute("data-qxlsx")); return; }
+    const fill = e.target.closest("button[data-qfill]");
+    if (fill) { qFillFromPresets(fill.getAttribute("data-qfill")); return; }
     const btn = e.target.closest("button[data-qdel]");
     if (!btn) return;
     qRows.splice(+btn.getAttribute("data-qdel"), 1);
@@ -2064,6 +2153,7 @@ function initQuote() {
     $("qPaste").value = "";
   });
   $("qDownload").addEventListener("click", () => qDownload());
+  $("qAllClients").addEventListener("change", qRender);
 
   $("btnQuoteSave").addEventListener("click", saveQuotePreset);
   $("quoteSearch").addEventListener("input", renderQuotePresets);
