@@ -96,6 +96,7 @@ table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ptbl tr.grp .count { font-weight: 600; color: var(--txtM); font-size: 11px; margin-left: 8px; }
 .ptbl .nm { font-weight: 600; word-break: break-word; }
 .ptbl .addr { color: var(--txtM); white-space: nowrap; }
+.ptbl .ver { font-weight: 700; color: var(--pri); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ptbl .tm { color: #888; white-space: nowrap; font-size: 10.5px; }
 .ptbl .acts { white-space: nowrap; text-align: right; }
 .ptbl .acts .mini-btn { padding: 3px 8px; }
@@ -422,25 +423,18 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
   <!-- Saved presets -->
   <div class="sec">
     <div class="sec-title">◆ 記載条件の保存 / 呼び出し</div>
-    <div class="grid" style="align-items:end">
-      <div class="fld"><label for="presetName">登録名</label>
-        <input id="presetName" placeholder="未入力の場合は品名などから自動命名" />
-      </div>
-      <div class="fld">
-        <label>&nbsp;</label>
-        <div style="display:flex;gap:8px">
-          <button class="mini-btn" type="button" id="btnPresetSave" style="border-color:var(--pri);color:var(--pri);font-weight:700">現在の内容を登録</button>
-        </div>
-      </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <button class="mini-btn" type="button" id="btnPresetSave" style="border-color:var(--pri);color:var(--pri);font-weight:700;padding:7px 16px">現在の内容を登録</button>
+      <span class="hint" id="presetSaveAs"></span>
     </div>
-    <p class="hint" style="margin:8px 0">登録名には宛名を含めて構いません。一覧は宛名ごとにまとめて表示され、各行では重複する宛名部分を省いて表示します（登録名そのものは変わりません）。保存日時・更新日時も記録されます。</p>
+    <p class="hint" style="margin:0 0 10px">登録名の入力は不要です。宛名と価格種別で識別し、同じ組み合わせで登録するたびに版数（v1, v2…）が自動で上がります。内容欄には品名・CPU・メモリを自動表示します。</p>
     <div class="ptools">
-      <input type="search" id="presetSearch" placeholder="宛名・登録名・品名で絞り込み" />
+      <input type="search" id="presetSearch" placeholder="宛名・品名・スペックで絞り込み" />
       <select id="presetSort">
         <option value="updated">更新が新しい順</option>
         <option value="saved">登録が新しい順</option>
         <option value="addressee">宛名順</option>
-        <option value="name">登録名順</option>
+        <option value="version">宛名順（新しい版から）</option>
       </select>
       <label class="tgl" for="presetGroup" style="font-size:11px">
         <input type="checkbox" id="presetGroup" checked />
@@ -999,7 +993,7 @@ function save() {
     FIELD_IDS.forEach((id) => { data.fields[id] = V(id); });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      note("保存済み（この端末のブラウザに自動保存されます）");
+      autoNote("保存済み（この端末のブラウザに自動保存されます）");
     } catch (e) {
       note("自動保存できませんでした（画像が大きい可能性があります）");
     }
@@ -1024,11 +1018,18 @@ function restore() {
   return true;
 }
 
-function note(msg) { $("saveState").textContent = msg; }
+let noteHold = 0;
+/** Explicit messages hold the line briefly so the autosave text cannot erase them. */
+function note(msg) { noteHold = Date.now() + 5000; $("saveState").textContent = msg; }
+function autoNote(msg) { if (Date.now() < noteHold) return; $("saveState").textContent = msg; }
 
-/** Shows what the name will be if the box is left empty. */
+/** Shows the identity the next 登録 will be filed under. */
 function syncPresetHint() {
-  $("presetName").placeholder = "未入力の場合: " + autoPresetName();
+  const key = versionKeyOf(V("addressee"), V("priceType"));
+  const v = nextVersion(readPresets(), key);
+  $("presetSaveAs").textContent =
+    "→ " + (V("addressee") || "（宛名なし）") + " / " + (V("priceType") || "卸価格") +
+    " の v" + v + " として登録されます";
 }
 
 // ═══════════════ Saved presets ═══════════════
@@ -1042,13 +1043,26 @@ function readPresets() {
     const list = JSON.parse(localStorage.getItem(PRESET_KEY) || "[]");
     if (!Array.isArray(list)) return [];
     // Presets written before the 敬称 field existed carry no honorific at all.
-    return list.map((p) => {
+    const migrated = list.map((p) => {
       if (p && p.honorific == null) {
         const fallback = DEFAULTS.honorific || "御中";
         return { ...p, honorific: fallback, fields: { ...(p.fields || {}), honorific: fallback } };
       }
       return p;
     });
+    // Entries saved before versioning are numbered by registration order within their
+    // 宛名 + 価格種別, so an existing library keeps working without being re-registered.
+    const counters = new Map();
+    migrated.slice()
+      .sort((a, b) => String(a.savedAt || "").localeCompare(String(b.savedAt || "")))
+      .forEach((p) => {
+        if (p.version) return;
+        const k = entryKey(p);
+        const n = (counters.get(k) || 0) + 1;
+        counters.set(k, n);
+        p.version = n;
+      });
+    return migrated;
   } catch (e) { return []; }
 }
 
@@ -1101,25 +1115,23 @@ function applySnapshot(snap) {
 }
 
 /**
- * Names are expected to carry the addressee, so the generated one leads with it.
- * The list then hides that prefix again per row (see displayPresetName) because the
- * group heading already states it — the stored name always keeps it in full.
+ * A registration is identified by 宛名 + 価格種別 rather than a typed name; saving the
+ * same combination again files a new version under it. Everything else shown in the
+ * list (the spec summary, the badges) is derived from the stored snapshot.
  */
-function autoPresetName() {
-  const spec = [V("maker"), V("productName"), cpuInfo().label, V("memory")].filter(Boolean).join(" ");
-  return [V("addressee"), spec].filter(Boolean).join("　") || "無題の条件";
+const versionKeyOf = (addressee, priceType) =>
+  String(addressee || "") + "\u0000" + String(priceType || "卸価格");
+
+const entryKey = (e) => versionKeyOf(e.addressee, (e.fields || {}).priceType);
+
+function nextVersion(list, key) {
+  return list.reduce((m, e) => (entryKey(e) === key ? Math.max(m, Number(e.version) || 0) : m), 0) + 1;
 }
 
-/** Strips a leading "宛名（＋敬称）" from a name for display inside its own group. */
-function displayPresetName(entry) {
-  const name = String(entry.name || "");
-  const addr = String(entry.addressee || "");
-  if (!addr || name.indexOf(addr) !== 0) return name;
-  const sep = /^[\s　_\-–—/／:：|｜、,]+/;
-  let rest = name.slice(addr.length).replace(sep, "");
-  const hon = String(entry.honorific || "");
-  if (hon && rest.indexOf(hon) === 0) rest = rest.slice(hon.length).replace(sep, "");
-  return rest || name;
+/** 品名・CPU・メモリ — what tells two versions of the same addressee apart. */
+function specSummaryOf(f) {
+  return [f.maker, f.productName, cpuLabelOf(f.cpuSeries, f.cpuGen), f.memory, f.storage]
+    .filter(Boolean).join(" ");
 }
 
 const fmtTime = (iso) => {
@@ -1133,12 +1145,10 @@ const fmtTime = (iso) => {
 function savePreset() {
   const now = new Date().toISOString();
   const list = readPresets();
-  const name = V("presetName") || autoPresetName();
-  const dup = list.some((p) => p.name === name && (p.addressee || "") === V("addressee"));
-  if (dup && !confirm("同じ宛名に「" + name + "」という登録が既にあります。別の登録として追加しますか？\n（既存を差し替える場合は、その行の「上書き」をお使いください）")) return;
+  const version = nextVersion(list, versionKeyOf(V("addressee"), V("priceType")));
   const entry = {
     id: "p" + Date.now() + Math.random().toString(36).slice(2, 7),
-    name: name,
+    version: version,
     addressee: V("addressee"),
     honorific: V("honorific"),
     savedAt: now,
@@ -1147,37 +1157,41 @@ function savePreset() {
   };
   list.push(entry);
   if (writePresets(list)) {
-    $("presetName").value = "";
     renderPresets();
-    note("「" + entry.name + "」を登録しました（" + fmtTime(now) + "）");
+    syncPresetHint();
+    note(presetTitle(entry) + " を登録しました（" + fmtTime(now) + "）");
   }
+}
+
+/** 宛名 / 種別 v3 — how a registration is referred to in messages. */
+function presetTitle(entry) {
+  const f = entry.fields || {};
+  return [entry.addressee || "（宛名なし）", f.priceType || "卸価格", "v" + (entry.version || 1)].join(" / ");
 }
 
 function overwritePreset(id) {
   const list = readPresets();
   const i = list.findIndex((p) => p.id === id);
   if (i < 0) return;
-  if (!confirm("「" + list[i].name + "」を現在の入力内容で上書きします。よろしいですか？")) return;
+  if (!confirm(presetTitle(list[i]) + " を現在の入力内容で上書きします。よろしいですか？\n（版数は変わりません。新しい版として残す場合は「現在の内容を登録」をお使いください）")) return;
   const now = new Date().toISOString();
   list[i] = {
     ...list[i],
-    name: V("presetName") || list[i].name,
     addressee: V("addressee"),
     honorific: V("honorific"),
     updatedAt: now,
     ...snapshot(),
   };
-  if (writePresets(list)) { renderPresets(); note("上書きしました（" + fmtTime(now) + "）"); }
+  if (writePresets(list)) { renderPresets(); syncPresetHint(); note("上書きしました（" + fmtTime(now) + "）"); }
 }
 
 function loadPreset(id) {
   const entry = readPresets().find((p) => p.id === id);
   if (!entry) return;
   applySnapshot(entry);
-  $("presetName").value = entry.name;
   syncPresetHint();
   renderPresets();
-  note("「" + entry.name + "」を呼び出しました");
+  note(presetTitle(entry) + " を呼び出しました");
   if (inPreview()) renderPreview();
 }
 
@@ -1185,18 +1199,15 @@ function deletePreset(id) {
   const list = readPresets();
   const entry = list.find((p) => p.id === id);
   if (!entry) return;
-  if (!confirm("「" + entry.name + "」を削除します。よろしいですか？")) return;
-  if (writePresets(list.filter((p) => p.id !== id))) { renderPresets(); note("削除しました"); }
+  if (!confirm(presetTitle(entry) + " を削除します。よろしいですか？")) return;
+  if (writePresets(list.filter((p) => p.id !== id))) { renderPresets(); syncPresetHint(); note("削除しました"); }
 }
 
 /** Badges summarising what a stored entry will output. */
 function presetBadges(entry) {
   const f = entry.fields || {};
   const end = f.priceType === "エンド価格";
-  const out = [];
-  if (f.price && entry.showPrice !== false) {
-    out.push('<span class="pbadge ' + (end ? "end" : "wholesale") + '">' + (end ? "エンド" : "卸") + "</span>");
-  }
+  const out = ['<span class="pbadge ' + (end ? "end" : "wholesale") + '">' + (end ? "エンド" : "卸") + "</span>"];
   if (entry.isDraft || entry.isDraftPrice) {
     out.push('<span class="pbadge draft">' + (entry.isDraft ? "暫定" : "暫定価格") + "</span>");
   }
@@ -1205,7 +1216,7 @@ function presetBadges(entry) {
 
 const ACTS =
   '<button class="mini-btn" type="button" data-act="load" data-id="{id}">呼び出し</button> ' +
-  '<button class="mini-btn" type="button" data-act="over" data-id="{id}">上書き</button> ' +
+  '<button class="mini-btn" type="button" data-act="over" data-id="{id}">この版を上書き</button> ' +
   '<button class="mini-btn" type="button" data-act="del" data-id="{id}">削除</button>';
 
 /**
@@ -1227,7 +1238,7 @@ function renderPresets() {
   const q = V("presetSearch").toLowerCase();
   const list = !q ? all.slice() : all.filter((p) => {
     const f = p.fields || {};
-    return [p.name, p.addressee, f.maker, f.productName, f.memory]
+    return [p.addressee, specSummaryOf(f), f.warranty, p.name]
       .filter(Boolean).join(" ").toLowerCase().indexOf(q) >= 0;
   });
 
@@ -1236,10 +1247,9 @@ function renderPresets() {
   const sort = $("presetSort").value;
   const byTime = (k) => (a, b) => String(b[k] || "").localeCompare(String(a[k] || ""));
   const byAddr = (a, b) => String(a.addressee || "\uffff").localeCompare(String(b.addressee || "\uffff"), "ja");
-  const byName = (a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ja");
   const cmp = sort === "saved" ? byTime("savedAt")
     : sort === "addressee" ? byAddr
-    : sort === "name" ? byName
+    : sort === "version" ? ((a, b) => byAddr(a, b) || (Number(b.version) || 0) - (Number(a.version) || 0))
     : byTime("updatedAt");
   list.sort(cmp);
 
@@ -1254,10 +1264,13 @@ function renderPresets() {
 
   const row = (p, showAddr) => {
     const times = fmtTime(p.savedAt) + (p.updatedAt !== p.savedAt ? "　/　更新 " + fmtTime(p.updatedAt) : "");
+    const spec = specSummaryOf(p.fields || {});
     return "<tr>" +
       (showAddr ? '<td class="addr">' + esc(p.addressee || "（宛名なし）") + "</td>" : "") +
-      '<td><span class="nm" title="' + esc(p.name) + '">' + esc(displayPresetName(p)) + "</span></td>" +
+      '<td class="ver">v' + (p.version || 1) + "</td>" +
       "<td>" + presetBadges(p) + "</td>" +
+      '<td><span class="nm"' + (p.name ? ' title="' + esc(p.name) + '"' : "") + ">" +
+        esc(spec || "（内容なし）") + "</span></td>" +
       '<td class="tm">' + esc(times) + "</td>" +
       '<td class="acts">' + ACTS.replace(/\{id\}/g, p.id) + "</td>" +
       "</tr>";
@@ -1278,7 +1291,7 @@ function renderPresets() {
     keys.forEach((key) => {
       const items = groups.get(key);
       const head = key ? key + (items[0].honorific ? "　" + items[0].honorific : "") : "（宛名なし）";
-      body += '<tr class="grp"><td colspan="4">' + esc(head) +
+      body += '<tr class="grp"><td colspan="5">' + esc(head) +
         '<span class="count">' + items.length + "件</span></td></tr>";
       items.forEach((p) => { body += row(p, false); });
     });
@@ -1288,7 +1301,7 @@ function renderPresets() {
 
   box.innerHTML = '<div class="ptbl-wrap"><table class="ptbl"><thead><tr>' +
     (grouped ? "" : "<th>宛名</th>") +
-    "<th>登録名</th><th>種別</th><th>登録日時</th><th></th>" +
+    "<th>版</th><th>種別</th><th>内容</th><th>登録日時</th><th></th>" +
     "</tr></thead><tbody>" + body + "</tbody></table></div>";
 }
 
@@ -1713,6 +1726,7 @@ function init() {
   $("priceTypeSeg").addEventListener("change", (e) => {
     if (!e.target.name || e.target.name !== "priceTypeRadio") return;
     $("priceType").value = e.target.value;
+    syncPresetHint();
     syncPriceRow();
     save();
     if (inPreview()) renderPreview();
@@ -1722,7 +1736,7 @@ function init() {
   // any edit -> autosave (+ live preview when the sheet is on screen)
   $("editPanel").addEventListener("input", (e) => {
     if (e.target.id === "modelYear" || e.target.id === "cpuSeries" || e.target.id === "cpuGen") refreshCpuAuto();
-    if (e.target.id !== "presetName") syncPresetHint();
+    syncPresetHint();
     save();
     if (inPreview()) renderPreview();
   });
