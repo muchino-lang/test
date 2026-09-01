@@ -82,15 +82,28 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .seg-end.on .seg-t { color: #0a6b5b; }
 .seg-end.on::before { border-color: #0a6b5b; background: #0a6b5b; box-shadow: inset 0 0 0 3px #fff; }
 
-/* saved presets */
-.pgrp { border: 1px solid var(--bdr); border-radius: 8px; background: var(--white); margin-bottom: 10px; overflow: hidden; }
-.pgrp-hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--priL); color: var(--pri); font-weight: 700; font-size: 12px; padding: 8px 12px; }
-.pgrp-hd .count { font-weight: 600; color: var(--txtM); font-size: 11px; }
-.pst { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--bdr); flex-wrap: wrap; }
-.pst .nm { font-size: 13px; font-weight: 600; word-break: break-all; }
-.pst .tm { font-size: 10px; color: #888; margin-top: 2px; }
-.pst .acts { display: flex; gap: 6px; flex-shrink: 0; }
-.pst-empty { font-size: 12px; color: #888; padding: 10px 2px; }
+/* saved presets — row-based, built for hundreds of entries */
+.ptools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.ptools input[type="search"] { flex: 1 1 200px; min-width: 160px; padding: 6px 10px; border: 1px solid var(--bdr); border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--white); }
+.ptools select { padding: 6px 8px; border: 1px solid var(--bdr); border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--white); }
+.pcount { font-size: 11px; color: #888; margin-left: auto; }
+.ptbl-wrap { border: 1px solid var(--bdr); border-radius: 8px; background: var(--white); max-height: 460px; overflow: auto; }
+table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ptbl thead th { position: sticky; top: 0; z-index: 2; background: var(--priL); color: var(--pri); font-size: 11px; text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--bdr); white-space: nowrap; }
+.ptbl td { padding: 5px 10px; border-bottom: 1px solid #eceff2; vertical-align: middle; }
+.ptbl tbody tr:hover td { background: #f7fafd; }
+.ptbl tr.grp td { background: #eef2f6; color: var(--pri); font-weight: 700; padding: 6px 10px; border-bottom: 1px solid var(--bdr); }
+.ptbl tr.grp .count { font-weight: 600; color: var(--txtM); font-size: 11px; margin-left: 8px; }
+.ptbl .nm { font-weight: 600; word-break: break-word; }
+.ptbl .addr { color: var(--txtM); white-space: nowrap; }
+.ptbl .tm { color: #888; white-space: nowrap; font-size: 10.5px; }
+.ptbl .acts { white-space: nowrap; text-align: right; }
+.ptbl .acts .mini-btn { padding: 3px 8px; }
+.pbadge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
+.pbadge.wholesale { color: #1a3a5c; border-color: #1a3a5c; background: #eef3f8; }
+.pbadge.end { color: #0a6b5b; border-color: #0a6b5b; background: #e9f6f3; }
+.pbadge.draft { color: #a35200; border-color: #e0a44a; background: #fff3e0; }
+.pst-empty { font-size: 12px; color: #888; padding: 14px 12px; }
 .sh-addr { padding: 12px 24px 0; font-size: 15px; font-weight: 700; }
 
 .img-upload { border: 2px dashed var(--bdr); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; background: var(--white); }
@@ -402,6 +415,21 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
       </div>
     </div>
     <p class="hint" style="margin:8px 0">登録名には宛名を含めて構いません。一覧は宛名ごとにまとめて表示され、各行では重複する宛名部分を省いて表示します（登録名そのものは変わりません）。保存日時・更新日時も記録されます。</p>
+    <div class="ptools">
+      <input type="search" id="presetSearch" placeholder="宛名・登録名・品名で絞り込み" />
+      <select id="presetSort">
+        <option value="updated">更新が新しい順</option>
+        <option value="saved">登録が新しい順</option>
+        <option value="addressee">宛名順</option>
+        <option value="name">登録名順</option>
+      </select>
+      <label class="tgl" for="presetGroup" style="font-size:11px">
+        <input type="checkbox" id="presetGroup" checked />
+        <span class="track" style="width:34px;height:19px"></span>
+        <span>宛名でまとめる</span>
+      </label>
+      <span class="pcount" id="presetCount"></span>
+    </div>
     <div id="presetList"></div>
   </div>
 
@@ -1089,45 +1117,104 @@ function deletePreset(id) {
   if (writePresets(list.filter((p) => p.id !== id))) { renderPresets(); note("削除しました"); }
 }
 
-/** Grouped by addressee, newest first inside each group. */
+/** Badges summarising what a stored entry will output. */
+function presetBadges(entry) {
+  const f = entry.fields || {};
+  const end = f.priceType === "エンド価格";
+  const out = [];
+  if (f.price && entry.showPrice !== false) {
+    out.push('<span class="pbadge ' + (end ? "end" : "wholesale") + '">' + (end ? "エンド" : "卸") + "</span>");
+  }
+  if (entry.isDraft || entry.isDraftPrice) {
+    out.push('<span class="pbadge draft">' + (entry.isDraft ? "暫定" : "暫定価格") + "</span>");
+  }
+  return out.join(" ");
+}
+
+const ACTS =
+  '<button class="mini-btn" type="button" data-act="load" data-id="{id}">呼び出し</button> ' +
+  '<button class="mini-btn" type="button" data-act="over" data-id="{id}">上書き</button> ' +
+  '<button class="mini-btn" type="button" data-act="del" data-id="{id}">削除</button>';
+
+/**
+ * One row per entry, built to stay usable at a hundred-plus registrations:
+ * free-text filter, sorting, a scrolling body under a sticky header, and an
+ * optional addressee grouping that only inserts a heading row.
+ */
 function renderPresets() {
-  const list = readPresets();
+  const all = readPresets();
   const box = $("presetList");
-  if (!list.length) {
+  if (!all.length) {
     box.innerHTML = '<div class="pst-empty">登録された条件はまだありません。</div>';
+    $("presetCount").textContent = "";
     return;
   }
-  const groups = new Map();
-  list.forEach((p) => {
-    const key = p.addressee || "";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(p);
-  });
-  const keys = [...groups.keys()].sort((a, b) => {
-    if (!a) return 1;            // 宛名なしは最後
-    if (!b) return -1;
-    return a.localeCompare(b, "ja");
+
+  const q = V("presetSearch").toLowerCase();
+  const list = !q ? all.slice() : all.filter((p) => {
+    const f = p.fields || {};
+    return [p.name, p.addressee, f.maker, f.productName, f.memory]
+      .filter(Boolean).join(" ").toLowerCase().indexOf(q) >= 0;
   });
 
-  box.innerHTML = keys.map((key) => {
-    const items = groups.get(key).slice().sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
-    const head = key ? esc(key + (items[0].honorific ? "　" + items[0].honorific : "")) : "（宛名なし）";
+  const grouped = $("presetGroup").checked;
+  const sort = $("presetSort").value;
+  const byTime = (k) => (a, b) => String(b[k] || "").localeCompare(String(a[k] || ""));
+  const byAddr = (a, b) => String(a.addressee || "\uffff").localeCompare(String(b.addressee || "\uffff"), "ja");
+  const byName = (a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ja");
+  const cmp = sort === "saved" ? byTime("savedAt")
+    : sort === "addressee" ? byAddr
+    : sort === "name" ? byName
+    : byTime("updatedAt");
+  list.sort(cmp);
 
-    return '<div class="pgrp"><div class="pgrp-hd"><span>' + head +
-      '</span><span class="count">' + items.length + "件</span></div>" +
-      items.map((p) => {
-        const times = "登録: " + fmtTime(p.savedAt) +
-          (p.updatedAt !== p.savedAt ? "　／　更新: " + fmtTime(p.updatedAt) : "");
-        const shown = displayPresetName(p);
-        return '<div class="pst"><div><div class="nm" title="' + esc(p.name) + '">' + esc(shown) + "</div>" +
-          '<div class="tm">' + times + "</div></div>" +
-          '<div class="acts">' +
-          '<button class="mini-btn" type="button" data-act="load" data-id="' + p.id + '">呼び出し</button>' +
-          '<button class="mini-btn" type="button" data-act="over" data-id="' + p.id + '">上書き</button>' +
-          '<button class="mini-btn" type="button" data-act="del" data-id="' + p.id + '">削除</button>' +
-          "</div></div>";
-      }).join("") + "</div>";
-  }).join("");
+  $("presetCount").textContent = list.length === all.length
+    ? "全 " + all.length + " 件"
+    : "全 " + all.length + " 件中 " + list.length + " 件を表示";
+
+  if (!list.length) {
+    box.innerHTML = '<div class="pst-empty">該当する登録はありません。</div>';
+    return;
+  }
+
+  const row = (p, showAddr) => {
+    const times = fmtTime(p.savedAt) + (p.updatedAt !== p.savedAt ? "　/　更新 " + fmtTime(p.updatedAt) : "");
+    return "<tr>" +
+      (showAddr ? '<td class="addr">' + esc(p.addressee || "（宛名なし）") + "</td>" : "") +
+      '<td><span class="nm" title="' + esc(p.name) + '">' + esc(displayPresetName(p)) + "</span></td>" +
+      "<td>" + presetBadges(p) + "</td>" +
+      '<td class="tm">' + esc(times) + "</td>" +
+      '<td class="acts">' + ACTS.replace(/\{id\}/g, p.id) + "</td>" +
+      "</tr>";
+  };
+
+  let body = "";
+  if (grouped) {
+    const keys = [];
+    const groups = new Map();
+    list.forEach((p) => {
+      const key = p.addressee || "";
+      if (!groups.has(key)) { groups.set(key, []); keys.push(key); }
+      groups.get(key).push(p);
+    });
+    // Group order follows the chosen sort; addressee-less entries stay last.
+    if (sort === "addressee" || sort === "name") keys.sort((a, b) => byAddr({ addressee: a }, { addressee: b }));
+    else keys.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1));
+    keys.forEach((key) => {
+      const items = groups.get(key);
+      const head = key ? key + (items[0].honorific ? "　" + items[0].honorific : "") : "（宛名なし）";
+      body += '<tr class="grp"><td colspan="4">' + esc(head) +
+        '<span class="count">' + items.length + "件</span></td></tr>";
+      items.forEach((p) => { body += row(p, false); });
+    });
+  } else {
+    list.forEach((p) => { body += row(p, true); });
+  }
+
+  box.innerHTML = '<div class="ptbl-wrap"><table class="ptbl"><thead><tr>' +
+    (grouped ? "" : "<th>宛名</th>") +
+    "<th>登録名</th><th>種別</th><th>登録日時</th><th></th>" +
+    "</tr></thead><tbody>" + body + "</tbody></table></div>";
 }
 
 function resetAll() {
@@ -1201,6 +1288,9 @@ function init() {
 
   // presets
   syncPresetHint();
+  $("presetSearch").addEventListener("input", renderPresets);
+  $("presetSort").addEventListener("change", renderPresets);
+  $("presetGroup").addEventListener("change", renderPresets);
   $("cpuSeries").addEventListener("change", syncPresetHint);
   $("cpuGen").addEventListener("change", syncPresetHint);
   $("btnPresetSave").addEventListener("click", savePreset);
