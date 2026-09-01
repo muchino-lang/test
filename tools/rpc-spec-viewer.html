@@ -1,0 +1,316 @@
+<title>R∞PC スペック早見盤</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#eef0f4; --panel:#ffffff; --panel-2:#f6f7fa; --line:#d5d9e2; --line-soft:#e5e8ee;
+  --ink:#1b1f27; --ink-2:#5b6373; --ink-3:#868e9e;
+  --accent:#2f4b7c;        /* 藍 — 無期限 */
+  --w2:#7a6a3f;            /* 2年 */
+  --w4:#4a6b5d;            /* 4年 */
+  --cost:#a3623c;          /* 原価 */
+  --gp:#3d7a5a;            /* 粗利 */
+  --margin:#6d5ea8;        /* 代理店マージン */
+  --pin:#c08a1e;
+  --shadow:0 1px 2px rgba(20,26,40,.06),0 8px 24px -16px rgba(20,26,40,.35);
+  --radius:10px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#12151b; --panel:#191d25; --panel-2:#1f242e; --line:#2f3742; --line-soft:#262d37;
+    --ink:#e7eaf0; --ink-2:#a3abba; --ink-3:#79828f;
+    --accent:#8fb3e8; --w2:#d3bd82; --w4:#8fc4ac; --cost:#e0a077; --gp:#79c79c; --margin:#a99ce0; --pin:#e8bc51;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#12151b; --panel:#191d25; --panel-2:#1f242e; --line:#2f3742; --line-soft:#262d37;
+  --ink:#e7eaf0; --ink-2:#a3abba; --ink-3:#79828f;
+  --accent:#8fb3e8; --w2:#d3bd82; --w4:#8fc4ac; --cost:#e0a077; --gp:#79c79c; --margin:#a99ce0; --pin:#e8bc51;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+  font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+.num{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px 72px}
+
+/* ---- header ---- */
+header{border-bottom:1px solid var(--line);background:var(--panel)}
+.head-in{max-width:1180px;margin:0 auto;padding:16px 18px 14px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between}
+h1{margin:0;font-size:21px;font-weight:900;letter-spacing:.02em;line-height:1.2}
+h1 small{display:block;font-size:11px;font-weight:500;letter-spacing:.16em;color:var(--ink-3);margin-bottom:5px}
+.meta{font-size:11.5px;color:var(--ink-2);text-align:right;line-height:1.7}
+.meta b{color:var(--ink);font-weight:700}
+
+/* ---- controls ---- */
+.bar{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--panel) 92%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+.bar-in{max-width:1180px;margin:0 auto;padding:10px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+input[type="search"]{
+  flex:1 1 260px;min-width:200px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;
+  background:var(--panel-2);color:var(--ink);font:inherit;font-size:13px}
+input[type="search"]::placeholder{color:var(--ink-3)}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel-2)}
+.seg button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:12px;font-weight:500;
+  padding:7px 12px;cursor:pointer;border-right:1px solid var(--line-soft)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel);font-weight:700}
+.seg button:focus-visible,.iconbtn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.count{font-size:12px;color:var(--ink-3);margin-left:auto}
+
+/* ---- section headings ---- */
+.sec{display:flex;align-items:baseline;gap:10px;margin:30px 0 12px}
+.sec h2{margin:0;font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--ink-2)}
+.sec .rule{flex:1;height:1px;background:var(--line)}
+.sec .hint{font-size:11.5px;color:var(--ink-3)}
+
+/* ---- card ---- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+  display:flex;flex-direction:column;overflow:hidden}
+.card.pinned{border-color:color-mix(in srgb,var(--pin) 55%,var(--line))}
+.card-head{display:flex;gap:10px;align-items:flex-start;padding:12px 13px 10px}
+.code{font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:600;letter-spacing:.02em;line-height:1.1}
+.cat{font-size:11px;color:var(--ink-2);letter-spacing:.08em}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.tag{font-size:10.5px;letter-spacing:.06em;padding:1px 6px;border-radius:99px;border:1px solid var(--line);color:var(--ink-2)}
+.tag.add{border-color:color-mix(in srgb,var(--gp) 50%,var(--line));color:var(--gp)}
+.tag.del{border-color:color-mix(in srgb,var(--cost) 50%,var(--line));color:var(--cost)}
+.iconbtn{margin-left:auto;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-3);
+  width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;flex:none}
+.iconbtn[aria-pressed="true"]{color:var(--pin);border-color:color-mix(in srgb,var(--pin) 55%,var(--line));
+  background:color-mix(in srgb,var(--pin) 12%,var(--panel))}
+
+.specs{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:0 13px 12px;font-size:12.5px}
+.specs dt{color:var(--ink-3);font-size:11.5px;white-space:nowrap}
+.specs dd{margin:0;color:var(--ink)}
+.specs .lead{font-weight:700}
+.opts{display:flex;flex-wrap:wrap;gap:4px;padding:0 13px 12px;margin-top:-4px}
+.opt{font-size:10.5px;letter-spacing:.02em;border:1px solid var(--line-soft);border-radius:5px;padding:1px 6px;color:var(--ink-3);background:var(--panel-2)}
+.opt b{font-weight:500;color:var(--ink-2)}
+
+/* ---- price matrix ---- */
+table{width:100%;border-collapse:collapse}
+.pw{overflow-x:auto;border-top:1px solid var(--line-soft)}
+th,td{padding:5px 7px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{padding-left:13px}
+td:last-child{padding-right:13px}
+thead th{font-size:10.5px;letter-spacing:.08em;font-weight:700;padding-top:9px;padding-bottom:7px}
+thead th:first-child{text-align:left;color:var(--ink-3);font-weight:500;letter-spacing:.1em}
+thead th .sup{font-weight:500;letter-spacing:.04em;font-size:9.5px;color:var(--ink-3)}
+th[scope="row"]{text-align:left;font-weight:500;font-size:11px;color:var(--ink-2)}
+th[scope="row"] span{color:var(--ink-3);font-size:10px}
+.c2{color:var(--w2)} .c4{color:var(--w4)} .ci{color:var(--accent)}
+tbody tr.end td{font-size:15px;font-weight:600}
+tbody tr.wh td{font-size:13.5px;font-weight:600}
+tbody tr.sub td,tbody tr.sub th{color:var(--ink-2);font-size:12px}
+tbody tr.rule-top td,tbody tr.rule-top th{border-top:1px solid var(--line-soft)}
+tbody tr.gp td{color:var(--gp);font-weight:600}
+tbody tr.cost td{color:var(--cost)}
+col.est{background:color-mix(in srgb,var(--w4) 7%,transparent)}
+
+/* ---- composition bars ---- */
+.bars{padding:11px 13px 13px;display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--line-soft)}
+.brow{display:grid;grid-template-columns:52px 1fr;gap:9px;align-items:center}
+.blab{font-size:10.5px;letter-spacing:.05em;color:var(--ink-2);text-align:right}
+.btrack{display:flex;height:14px;border-radius:4px;overflow:hidden;background:var(--panel-2)}
+.btrack i{display:block;height:100%}
+.b-cost{background:color-mix(in srgb,var(--cost) 72%,transparent)}
+.b-gp{background:color-mix(in srgb,var(--gp) 72%,transparent)}
+.b-mg{background:color-mix(in srgb,var(--margin) 62%,transparent)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;padding:0 13px 12px;font-size:10.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+.empty{padding:44px 0;text-align:center;color:var(--ink-3);font-size:13px}
+footer{max-width:1180px;margin:0 auto;padding:26px 18px 40px;border-top:1px solid var(--line);color:var(--ink-3);font-size:11.5px;line-height:1.9}
+footer b{color:var(--ink-2)}
+@media (max-width:520px){.head-in{align-items:flex-start}.meta{text-align:left}}
+</style>
+
+<header>
+  <div class="head-in">
+    <h1><small>R∞PC 価格・スペック 早見盤</small>2026年8月1日 改定版</h1>
+    <div class="meta">
+      保証 <b>2年（LIGHT）</b> / <b>4年（中間・参考値）</b> / <b>無期限（R∞PC）</b><br>
+      出典：R∞PC価格表 ver.4「【改定版】2026年8月1日～」
+    </div>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="bar-in">
+    <input type="search" id="q" placeholder="型番・CPU・メモリ・容量で絞り込み（例: i5 16GB 500）" autocomplete="off">
+    <div class="seg" id="catseg"></div>
+    <div class="seg" id="taxseg">
+      <button type="button" data-tax="ex" aria-pressed="true">税別</button>
+      <button type="button" data-tax="in" aria-pressed="false">税込</button>
+    </div>
+    <span class="count" id="count"></span>
+  </div>
+</div>
+
+<div class="wrap">
+  <section id="pinsec" hidden>
+    <div class="sec"><h2>ピン留め</h2><div class="rule"></div><span class="hint">★でいつでも固定・解除／次に開いた時もこのまま</span></div>
+    <div class="grid" id="pinned"></div>
+  </section>
+  <section>
+    <div class="sec"><h2>全モデル</h2><div class="rule"></div><span class="hint" id="listhint"></span></div>
+    <div class="grid" id="list"></div>
+    <div class="empty" id="empty" hidden>該当するモデルがありません</div>
+  </section>
+</div>
+
+<footer>
+  <b>4年保証の価格について：</b>価格表に4年保証の設定がないため、<b>2年（LIGHT）と無期限（R∞PC）の中間値を1,000円単位で丸めた参考値</b>を表示しています（税別ベースで算出し、税込は×1.1）。原価は無期限と同じ（R∞PC箱）で計算しています。正式価格が決まったら差し替えてください。<br>
+  <b>粗利・原価は税別。</b>エンド価格＝直販価格、卸価格＝代理店向け。代理店利益率＝(エンド−卸)÷エンド。<br>
+  <b>オプション（税込）：</b>ドライブ +2,200円／テンキー +1,100円／カメラ +1,100円／フルHD +1,100円。SSD 240→500GB +17,600円、500GB→1TB +16,500円、240GB→1TB +33,000円。メモリ 8→16GB +13,200円（16→32GBは原則対応不可、強い希望時 +28,600円）。Ci7はCi5価格 +16,500円。
+</footer>
+
+<script>
+const DATA = [{"cat": "A4ノート", "code": "A1", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Celeron 8th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 19518, "breakdown": [["本体仕入れ", 7000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 318]], "d_ex": 53000, "d_in": 58300, "w_ex": 40000, "w_in": 44000, "ld_ex": 40000, "ld_in": 44000, "lw_ex": 30000, "lw_in": 33000, "d_gp": 33482, "w_gp": 20482, "ld_gp": 22664, "lw_gp": 12664, "year": "2018年", "id": "A4ノート/A1", "search": "a1 a4ノート 2018年 2018年 celeron 8th 8gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A2", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i3 8th～9th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 23700, "breakdown": [["本体仕入れ", 9000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 59000, "d_in": 64900, "w_ex": 44000, "w_in": 48400, "ld_ex": 45000, "ld_in": 49500, "lw_ex": 34000, "lw_in": 37400, "d_gp": 35300, "w_gp": 20300, "ld_gp": 23482, "lw_gp": 12482, "year": "2018年", "id": "A4ノート/A2", "search": "a2 a4ノート 2018年 2018年 core i3 8th～9th 8gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A3", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i3 8th～9th"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 30700, "breakdown": [["本体仕入れ", 9000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 71000, "d_in": 78100, "w_ex": 53000, "w_in": 58300, "ld_ex": 57000, "ld_in": 62700, "lw_ex": 43000, "lw_in": 47300, "d_gp": 40300, "w_gp": 22300, "ld_gp": 28482, "lw_gp": 14482, "year": "2018年", "id": "A4ノート/A3", "search": "a3 a4ノート 2018年 2018年 core i3 8th～9th 8gb 500gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A4", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i3 10th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 29700, "breakdown": [["本体仕入れ", 15000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 68000, "d_in": 74800, "w_ex": 51000, "w_in": 56100, "ld_ex": 55000, "ld_in": 60500, "lw_ex": 41000, "lw_in": 45100, "d_gp": 38300, "w_gp": 21300, "ld_gp": 27482, "lw_gp": 13482, "year": "2018年", "id": "A4ノート/A4", "search": "a4 a4ノート 2018年 2018年 core i3 10th 8gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A17", "status": "追加", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i3 10th"], ["RAM", "16GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 35700, "breakdown": [["本体仕入れ", 15000], ["メモリ", 6000], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 80000, "d_in": 88000, "w_ex": 60000, "w_in": 66000, "ld_ex": 67000, "ld_in": 73700, "lw_ex": 50000, "lw_in": 55000, "d_gp": 44300, "w_gp": 24300, "ld_gp": 33482, "lw_gp": 16482, "year": "2018年", "id": "A4ノート/A17", "search": "a17 a4ノート 2018年 2018年 core i3 10th 16gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A5", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 30700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 68000, "d_in": 74800, "w_ex": 51000, "w_in": 56100, "ld_ex": 55000, "ld_in": 60500, "lw_ex": 41000, "lw_in": 45100, "d_gp": 37300, "w_gp": 20300, "ld_gp": 26482, "lw_gp": 12482, "year": "2018年", "id": "A4ノート/A5", "search": "a5 a4ノート 2018年 2018年 core i5 8th 8gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A6", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 37700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 80000, "d_in": 88000, "w_ex": 60000, "w_in": 66000, "ld_ex": 67000, "ld_in": 73700, "lw_ex": 50000, "lw_in": 55000, "d_gp": 42300, "w_gp": 22300, "ld_gp": 31482, "lw_gp": 14482, "year": "2018年", "id": "A4ノート/A6", "search": "a6 a4ノート 2018年 2018年 core i5 8th 8gb 500gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A7", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "16GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 36700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 6000], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 80000, "d_in": 88000, "w_ex": 60000, "w_in": 66000, "ld_ex": 67000, "ld_in": 73700, "lw_ex": 50000, "lw_in": 55000, "d_gp": 43300, "w_gp": 23300, "ld_gp": 32482, "lw_gp": 15482, "year": "2018年", "id": "A4ノート/A7", "search": "a7 a4ノート 2018年 2018年 core i5 8th 16gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A8", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 43700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 92000, "d_in": 101200, "w_ex": 69000, "w_in": 75900, "ld_ex": 79000, "ld_in": 86900, "lw_ex": 59000, "lw_in": 64900, "d_gp": 48300, "w_gp": 25300, "ld_gp": 37482, "lw_gp": 17482, "year": "2018年", "id": "A4ノート/A8", "search": "a8 a4ノート 2018年 2018年 core i5 8th 16gb 500gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A16", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "16GB"], ["ストレージ", "1TB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 57700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 6000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 116000, "d_in": 127600, "w_ex": 87000, "w_in": 95700, "ld_ex": 103000, "ld_in": 113300, "lw_ex": 77000, "lw_in": 84700, "d_gp": 58300, "w_gp": 29300, "ld_gp": 47482, "lw_gp": 21482, "year": "2018年", "id": "A4ノート/A16", "search": "a16 a4ノート 2018年 2018年 core i5 8th 16gb 1tb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A9", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 38700, "breakdown": [["本体仕入れ", 24000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 81000, "d_in": 89100, "w_ex": 61000, "w_in": 67100, "ld_ex": 67000, "ld_in": 73700, "lw_ex": 50000, "lw_in": 55000, "d_gp": 42300, "w_gp": 22300, "ld_gp": 30482, "lw_gp": 13482, "year": "2020年", "id": "A4ノート/A9", "search": "a9 a4ノート 2020年 2020年 core i5 10th 8gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A10", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th"], ["RAM", "16GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 44700, "breakdown": [["本体仕入れ", 24000], ["メモリ", 6000], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 93000, "d_in": 102300, "w_ex": 70000, "w_in": 77000, "ld_ex": 79000, "ld_in": 86900, "lw_ex": 59000, "lw_in": 64900, "d_gp": 48300, "w_gp": 25300, "ld_gp": 36482, "lw_gp": 16482, "year": "2020年", "id": "A4ノート/A10", "search": "a10 a4ノート 2020年 2020年 core i5 10th 16gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A11", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 51700, "breakdown": [["本体仕入れ", 24000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 105000, "d_in": 115500, "w_ex": 79000, "w_in": 86900, "ld_ex": 91000, "ld_in": 100100, "lw_ex": 68000, "lw_in": 74800, "d_gp": 53300, "w_gp": 27300, "ld_gp": 41482, "lw_gp": 18482, "year": "2020年", "id": "A4ノート/A11", "search": "a11 a4ノート 2020年 2020年 core i5 10th 16gb 500gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A18", "status": "追加", "specs": [["年式（目安）", "2021年"], ["CPU基準", "Core i5 11th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 44700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 89000, "d_in": 97900, "w_ex": 67000, "w_in": 73700, "ld_ex": 75000, "ld_in": 82500, "lw_ex": 56000, "lw_in": 61600, "d_gp": 44300, "w_gp": 22300, "ld_gp": 32482, "lw_gp": 13482, "year": "2021年", "id": "A4ノート/A18", "search": "a18 a4ノート 2021年 2021年 core i5 11th 8gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A19", "status": "追加", "specs": [["年式（目安）", "2021年"], ["CPU基準", "Core i5 11th"], ["RAM", "16GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 50700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 6000], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 101000, "d_in": 111100, "w_ex": 76000, "w_in": 83600, "ld_ex": 87000, "ld_in": 95700, "lw_ex": 65000, "lw_in": 71500, "d_gp": 50300, "w_gp": 25300, "ld_gp": 38482, "lw_gp": 16482, "year": "2021年", "id": "A4ノート/A19", "search": "a19 a4ノート 2021年 2021年 core i5 11th 16gb 240gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A12", "status": "", "specs": [["年式（目安）", "2021年"], ["CPU基準", "Core i5 11th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 57700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 113000, "d_in": 124300, "w_ex": 85000, "w_in": 93500, "ld_ex": 99000, "ld_in": 108900, "lw_ex": 74000, "lw_in": 81400, "d_gp": 55300, "w_gp": 27300, "ld_gp": 43482, "lw_gp": 18482, "year": "2021年", "id": "A4ノート/A12", "search": "a12 a4ノート 2021年 2021年 core i5 11th 16gb 500gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A13", "status": "", "specs": [["年式（目安）", "2021年"], ["CPU基準", "Core i5 11th"], ["RAM", "24~32GB"], ["ストレージ", "1TB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 89700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 24000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 161000, "d_in": 177100, "w_ex": 121000, "w_in": 133100, "ld_ex": 147000, "ld_in": 161700, "lw_ex": 110000, "lw_in": 121000, "d_gp": 71300, "w_gp": 31300, "ld_gp": 59482, "lw_gp": 22482, "year": "2021年", "id": "A4ノート/A13", "search": "a13 a4ノート 2021年 2021年 core i5 11th 24~32gb 1tb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A14", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i7 8th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 55700, "breakdown": [["本体仕入れ", 28000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 111000, "d_in": 122100, "w_ex": 83000, "w_in": 91300, "ld_ex": 96000, "ld_in": 105600, "lw_ex": 72000, "lw_in": 79200, "d_gp": 55300, "w_gp": 27300, "ld_gp": 42482, "lw_gp": 18482, "year": "2018年", "id": "A4ノート/A14", "search": "a14 a4ノート 2018年 2018年 core i7 8th 16gb 500gb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "A4ノート", "code": "A15", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i7 8th"], ["RAM", "32GB"], ["ストレージ", "1TB(SSD)"], ["ドライブ（税込価格）", "なし(あり+2,200円)"], ["テンキー（税込価格）", "なし(あり+1,100円)"], ["カメラ（税込価格）", "なし(あり+1,100円)"], ["フルHD（税込価格）", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 81700, "breakdown": [["本体仕入れ", 22000], ["メモリ", 24000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 159000, "d_in": 174900, "w_ex": 119000, "w_in": 130900, "ld_ex": 144000, "ld_in": 158400, "lw_ex": 108000, "lw_in": 118800, "d_gp": 77300, "w_gp": 37300, "ld_gp": 64482, "lw_gp": 28482, "year": "2018年", "id": "A4ノート/A15", "search": "a15 a4ノート 2018年 2018年 core i7 8th 32gb 1tb(ssd) なし(あり+2,200円) なし(あり+1,100円) なし(あり+1,100円) なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B1", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i3 8th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 22700, "breakdown": [["本体仕入れ", 8000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 61000, "d_in": 67100, "w_ex": 46000, "w_in": 50600, "ld_ex": 48000, "ld_in": 52800, "lw_ex": 36000, "lw_in": 39600, "d_gp": 38300, "w_gp": 23300, "ld_gp": 27482, "lw_gp": 15482, "year": "2018年", "id": "B5ノート/B1", "search": "b1 b5ノート 2018年 2018年 core i3 8th 8gb 240gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B2", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i3 8th"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 29700, "breakdown": [["本体仕入れ", 8000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 73000, "d_in": 80300, "w_ex": 55000, "w_in": 60500, "ld_ex": 60000, "ld_in": 66000, "lw_ex": 45000, "lw_in": 49500, "d_gp": 43300, "w_gp": 25300, "ld_gp": 32482, "lw_gp": 17482, "year": "2018年", "id": "B5ノート/B2", "search": "b2 b5ノート 2018年 2018年 core i3 8th 8gb 500gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B3", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "8GB"], ["ストレージ", "240GB"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 30700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 71000, "d_in": 78100, "w_ex": 53000, "w_in": 58300, "ld_ex": 57000, "ld_in": 62700, "lw_ex": 43000, "lw_in": 47300, "d_gp": 40300, "w_gp": 22300, "ld_gp": 28482, "lw_gp": 14482, "year": "2018年", "id": "B5ノート/B3", "search": "b3 b5ノート 2018年 2018年 core i5 8th 8gb 240gb なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B4", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 37700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 83000, "d_in": 91300, "w_ex": 62000, "w_in": 68200, "ld_ex": 69000, "ld_in": 75900, "lw_ex": 52000, "lw_in": 57200, "d_gp": 45300, "w_gp": 24300, "ld_gp": 33482, "lw_gp": 16482, "year": "2018年", "id": "B5ノート/B4", "search": "b4 b5ノート 2018年 2018年 core i5 8th 8gb 500gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B5", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "16GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 36700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 6000], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 83000, "d_in": 91300, "w_ex": 62000, "w_in": 68200, "ld_ex": 69000, "ld_in": 75900, "lw_ex": 52000, "lw_in": 57200, "d_gp": 46300, "w_gp": 25300, "ld_gp": 34482, "lw_gp": 17482, "year": "2018年", "id": "B5ノート/B5", "search": "b5 b5ノート 2018年 2018年 core i5 8th 16gb 240gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B6", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 43700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 95000, "d_in": 104500, "w_ex": 71000, "w_in": 78100, "ld_ex": 81000, "ld_in": 89100, "lw_ex": 61000, "lw_in": 67100, "d_gp": 51300, "w_gp": 27300, "ld_gp": 39482, "lw_gp": 19482, "year": "2018年", "id": "B5ノート/B6", "search": "b6 b5ノート 2018年 2018年 core i5 8th 16gb 500gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B19", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "16GB"], ["ストレージ", "1TB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 57700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 6000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 119000, "d_in": 130900, "w_ex": 89000, "w_in": 97900, "ld_ex": 105000, "ld_in": 115500, "lw_ex": 79000, "lw_in": 86900, "d_gp": 61300, "w_gp": 31300, "ld_gp": 49482, "lw_gp": 23482, "year": "2018年", "id": "B5ノート/B19", "search": "b19 b5ノート 2018年 2018年 core i5 8th 16gb 1tb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B7", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 37700, "breakdown": [["本体仕入れ", 23000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 84000, "d_in": 92400, "w_ex": 63000, "w_in": 69300, "ld_ex": 70000, "ld_in": 77000, "lw_ex": 52000, "lw_in": 57200, "d_gp": 46300, "w_gp": 25300, "ld_gp": 34482, "lw_gp": 16482, "year": "2020年", "id": "B5ノート/B7", "search": "b7 b5ノート 2020年 2020年 core i5 10th 8gb 240gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B8", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 44700, "breakdown": [["本体仕入れ", 23000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 96000, "d_in": 105600, "w_ex": 72000, "w_in": 79200, "ld_ex": 81000, "ld_in": 89100, "lw_ex": 61000, "lw_in": 67100, "d_gp": 51300, "w_gp": 27300, "ld_gp": 38482, "lw_gp": 18482, "year": "2020年", "id": "B5ノート/B8", "search": "b8 b5ノート 2020年 2020年 core i5 10th 8gb 500gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B17", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th"], ["RAM", "16GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 43700, "breakdown": [["本体仕入れ", 23000], ["メモリ", 6000], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 96000, "d_in": 105600, "w_ex": 72000, "w_in": 79200, "ld_ex": 81000, "ld_in": 89100, "lw_ex": 61000, "lw_in": 67100, "d_gp": 52300, "w_gp": 28300, "ld_gp": 39482, "lw_gp": 19482, "year": "2020年", "id": "B5ノート/B17", "search": "b17 b5ノート 2020年 2020年 core i5 10th 16gb 240gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B9", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 50700, "breakdown": [["本体仕入れ", 23000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 108000, "d_in": 118800, "w_ex": 81000, "w_in": 89100, "ld_ex": 93000, "ld_in": 102300, "lw_ex": 70000, "lw_in": 77000, "d_gp": 57300, "w_gp": 30300, "ld_gp": 44482, "lw_gp": 21482, "year": "2020年", "id": "B5ノート/B9", "search": "b9 b5ノート 2020年 2020年 core i5 10th 16gb 500gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B18", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th SV/LV"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["OS", "Windows 11"]], "cost": 30700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 73000, "d_in": 80300, "w_ex": 55000, "w_in": 60500, "ld_ex": 60000, "ld_in": 66000, "lw_ex": 45000, "lw_in": 49500, "d_gp": 42300, "w_gp": 24300, "ld_gp": 31482, "lw_gp": 16482, "year": "2018年", "id": "B5ノート/B18", "search": "b18 b5ノート 2018年 2018年 core i5 8th sv/lv 8gb 240gb(ssd) なし あり windows 11"}, {"cat": "B5ノート", "code": "B10", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th SV/LV"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["OS", "Windows 11"]], "cost": 37700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 85000, "d_in": 93500, "w_ex": 64000, "w_in": 70400, "ld_ex": 72000, "ld_in": 79200, "lw_ex": 54000, "lw_in": 59400, "d_gp": 47300, "w_gp": 26300, "ld_gp": 36482, "lw_gp": 18482, "year": "2018年", "id": "B5ノート/B10", "search": "b10 b5ノート 2018年 2018年 core i5 8th sv/lv 8gb 500gb(ssd) なし あり windows 11"}, {"cat": "B5ノート", "code": "B11", "status": "削除", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th LVシリーズ"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["OS", "Windows 11"]], "cost": 37700, "breakdown": [["本体仕入れ", 16000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 85000, "d_in": 93500, "w_ex": 64000, "w_in": 70400, "ld_ex": 72000, "ld_in": 79200, "lw_ex": 54000, "lw_in": 59400, "d_gp": 47300, "w_gp": 26300, "ld_gp": 36482, "lw_gp": 18482, "year": "2018年", "id": "B5ノート/B11", "search": "b11 b5ノート 2018年 2018年 core i5 8th lvシリーズ 8gb 500gb(ssd) なし あり windows 11"}, {"cat": "B5ノート", "code": "B19", "status": "追加", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th SV/LV"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["OS", "Windows 11"]], "cost": 44700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 87000, "d_in": 95700, "w_ex": 65000, "w_in": 71500, "ld_ex": 72000, "ld_in": 79200, "lw_ex": 54000, "lw_in": 59400, "d_gp": 42300, "w_gp": 20300, "ld_gp": 29482, "lw_gp": 11482, "year": "2020年", "id": "B5ノート/B19#2", "search": "b19 b5ノート 2020年 2020年 core i5 10th sv/lv 8gb 240gb(ssd) なし あり windows 11"}, {"cat": "B5ノート", "code": "B12", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i5 10th SV/LV"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["OS", "Windows 11"]], "cost": 51700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 99000, "d_in": 108900, "w_ex": 74000, "w_in": 81400, "ld_ex": 84000, "ld_in": 92400, "lw_ex": 63000, "lw_in": 69300, "d_gp": 47300, "w_gp": 22300, "ld_gp": 34482, "lw_gp": 13482, "year": "2020年", "id": "B5ノート/B12", "search": "b12 b5ノート 2020年 2020年 core i5 10th sv/lv 8gb 500gb(ssd) なし あり windows 11"}, {"cat": "B5ノート", "code": "B20", "status": "追加", "specs": [["年式（目安）", "2021年"], ["CPU基準", "Core i5 11th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 44700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 92000, "d_in": 101200, "w_ex": 69000, "w_in": 75900, "ld_ex": 77000, "ld_in": 84700, "lw_ex": 58000, "lw_in": 63800, "d_gp": 47300, "w_gp": 24300, "ld_gp": 34482, "lw_gp": 15482, "year": "2021年", "id": "B5ノート/B20", "search": "b20 b5ノート 2021年 2021年 core i5 11th 8gb 240gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B13", "status": "", "specs": [["年式（目安）", "2021年"], ["CPU基準", "Core i5 11th"], ["RAM", "8GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 51700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 0], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 104000, "d_in": 114400, "w_ex": 78000, "w_in": 85800, "ld_ex": 89000, "ld_in": 97900, "lw_ex": 67000, "lw_in": 73700, "d_gp": 52300, "w_gp": 26300, "ld_gp": 39482, "lw_gp": 17482, "year": "2021年", "id": "B5ノート/B13", "search": "b13 b5ノート 2021年 2021年 core i5 11th 8gb 500gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B21", "status": "追加", "specs": [["年式（目安）", "2021年"], ["CPU基準", "Core i5 11th"], ["RAM", "16GB"], ["ストレージ", "240GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 50700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 6000], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 104000, "d_in": 114400, "w_ex": 78000, "w_in": 94600, "ld_ex": 89000, "ld_in": 103400, "lw_ex": 67000, "lw_in": 83600, "d_gp": 53300, "w_gp": 27300, "ld_gp": 40482, "lw_gp": 18482, "year": "2021年", "id": "B5ノート/B21", "search": "b21 b5ノート 2021年 2021年 core i5 11th 16gb 240gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B14", "status": "", "specs": [["年式（目安）", "2021年"], ["CPU基準", "Core i5 11th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 57700, "breakdown": [["本体仕入れ", 30000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 116000, "d_in": 127600, "w_ex": 87000, "w_in": 95700, "ld_ex": 101000, "ld_in": 111100, "lw_ex": 76000, "lw_in": 83600, "d_gp": 58300, "w_gp": 29300, "ld_gp": 45482, "lw_gp": 20482, "year": "2021年", "id": "B5ノート/B14", "search": "b14 b5ノート 2021年 2021年 core i5 11th 16gb 500gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B15", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i7 8th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 55700, "breakdown": [["本体仕入れ", 28000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 113000, "d_in": 124300, "w_ex": 85000, "w_in": 93500, "ld_ex": 99000, "ld_in": 108900, "lw_ex": 74000, "lw_in": 81400, "d_gp": 57300, "w_gp": 29300, "ld_gp": 45482, "lw_gp": 20482, "year": "2018年", "id": "B5ノート/B15", "search": "b15 b5ノート 2018年 2018年 core i7 8th 16gb 500gb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "B5ノート", "code": "B16", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i7 8th"], ["RAM", "24~32GB"], ["ストレージ", "1TB(SSD)"], ["ドライブ", "なし"], ["カメラ", "あり"], ["フルHD", "なし(あり+1,100円)"], ["OS", "Windows 11"]], "cost": 87700, "breakdown": [["本体仕入れ", 28000], ["メモリ", 24000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 2500]], "d_ex": 161000, "d_in": 177100, "w_ex": 121000, "w_in": 133100, "ld_ex": 147000, "ld_in": 161700, "lw_ex": 110000, "lw_in": 121000, "d_gp": 73300, "w_gp": 33300, "ld_gp": 61482, "lw_gp": 24482, "year": "2018年", "id": "B5ノート/B16", "search": "b16 b5ノート 2018年 2018年 core i7 8th 24~32gb 1tb(ssd) なし あり なし(あり+1,100円) windows 11"}, {"cat": "デスクトップ", "code": "D1", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i3 8th～9th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["無線LAN有無", "外付けタイプ(○)"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 20100, "breakdown": [["本体仕入れ", 7000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 52000, "d_in": 57200, "w_ex": 39000, "w_in": 42900, "ld_ex": 44000, "ld_in": 48400, "lw_ex": 33000, "lw_in": 36300, "d_gp": 31900, "w_gp": 18900, "ld_gp": 23900, "lw_gp": 12900, "year": "2018年", "id": "デスクトップ/D1", "search": "d1 デスクトップ 2018年 2018年 core i3 8th～9th 8gb 240gb(ssd) 外付けタイプ(○) なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D2", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["無線LAN有無", "外付けタイプ(○)"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 27100, "breakdown": [["本体仕入れ", 14000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 67000, "d_in": 73700, "w_ex": 50000, "w_in": 55000, "ld_ex": 53000, "ld_in": 58300, "lw_ex": 40000, "lw_in": 44000, "d_gp": 39900, "w_gp": 22900, "ld_gp": 25900, "lw_gp": 12900, "year": "2018年", "id": "デスクトップ/D2", "search": "d2 デスクトップ 2018年 2018年 core i5 8th 8gb 240gb(ssd) 外付けタイプ(○) なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D3", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["無線LAN有無", "外付けタイプ(○)"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 40100, "breakdown": [["本体仕入れ", 14000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 91000, "d_in": 100100, "w_ex": 68000, "w_in": 74800, "ld_ex": 77000, "ld_in": 84700, "lw_ex": 58000, "lw_in": 63800, "d_gp": 50900, "w_gp": 27900, "ld_gp": 36900, "lw_gp": 17900, "year": "2018年", "id": "デスクトップ/D3", "search": "d3 デスクトップ 2018年 2018年 core i5 8th 16gb 500gb(ssd) 外付けタイプ(○) なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D4", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 8th"], ["RAM", "32GB"], ["ストレージ", "1TB"], ["無線LAN有無", "外付けタイプ(○)"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 72100, "breakdown": [["本体仕入れ", 14000], ["メモリ", 24000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 139000, "d_in": 152900, "w_ex": 104000, "w_in": 114400, "ld_ex": 125000, "ld_in": 137500, "lw_ex": 94000, "lw_in": 103400, "d_gp": 66900, "w_gp": 31900, "ld_gp": 52900, "lw_gp": 21900, "year": "2018年", "id": "デスクトップ/D4", "search": "d4 デスクトップ 2018年 2018年 core i5 8th 32gb 1tb 外付けタイプ(○) なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D5", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 9th~10th"], ["RAM", "8GB"], ["ストレージ", "240GB(SSD)"], ["無線LAN有無", "外付けタイプ（O）"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 38100, "breakdown": [["本体仕入れ", 25000], ["メモリ", 0], ["SSD差分", 4000], ["SSD", 5000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 80000, "d_in": 88000, "w_ex": 60000, "w_in": 66000, "ld_ex": 67000, "ld_in": 73700, "lw_ex": 50000, "lw_in": 55000, "d_gp": 41900, "w_gp": 21900, "ld_gp": 28900, "lw_gp": 11900, "year": "2018年", "id": "デスクトップ/D5", "search": "d5 デスクトップ 2018年 2018年 core i5 9th~10th 8gb 240gb(ssd) 外付けタイプ（o） なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D6", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 9th~10th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["無線LAN有無", "外付けタイプ（O）"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 51100, "breakdown": [["本体仕入れ", 25000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 104000, "d_in": 114400, "w_ex": 78000, "w_in": 85800, "ld_ex": 91000, "ld_in": 100100, "lw_ex": 68000, "lw_in": 74800, "d_gp": 52900, "w_gp": 26900, "ld_gp": 39900, "lw_gp": 16900, "year": "2018年", "id": "デスクトップ/D6", "search": "d6 デスクトップ 2018年 2018年 core i5 9th~10th 16gb 500gb(ssd) 外付けタイプ（o） なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D7", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 9th~10th"], ["RAM", "16GB"], ["ストレージ", "1TB"], ["無線LAN有無", "外付けタイプ（O）"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 65100, "breakdown": [["本体仕入れ", 25000], ["メモリ", 6000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 128000, "d_in": 140800, "w_ex": 96000, "w_in": 105600, "ld_ex": 115000, "ld_in": 126500, "lw_ex": 86000, "lw_in": 94600, "d_gp": 62900, "w_gp": 30900, "ld_gp": 49900, "lw_gp": 20900, "year": "2018年", "id": "デスクトップ/D7", "search": "d7 デスクトップ 2018年 2018年 core i5 9th~10th 16gb 1tb 外付けタイプ（o） なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D8", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i5 9th~10th"], ["RAM", "32GB"], ["ストレージ", "1TB"], ["無線LAN有無", "外付けタイプ（O）"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 83100, "breakdown": [["本体仕入れ", 25000], ["メモリ", 24000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 152000, "d_in": 167200, "w_ex": 114000, "w_in": 125400, "ld_ex": 139000, "ld_in": 152900, "lw_ex": 104000, "lw_in": 114400, "d_gp": 68900, "w_gp": 30900, "ld_gp": 55900, "lw_gp": 20900, "year": "2018年", "id": "デスクトップ/D8", "search": "d8 デスクトップ 2018年 2018年 core i5 9th~10th 32gb 1tb 外付けタイプ（o） なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D9", "status": "", "specs": [["年式（目安）", "2020年"], ["CPU基準", "Core i7 8th"], ["RAM", "16GB"], ["ストレージ", "500GB(SSD)"], ["無線LAN有無", "外付けタイプ（O）"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 54100, "breakdown": [["本体仕入れ", 28000], ["メモリ", 6000], ["SSD差分", 8000], ["SSD", 8000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 113000, "d_in": 124300, "w_ex": 85000, "w_in": 93500, "ld_ex": 97000, "ld_in": 106700, "lw_ex": 73000, "lw_in": 80300, "d_gp": 58900, "w_gp": 30900, "ld_gp": 42900, "lw_gp": 18900, "year": "2020年", "id": "デスクトップ/D9", "search": "d9 デスクトップ 2020年 2020年 core i7 8th 16gb 500gb(ssd) 外付けタイプ（o） なし(あり+2,200円) なし(あり+2,200円) windows 11"}, {"cat": "デスクトップ", "code": "D10", "status": "", "specs": [["年式（目安）", "2018年"], ["CPU基準", "Core i7 8th"], ["RAM", "32GB"], ["ストレージ", "1TB"], ["無線LAN有無", "外付けタイプ（O）"], ["HDMI", "なし(あり+2,200円)"], ["USB Type-C", "なし(あり+2,200円)"], ["OS", "Windows 11"]], "cost": 86100, "breakdown": [["本体仕入れ", 28000], ["メモリ", 24000], ["SSD差分", 20000], ["SSD", 10000], ["OS", 3200], ["WPS", 0], ["箱", 900]], "d_ex": 161000, "d_in": 177100, "w_ex": 121000, "w_in": 133100, "ld_ex": 145000, "ld_in": 159500, "lw_ex": 109000, "lw_in": 119900, "d_gp": 74900, "w_gp": 34900, "ld_gp": 58900, "lw_gp": 22900, "year": "2018年", "id": "デスクトップ/D10", "search": "d10 デスクトップ 2018年 2018年 core i7 8th 32gb 1tb 外付けタイプ（o） なし(あり+2,200円) なし(あり+2,200円) windows 11"}];
+const yen = n => n == null ? "—" : "¥" + Math.round(n).toLocaleString("ja-JP");
+const r1k = n => Math.round(n / 1000) * 1000;
+const withTax = n => n == null ? null : Math.round(n * 1.1);
+
+/* 各モデルの保証3区分（2年 / 4年＝中間参考値 / 無期限） */
+function plans(m) {
+  const infCost = m.d_ex - m.d_gp;       // 無期限の原価（税別）
+  const lightCost = m.ld_ex - m.ld_gp;   // LIGHTの原価（箱代差額を反映）
+  const end4 = r1k((m.ld_ex + m.d_ex) / 2);
+  const wh4 = r1k((m.lw_ex + m.w_ex) / 2);
+  return [
+    { label: "2年", sub: "LIGHT", cls: "c2", end: m.ld_ex, wh: m.lw_ex, cost: lightCost },
+    { label: "4年", sub: "参考値", cls: "c4", end: end4, wh: wh4, cost: infCost },
+    { label: "無期限", sub: "R∞PC", cls: "ci", end: m.d_ex, wh: m.w_ex, cost: infCost }
+  ].map(p => ({ ...p, endGp: p.end - p.cost, whGp: p.wh - p.cost, rate: (p.end - p.wh) / p.end }));
+}
+
+const state = { tax: "ex", cat: "すべて", q: "", pins: new Set() };
+try { state.pins = new Set(JSON.parse(localStorage.getItem("rpc.pins") || "[]")); } catch (e) {}
+function savePins() { try { localStorage.setItem("rpc.pins", JSON.stringify([...state.pins])); } catch (e) {} }
+
+const money = n => yen(state.tax === "in" ? withTax(n) : n);
+
+function bar(p, scale) {
+  const seg = v => (Math.max(v, 0) / scale * 100).toFixed(2) + "%";
+  return `<div class="brow">
+    <span class="blab ${p.cls}">${p.label}</span>
+    <span class="btrack" title="原価 ${yen(p.cost)}／卸粗利 ${yen(p.whGp)}／代理店 ${yen(p.end - p.wh)}">
+      <i class="b-cost" style="width:${seg(p.cost)}"></i><i class="b-gp" style="width:${seg(p.whGp)}"></i><i class="b-mg" style="width:${seg(p.end - p.wh)}"></i>
+    </span>
+  </div>`;
+}
+
+function card(m) {
+  const ps = plans(m);
+  const pinned = state.pins.has(m.id);
+  const lead = new Set(["CPU基準", "RAM", "ストレージ"]);
+  const scale = Math.max(...ps.map(p => p.end));
+  const OPT = /^(ドライブ|テンキー|カメラ|フルHD|無線LAN有無|HDMI|USB Type-C)/;
+  const rows = m.specs.filter(s => s[0] !== "年式（目安）");
+  const core = rows.filter(s => !OPT.test(s[0]));
+  const opts = rows.filter(s => OPT.test(s[0])).map(s => {
+    const name = s[0].replace("（税込価格）", "").replace("有無", "");
+    const add = s[1].match(/あり\+([\d,]+)円/);
+    return { name, val: add ? `なし <span style="opacity:.8">＋${add[1]}</span>` : s[1] };
+  });
+  const el = document.createElement("article");
+  el.className = "card" + (pinned ? " pinned" : "");
+  el.innerHTML = `
+    <div class="card-head">
+      <div>
+        <div class="code">${m.code}</div>
+        <div class="cat">${m.cat}${m.year ? " ・ " + m.year : ""}</div>
+        <div class="tags">
+          ${m.status ? `<span class="tag ${m.status === "追加" ? "add" : "del"}">${m.status}</span>` : ""}
+          ${m.id.includes("#") ? `<span class="tag del">型番重複</span>` : ""}
+        </div>
+      </div>
+      <button class="iconbtn" type="button" aria-pressed="${pinned}" aria-label="${pinned ? "ピンを外す" : "ピン留めする"}" data-pin="${m.id}">${pinned ? "★" : "☆"}</button>
+    </div>
+    <dl class="specs">
+      ${core.map(s => `<dt>${s[0]}</dt><dd${lead.has(s[0]) ? ' class="lead"' : ""}>${s[1]}</dd>`).join("")}
+    </dl>
+    ${opts.length ? `<div class="opts">${opts.map(o => `<span class="opt"><b>${o.name}</b> ${o.val}</span>`).join("")}</div>` : ""}
+    <div class="pw"><table>
+      <colgroup><col><col><col class="est"><col></colgroup>
+      <thead><tr><th>保証</th>${ps.map(p => `<th class="${p.cls}">${p.label}<br><span class="sup">${p.sub}</span></th>`).join("")}</tr></thead>
+      <tbody>
+        <tr class="end"><th scope="row">エンド価格</th>${ps.map(p => `<td class="${p.cls}">${money(p.end)}</td>`).join("")}</tr>
+        <tr class="wh"><th scope="row">卸価格</th>${ps.map(p => `<td>${money(p.wh)}</td>`).join("")}</tr>
+        <tr class="sub cost rule-top"><th scope="row">原価 <span>税別</span></th>${ps.map(p => `<td>${yen(p.cost)}</td>`).join("")}</tr>
+        <tr class="sub gp"><th scope="row">粗利 エンド <span>税別</span></th>${ps.map(p => `<td>${yen(p.endGp)}</td>`).join("")}</tr>
+        <tr class="sub gp"><th scope="row">粗利 卸 <span>税別</span></th>${ps.map(p => `<td>${yen(p.whGp)}</td>`).join("")}</tr>
+        <tr class="sub rule-top"><th scope="row">代理店利益率</th>${ps.map(p => `<td>${(p.rate * 100).toFixed(1)}%</td>`).join("")}</tr>
+      </tbody>
+    </table></div>
+    <div class="bars">${ps.map(p => bar(p, scale)).join("")}</div>
+    <div class="legend">
+      <span><i class="b-cost"></i>原価</span>
+      <span><i class="b-gp"></i>卸粗利</span>
+      <span><i class="b-mg"></i>代理店マージン（エンド−卸）</span>
+    </div>`;
+  return el;
+}
+
+/* ---- 絞り込みと描画 ---- */
+const $ = s => document.querySelector(s);
+const cats = ["すべて", ...new Set(DATA.map(m => m.cat))];
+
+function matches(m) {
+  if (state.cat !== "すべて" && m.cat !== state.cat) return false;
+  const terms = state.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return terms.every(t => m.search.includes(t));
+}
+
+function render() {
+  const pinSec = $("#pinsec"), pinBox = $("#pinned"), list = $("#list");
+  const pins = DATA.filter(m => state.pins.has(m.id));
+  pinSec.hidden = pins.length === 0;
+  pinBox.replaceChildren(...pins.map(card));
+
+  const rest = DATA.filter(m => !state.pins.has(m.id) && matches(m));
+  list.replaceChildren(...rest.map(card));
+  $("#empty").hidden = rest.length > 0;
+  $("#count").textContent = `${rest.length + pins.length} / ${DATA.length} モデル`;
+  $("#listhint").textContent = pins.length ? `ピン留め ${pins.length} 件は上に固定中` : "★を押すと上に固定されます";
+}
+
+$("#catseg").innerHTML = cats.map(c =>
+  `<button type="button" data-cat="${c}" aria-pressed="${c === state.cat}">${c}</button>`).join("");
+
+document.addEventListener("click", e => {
+  const pin = e.target.closest("[data-pin]");
+  if (pin) {
+    const id = pin.dataset.pin;
+    state.pins.has(id) ? state.pins.delete(id) : state.pins.add(id);
+    savePins(); render(); return;
+  }
+  const cat = e.target.closest("#catseg button");
+  if (cat) {
+    state.cat = cat.dataset.cat;
+    [...cat.parentNode.children].forEach(b => b.setAttribute("aria-pressed", b === cat));
+    render(); return;
+  }
+  const t = e.target.closest("#taxseg button");
+  if (t) {
+    state.tax = t.dataset.tax;
+    [...t.parentNode.children].forEach(b => b.setAttribute("aria-pressed", b === t));
+    render();
+  }
+});
+
+$("#q").addEventListener("input", e => { state.q = e.target.value; render(); });
+
+render();
+
+</script>
