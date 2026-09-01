@@ -122,7 +122,15 @@ table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size: 12px; }
 .qtbl th, .qtbl td { border: 1px solid var(--bdr); padding: 5px 7px; text-align: right; white-space: nowrap; }
 .qtbl th { background: var(--priL); color: var(--pri); font-size: 11px; text-align: center; font-weight: 700; }
-.qtbl th.qname, .qtbl td.qname { text-align: left; min-width: 230px; white-space: normal; }
+.qtbl th.qname, .qtbl td.qname {
+  text-align: left; min-width: 230px; white-space: normal;
+  position: sticky; left: 0; z-index: 1; background: var(--white);
+}
+.qtbl thead th.qname { z-index: 3; background: var(--priL); }
+.qtbl tfoot td.qname { z-index: 3; background: var(--priL); }
+.qtbl tr.qdraft td.qname { background: #fff8ef; }
+.qtbl tbody tr:hover td.qname { background: #f7fafd; }
+.qtbl tr.qgrp .qlabel { display: inline-block; position: sticky; left: 0; }
 .qtbl th { font-size: 10.5px; padding: 5px 4px; }
 .qtbl td.qcalc { background: #f3f5f7; color: var(--txtM); font-variant-numeric: tabular-nums; }
 .qtbl input { width: 100%; border: 1px solid transparent; border-radius: 5px; padding: 4px 6px; background: transparent; color: inherit; font: inherit; }
@@ -135,6 +143,15 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
 .qtbl tbody tr:hover td.qcalc { background: #eef2f6; }
 .qtbl tfoot td { position: sticky; bottom: 0; background: var(--priL); color: var(--pri);
   font-weight: 700; font-variant-numeric: tabular-nums; border-top: 2px solid var(--pri); }
+.qtbl tr.qgrp td { background: #eef2f6; color: var(--pri); font-weight: 700; text-align: left; }
+.qtbl tr.qgrp .qsub { font-weight: 600; color: var(--txtM); font-size: 11px; margin-left: 10px; }
+.qtbl tr.qdraft td { background: #fff8ef; }
+.qtbl tr.qdraft td.qcalc { background: #fdf0dd; }
+.qtbl tr.qdraft:hover td { background: #fff3e0; }
+.qtbl td.qacts { white-space: nowrap; text-align: right; }
+.qtbl td.qacts .mini-btn { padding: 3px 7px; font-size: 10.5px; }
+.mini-btn.go { border-color: #0a6b5b; color: #0a6b5b; font-weight: 700; }
+.mini-btn.tmp { border-color: #e0a44a; color: #a35200; font-weight: 700; }
 
 /* ── Preview sheet ── */
 .sheet { background: var(--white); border-radius: 10px; border: 1px solid var(--bdr); overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
@@ -478,17 +495,21 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
         <thead>
           <tr>
             <th class="qname">保証（機種名）</th>
+            <th>種別</th>
             <th>卸価格（税込）</th><th>卸価格（税抜）</th>
             <th>エンド売価（税込）</th><th>エンド売価（税抜）</th>
             <th>コミッション（税込）</th><th>コミッション（税抜）</th>
-            <th></th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody id="qBody"></tbody>
         <tfoot id="qFoot"></tfoot>
       </table>
     </div>
-    <p class="hint" style="margin-top:6px">税抜＝ROUNDUP(税込÷1.1, -1)、コミッション＝エンド売価−卸価格。グレーの列は自動計算です。合計行は画面上の確認用で、xlsx には出力しません。</p>
+    <p class="hint" style="margin-top:6px">
+      税抜＝ROUNDUP(税込÷1.1, -1)、コミッション＝エンド売価−卸価格。グレーの列は自動計算です。合計行は画面上の確認用で、xlsx には出力しません。<br>
+      オレンジの行は暫定です。エンド売価が決まったら「確定DL」で確定版の仕様書（Word）が出力され、確定版として登録されます。
+    </p>
   </div>
 
   <div class="sec">
@@ -1406,7 +1427,15 @@ const qCalc = (r) => {
 const qBlank = (r) => String(r.wholesale).trim() === "" && String(r.retail).trim() === "";
 
 function qSave() {
-  try { localStorage.setItem(QUOTE_KEY, JSON.stringify(qRows)); } catch (e) { /* ignore */ }
+  try {
+    localStorage.setItem(QUOTE_KEY, JSON.stringify(qRows));
+  } catch (e) {
+    try {
+      qRows.forEach((r) => { r.specImage = null; });
+      localStorage.setItem(QUOTE_KEY, JSON.stringify(qRows));
+      note("保存容量の都合で、明細に持たせていた商品画像を外しました");
+    } catch (e2) { /* keep the rows in memory even if they cannot be stored */ }
+  }
 }
 function qLoad() {
   try {
@@ -1441,30 +1470,152 @@ function qRenderTotals() {
   const foot = $("qFoot");
   if (!rows.length) { foot.innerHTML = ""; return; }
   const t = qTotals();
-  foot.innerHTML = "<tr><td class=\"qname\">合計（" + rows.length + " 件）</td>" +
+  foot.innerHTML = '<tr><td class="qname">合計（' + rows.length + " 件）</td><td></td>" +
     [t.b, t.c, t.d, t.e, t.f, t.g].map((n) => "<td>" + (n ? qFmt(n) : "") + "</td>").join("") +
     "<td></td></tr>";
+}
+
+const rowClient = (r) => String(r.client || "");
+const rowConfirmed = (r) => !r.draft && String(r.retail).trim() !== "";
+
+/** 卸／エンド, plus 暫定 or 確定 — the state the row is in right now. */
+function qRowBadges(r) {
+  const end = (r.priceType || "卸価格") === "エンド価格";
+  let out = '<span class="pbadge ' + (end ? "end" : "wholesale") + '">' + (end ? "エンド" : "卸") + "</span>";
+  if (r.draft) out += ' <span class="pbadge draft">暫定</span>';
+  else if (rowConfirmed(r)) out += ' <span class="pbadge end">確定</span>';
+  return out;
+}
+
+/** Per-client subtotal shown on the group heading. */
+function qGroupTotal(rows) {
+  const t = rows.reduce((a, r) => {
+    a.b += qToNum(r.wholesale);
+    if (String(r.retail).trim()) { a.d += qToNum(r.retail); a.f += qCalc(r).f; }
+    return a;
+  }, { b: 0, d: 0, f: 0 });
+  const bits = ["卸 " + qFmt(t.b)];
+  if (t.d) bits.push("エンド " + qFmt(t.d), "コミッション " + qFmt(t.f));
+  return bits.join("　/　") + "（税込）";
 }
 
 function qRender() {
   const body = $("qBody");
   body.innerHTML = "";
+
+  // Group the rows by client while keeping each row's index into qRows.
+  const keys = [], groups = new Map();
   qRows.forEach((r, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML =
-      '<td class="qname"><input type="text" data-i="' + i + '" data-k="name" /></td>' +
-      '<td><input type="text" class="qnum" data-i="' + i + '" data-k="wholesale" /></td>' +
-      '<td class="qcalc"></td>' +
-      '<td><input type="text" class="qnum" data-i="' + i + '" data-k="retail" placeholder="相手先記入" /></td>' +
-      '<td class="qcalc"></td><td class="qcalc"></td><td class="qcalc"></td>' +
-      '<td class="qact"><button class="mini-btn" type="button" data-qdel="' + i + '" title="この行を削除">✕</button></td>';
-    tr.querySelector('[data-k="name"]').value = r.name || "";
-    tr.querySelector('[data-k="wholesale"]').value = r.wholesale || "";
-    tr.querySelector('[data-k="retail"]').value = r.retail || "";
-    qPaintCalc(tr, r);
-    body.appendChild(tr);
+    const k = rowClient(r);
+    if (!groups.has(k)) { groups.set(k, []); keys.push(k); }
+    groups.get(k).push(i);
+  });
+
+  keys.forEach((key) => {
+    const idx = groups.get(key);
+    const rows = idx.map((i) => qRows[i]);
+    const head = document.createElement("tr");
+    head.className = "qgrp";
+    head.innerHTML = '<td colspan="9">' +
+      (key ? '<button class="mini-btn" type="button" data-qxlsx="' + esc(key) +
+        '" style="float:right">この宛名で xlsx</button>' : "") +
+      '<span class="qlabel">' + esc(key || "（宛名なし）") +
+      (key && rows[0].honorific ? "　" + esc(rows[0].honorific) : "") +
+      '<span class="qsub">' + rows.length + " 件　" + esc(qGroupTotal(rows)) + "</span></span>" +
+      "</td>";
+    body.appendChild(head);
+
+    idx.forEach((i) => {
+      const r = qRows[i];
+      const tr = document.createElement("tr");
+      if (r.draft) tr.className = "qdraft";
+      const canDoc = !!r.specFields;
+      const acts = canDoc
+        ? '<button class="mini-btn tmp" type="button" data-qdoc="draft" data-i="' + i + '" title="この内容で暫定版の仕様書(Word)をダウンロード">暫定DL</button> ' +
+          '<button class="mini-btn go" type="button" data-qdoc="final" data-i="' + i + '" title="エンド売価で確定版の仕様書(Word)をダウンロードし、確定版として登録">確定DL</button> ' +
+          '<button class="mini-btn" type="button" data-qdoc="load" data-i="' + i + '" title="仕様書タブに読み込む（PDF/印刷用）">反映</button> '
+        : "";
+      tr.innerHTML =
+        '<td class="qname"><input type="text" data-i="' + i + '" data-k="name" /></td>' +
+        "<td>" + qRowBadges(r) + "</td>" +
+        '<td><input type="text" class="qnum" data-i="' + i + '" data-k="wholesale" /></td>' +
+        '<td class="qcalc"></td>' +
+        '<td><input type="text" class="qnum" data-i="' + i + '" data-k="retail" placeholder="相手先記入" /></td>' +
+        '<td class="qcalc"></td><td class="qcalc"></td><td class="qcalc"></td>' +
+        '<td class="qacts">' + acts +
+        '<button class="mini-btn" type="button" data-qdel="' + i + '" title="この行を削除">✕</button></td>';
+      tr.querySelector('[data-k="name"]').value = r.name || "";
+      tr.querySelector('[data-k="wholesale"]').value = r.wholesale || "";
+      tr.querySelector('[data-k="retail"]').value = r.retail || "";
+      qPaintCalc(tr, r);
+      body.appendChild(tr);
+    });
   });
   qRenderTotals();
+}
+
+// ── 明細行から仕様書を直接つくる ──
+/** Snapshot for the spec form. confirmed → エンド価格・暫定オフ、未確定 → 元の価格のまま暫定。 */
+function rowSnapshot(r, confirmed) {
+  const f = { ...(r.specFields || {}) };
+  if (confirmed) {
+    f.priceType = "エンド価格";
+    f.price = String(roundUp10(qToNum(r.retail) / 1.1));
+  }
+  return {
+    fields: f,
+    showPrice: !!f.price,
+    isDraft: !confirmed,
+    isDraftPrice: !confirmed && !!r.draft,
+    image: r.specImage || null,
+  };
+}
+
+/** Builds a document from a row without leaving the form on that row's data. */
+function withRowApplied(snap, fn) {
+  const keep = snapshot();
+  applySnapshot(snap);
+  try { fn(); } finally { applySnapshot(keep); syncPresetHint(); }
+}
+
+function qRowDoc(i, mode) {
+  const r = qRows[i];
+  if (!r || !r.specFields) {
+    alert("この行は仕様書から追加されたものではないため、仕様書を作成できません。");
+    return;
+  }
+  if (mode === "draft") {
+    withRowApplied(rowSnapshot(r, false), downloadWord);
+    note("暫定版の仕様書をダウンロードしました");
+    return;
+  }
+
+  const retail = qToNum(r.retail);
+  if (!retail) { alert("エンド売価が未記入です。確定版を出すには売価を入れてください。"); return; }
+  const exTax = roundUp10(retail / 1.1);
+  const snap = rowSnapshot(r, true);
+  r.specFields = { ...snap.fields };
+
+  if (mode === "load") {
+    applySnapshot(snap);
+    syncPresetHint(); syncQuoteHint();
+    showPreview();
+    note("確定内容を仕様書に読み込みました（PDF は「PDF / 印刷」から）");
+    return;
+  }
+
+  if (!confirm("エンド価格 " + exTax.toLocaleString("ja-JP") + " 円（税抜）で確定版の仕様書を作成します。\n" +
+      "Word をダウンロードし、確定版として登録します。よろしいですか？")) return;
+
+  applySnapshot(snap);
+  downloadWord();
+  savePreset();                       // files it as the next 宛名 / エンド価格 version
+  syncQuoteHint();
+  r.draft = false;
+  r.priceType = "エンド価格";          // the sheet now states the end price
+  r.confirmedAt = new Date().toISOString();
+  qSave(); qRender();
+  note("確定版の仕様書を出力し、登録しました（仕様書タブにもこの内容が入っています）");
 }
 
 /** CPU label from a stored snapshot (same rule as the live form). */
@@ -1494,11 +1645,20 @@ function quoteNameFrom(f) {
 const qGrossUp = (exTax) => (exTax ? String(Math.round(qToNum(exTax) * 1.1)) : "");
 
 function qAddRowsFrom(entries) {
-  const added = entries.map((f) => ({
-    name: quoteNameFrom(f),
-    wholesale: qGrossUp(f.price),
-    retail: "",
-  })).filter((r) => r.name || r.wholesale);
+  const added = entries.map((e) => {
+    const f = e.fields || e;
+    return {
+      name: quoteNameFrom(f),
+      wholesale: qGrossUp(f.price),
+      retail: "",
+      client: f.addressee || "",
+      honorific: f.honorific || "",
+      priceType: f.priceType || "卸価格",
+      draft: !!(e.isDraft || e.isDraftPrice),
+      specFields: { ...f },
+      specImage: e.image || null,
+    };
+  }).filter((r) => r.name || r.wholesale);
   if (!added.length) return 0;
   qRows = qRows.filter((r) => (r.name || "").trim() || String(r.wholesale).trim() || String(r.retail).trim());
   qRows = qRows.concat(added);
@@ -1625,17 +1785,19 @@ function zipStore(files) {
 }
 
 /** 御見積_宛名_YYYYMMDD — same content-driven naming as the spec sheet. */
-function quoteFileName() {
+function quoteFileName(client) {
   const typed = V("qFname");
-  if (typed) return safeFileName(typed);
+  if (typed && client == null) return safeFileName(typed);
   const d = new Date(), pad = (n) => String(n).padStart(2, "0");
   const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
-  return safeFileName(["御見積", V("addressee"), stamp].filter(Boolean).join("_")) || "御見積";
+  const who = client != null ? client : V("addressee");
+  return safeFileName(["御見積", who, stamp].filter(Boolean).join("_")) || "御見積";
 }
 
-function qDownload() {
+function qDownload(client) {
   const err = $("qErr");
-  const data = qRows.filter((r) => (r.name || "").trim() || String(r.wholesale).trim() || String(r.retail).trim());
+  const scoped = client == null ? qRows : qRows.filter((r) => rowClient(r) === client);
+  const data = scoped.filter((r) => (r.name || "").trim() || String(r.wholesale).trim() || String(r.retail).trim());
   if (!data.length) { err.textContent = "明細が空です。1行以上入力してください。"; return; }
   err.textContent = "";
 
@@ -1657,7 +1819,7 @@ function qDownload() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = quoteFileName() + ".xlsx";
+  a.download = quoteFileName(client) + ".xlsx";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1857,6 +2019,10 @@ function initQuote() {
     qRenderTotals();
   });
   $("qBody").addEventListener("click", (e) => {
+    const doc = e.target.closest("button[data-qdoc]");
+    if (doc) { qRowDoc(+doc.getAttribute("data-i"), doc.getAttribute("data-qdoc")); return; }
+    const xls = e.target.closest("button[data-qxlsx]");
+    if (xls) { qDownload(xls.getAttribute("data-qxlsx")); return; }
     const btn = e.target.closest("button[data-qdel]");
     if (!btn) return;
     qRows.splice(+btn.getAttribute("data-qdel"), 1);
@@ -1864,7 +2030,12 @@ function initQuote() {
     qSave(); qRender();
   });
   $("qAddRow").addEventListener("click", () => {
-    qRows.push({ name: "", wholesale: "", retail: "" });
+    // A hand-added row belongs to whoever the sheet is currently addressed to.
+    qRows.push({
+      name: "", wholesale: "", retail: "",
+      client: V("addressee"), honorific: V("honorific"),
+      priceType: V("priceType") || "卸価格", draft: isDraftPrice() || isDraft(),
+    });
     qSave(); qRender();
   });
   $("qClear").addEventListener("click", () => {
@@ -1875,7 +2046,8 @@ function initQuote() {
   const addCurrentSpec = () => {
     const f = {};
     FIELD_IDS.forEach((id) => { f[id] = V(id); });
-    if (!qAddRowsFrom([f])) { alert("明細に追加できる内容がありません。保証・スペック・価格のいずれかを入力してください。"); return; }
+    const entry = { fields: f, isDraft: isDraft(), isDraftPrice: isDraftPrice(), image: imageData };
+    if (!qAddRowsFrom([entry])) { alert("明細に追加できる内容がありません。保証・スペック・価格のいずれかを入力してください。"); return; }
     showQuote();
   };
   $("qAddFromSpec").addEventListener("click", addCurrentSpec);
@@ -1891,7 +2063,7 @@ function initQuote() {
     qRows = parsed; qSave(); qRender();
     $("qPaste").value = "";
   });
-  $("qDownload").addEventListener("click", qDownload);
+  $("qDownload").addEventListener("click", () => qDownload());
 
   $("btnQuoteSave").addEventListener("click", saveQuotePreset);
   $("quoteSearch").addEventListener("input", renderQuotePresets);
@@ -1949,7 +2121,9 @@ function init() {
   $("presetGroup").addEventListener("change", renderPresets);
   $("presetToQuote").addEventListener("click", () => {
     if (!presetView.length) { alert("表示中の登録がありません。"); return; }
-    const n = qAddRowsFrom(presetView.map((p) => p.fields || {}));
+    const n = qAddRowsFrom(presetView.map((p) => ({
+      fields: p.fields || {}, isDraft: p.isDraft, isDraftPrice: p.isDraftPrice, image: p.image,
+    })));
     if (!n) { alert("明細に追加できる内容がありませんでした。"); return; }
     note(n + " 件を見積明細に追加しました");
     showQuote();
