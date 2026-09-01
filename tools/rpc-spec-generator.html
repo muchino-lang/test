@@ -129,6 +129,12 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
 .qtbl input:focus { border-color: var(--pri); background: #fff; outline: none; }
 .qtbl input.qnum { text-align: right; font-variant-numeric: tabular-nums; }
 .qtbl td.qact { width: 40px; text-align: center; }
+.qtbl-wrap { max-height: 420px; overflow-y: auto; }
+.qtbl thead th { position: sticky; top: 0; z-index: 2; }
+.qtbl tbody tr:hover td { background: #f7fafd; }
+.qtbl tbody tr:hover td.qcalc { background: #eef2f6; }
+.qtbl tfoot td { position: sticky; bottom: 0; background: var(--priL); color: var(--pri);
+  font-weight: 700; font-variant-numeric: tabular-nums; border-top: 2px solid var(--pri); }
 
 /* ── Preview sheet ── */
 .sheet { background: var(--white); border-radius: 10px; border: 1px solid var(--bdr); overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
@@ -479,9 +485,35 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
           </tr>
         </thead>
         <tbody id="qBody"></tbody>
+        <tfoot id="qFoot"></tfoot>
       </table>
     </div>
-    <p class="hint" style="margin-top:6px">税抜＝ROUNDUP(税込÷1.1, -1)、コミッション＝エンド売価−卸価格。グレーの列は自動計算です。</p>
+    <p class="hint" style="margin-top:6px">税抜＝ROUNDUP(税込÷1.1, -1)、コミッション＝エンド売価−卸価格。グレーの列は自動計算です。合計行は画面上の確認用で、xlsx には出力しません。</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">◆ 見積セットの保存 / 呼び出し</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <button class="mini-btn" type="button" id="btnQuoteSave" style="border-color:var(--pri);color:var(--pri);font-weight:700;padding:7px 16px">現在の明細を登録</button>
+      <span class="hint" id="quoteSaveAs"></span>
+    </div>
+    <p class="hint" style="margin:0 0 10px">明細一式を宛名ごとに保存します。同じ宛名で登録するたびに版数（v1, v2…）が自動で上がります。</p>
+    <div class="ptools">
+      <input type="search" id="quoteSearch" placeholder="宛名・機種名で絞り込み" />
+      <select id="quoteSort">
+        <option value="updated">更新が新しい順</option>
+        <option value="saved">登録が新しい順</option>
+        <option value="addressee">宛名順</option>
+        <option value="version">宛名順（新しい版から）</option>
+      </select>
+      <label class="tgl" for="quoteGroup" style="font-size:11px">
+        <input type="checkbox" id="quoteGroup" checked />
+        <span class="track" style="width:34px;height:19px"></span>
+        <span>宛名でまとめる</span>
+      </label>
+      <span class="pcount" id="quoteCount"></span>
+    </div>
+    <div id="quoteList"></div>
   </div>
 
   <div class="sec">
@@ -1393,6 +1425,27 @@ function qPaintCalc(tr, r) {
   shown.forEach((n, i) => { cells[i].textContent = n === "" ? "" : qFmt(n); });
 }
 
+/** Column totals for the on-screen check (deliberately not written into the xlsx). */
+function qTotals() {
+  return qRows.reduce((t, r) => {
+    const v = qCalc(r);
+    const hasR = String(r.retail).trim() !== "";
+    t.b += qToNum(r.wholesale); t.c += v.c;
+    if (hasR) { t.d += qToNum(r.retail); t.e += v.e; t.f += v.f; t.g += v.g; }
+    return t;
+  }, { b: 0, c: 0, d: 0, e: 0, f: 0, g: 0 });
+}
+
+function qRenderTotals() {
+  const rows = qRows.filter((r) => !qBlank(r));
+  const foot = $("qFoot");
+  if (!rows.length) { foot.innerHTML = ""; return; }
+  const t = qTotals();
+  foot.innerHTML = "<tr><td class=\"qname\">合計（" + rows.length + " 件）</td>" +
+    [t.b, t.c, t.d, t.e, t.f, t.g].map((n) => "<td>" + (n ? qFmt(n) : "") + "</td>").join("") +
+    "<td></td></tr>";
+}
+
 function qRender() {
   const body = $("qBody");
   body.innerHTML = "";
@@ -1411,6 +1464,7 @@ function qRender() {
     qPaintCalc(tr, r);
     body.appendChild(tr);
   });
+  qRenderTotals();
 }
 
 /** CPU label from a stored snapshot (same rule as the live form). */
@@ -1610,6 +1664,187 @@ function qDownload() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// ── 見積セットの保存 / 呼び出し（宛名ごとに版数を自動採番） ──
+const QPRESET_KEY = "roopc-quote-presets-v1";
+
+function readQuotePresets() {
+  try {
+    const list = JSON.parse(localStorage.getItem(QPRESET_KEY) || "[]");
+    if (!Array.isArray(list)) return [];
+    const counters = new Map();
+    list.slice()
+      .sort((a, b) => String(a.savedAt || "").localeCompare(String(b.savedAt || "")))
+      .forEach((e) => {
+        if (e.version) return;
+        const k = String(e.addressee || "");
+        const n = (counters.get(k) || 0) + 1;
+        counters.set(k, n);
+        e.version = n;
+      });
+    return list;
+  } catch (e) { return []; }
+}
+
+function writeQuotePresets(list) {
+  try { localStorage.setItem(QPRESET_KEY, JSON.stringify(list)); return true; }
+  catch (e) { alert("保存できませんでした。保存容量の上限です。不要な登録を削除してください。"); return false; }
+}
+
+const qNextVersion = (list, addressee) =>
+  list.reduce((m, e) => (String(e.addressee || "") === String(addressee || "")
+    ? Math.max(m, Number(e.version) || 0) : m), 0) + 1;
+
+const quoteTitle = (e) => (e.addressee || "（宛名なし）") + " / v" + (e.version || 1);
+
+/** 先頭の機種名（＋他n件）— what identifies a set at a glance. */
+function quoteSummaryOf(entry) {
+  const rows = (entry.rows || []).filter((r) => (r.name || "").trim() || String(r.wholesale).trim());
+  if (!rows.length) return "（明細なし）";
+  const head = rows[0].name || "（機種名なし）";
+  return rows.length > 1 ? head + "　他 " + (rows.length - 1) + " 件" : head;
+}
+
+function syncQuoteHint() {
+  const v = qNextVersion(readQuotePresets(), V("addressee"));
+  $("quoteSaveAs").textContent =
+    "→ " + (V("addressee") || "（宛名なし）") + " の v" + v + " として登録されます";
+}
+
+function saveQuotePreset() {
+  const rows = qRows.filter((r) => (r.name || "").trim() || String(r.wholesale).trim() || String(r.retail).trim());
+  if (!rows.length) { alert("明細が空です。1行以上入力してください。"); return; }
+  const list = readQuotePresets();
+  const now = new Date().toISOString();
+  const entry = {
+    id: "q" + Date.now() + Math.random().toString(36).slice(2, 7),
+    version: qNextVersion(list, V("addressee")),
+    addressee: V("addressee"),
+    honorific: V("honorific"),
+    savedAt: now, updatedAt: now,
+    withNote: $("qNote").checked,
+    fname: V("qFname"),
+    rows: rows.map((r) => ({ ...r })),
+  };
+  list.push(entry);
+  if (writeQuotePresets(list)) {
+    renderQuotePresets(); syncQuoteHint();
+    $("qErr").textContent = "";
+    note(quoteTitle(entry) + " の見積を登録しました（" + fmtTime(now) + "）");
+  }
+}
+
+function overwriteQuotePreset(id) {
+  const list = readQuotePresets();
+  const i = list.findIndex((e) => e.id === id);
+  if (i < 0) return;
+  if (!confirm(quoteTitle(list[i]) + " の見積を現在の明細で上書きします。よろしいですか？\n（版数は変わりません）")) return;
+  const now = new Date().toISOString();
+  list[i] = {
+    ...list[i],
+    addressee: V("addressee"), honorific: V("honorific"),
+    updatedAt: now, withNote: $("qNote").checked, fname: V("qFname"),
+    rows: qRows.filter((r) => (r.name || "").trim() || String(r.wholesale).trim() || String(r.retail).trim())
+      .map((r) => ({ ...r })),
+  };
+  if (writeQuotePresets(list)) { renderQuotePresets(); note("上書きしました（" + fmtTime(now) + "）"); }
+}
+
+function loadQuotePreset(id) {
+  const entry = readQuotePresets().find((e) => e.id === id);
+  if (!entry) return;
+  qRows = (entry.rows || []).map((r) => ({ ...r }));
+  if (!qRows.length) qRows = [{ name: "", wholesale: "", retail: "" }];
+  $("qNote").checked = !!entry.withNote;
+  $("qFname").value = entry.fname || "";
+  qSave(); qRender();
+  renderQuotePresets();
+  note(quoteTitle(entry) + " の見積を呼び出しました");
+}
+
+function deleteQuotePreset(id) {
+  const list = readQuotePresets();
+  const entry = list.find((e) => e.id === id);
+  if (!entry) return;
+  if (!confirm(quoteTitle(entry) + " の見積を削除します。よろしいですか？")) return;
+  if (writeQuotePresets(list.filter((e) => e.id !== id))) {
+    renderQuotePresets(); syncQuoteHint(); note("削除しました");
+  }
+}
+
+const QACTS =
+  '<button class="mini-btn" type="button" data-qact="load" data-id="{id}">呼び出し</button> ' +
+  '<button class="mini-btn" type="button" data-qact="over" data-id="{id}">この版を上書き</button> ' +
+  '<button class="mini-btn" type="button" data-qact="del" data-id="{id}">削除</button>';
+
+function renderQuotePresets() {
+  const all = readQuotePresets();
+  const box = $("quoteList");
+  if (!all.length) {
+    box.innerHTML = '<div class="pst-empty">登録された見積はまだありません。</div>';
+    $("quoteCount").textContent = "";
+    return;
+  }
+  const q = V("quoteSearch").toLowerCase();
+  const list = !q ? all.slice() : all.filter((e) =>
+    [e.addressee, (e.rows || []).map((r) => r.name).join(" ")]
+      .filter(Boolean).join(" ").toLowerCase().indexOf(q) >= 0);
+
+  const sort = $("quoteSort").value;
+  const byTime = (k) => (a, b) => String(b[k] || "").localeCompare(String(a[k] || ""));
+  const byAddr = (a, b) => String(a.addressee || "\uffff").localeCompare(String(b.addressee || "\uffff"), "ja");
+  list.sort(sort === "saved" ? byTime("savedAt")
+    : sort === "addressee" ? byAddr
+    : sort === "version" ? ((a, b) => byAddr(a, b) || (Number(b.version) || 0) - (Number(a.version) || 0))
+    : byTime("updatedAt"));
+
+  $("quoteCount").textContent = list.length === all.length
+    ? "全 " + all.length + " 件"
+    : "全 " + all.length + " 件中 " + list.length + " 件を表示";
+  if (!list.length) { box.innerHTML = '<div class="pst-empty">該当する登録はありません。</div>'; return; }
+
+  const grouped = $("quoteGroup").checked;
+  const row = (e, showAddr) => {
+    const rows = (e.rows || []);
+    const priced = rows.filter((r) => String(r.retail).trim()).length;
+    const times = fmtTime(e.savedAt) + (e.updatedAt !== e.savedAt ? "　/　更新 " + fmtTime(e.updatedAt) : "");
+    return "<tr>" +
+      (showAddr ? '<td class="addr">' + esc(e.addressee || "（宛名なし）") + "</td>" : "") +
+      '<td class="ver">v' + (e.version || 1) + "</td>" +
+      "<td>" + rows.length + " 行" +
+        (priced ? "" : ' <span class="pbadge draft">売価未記入</span>') + "</td>" +
+      '<td><span class="nm">' + esc(quoteSummaryOf(e)) + "</span></td>" +
+      '<td class="tm">' + esc(times) + "</td>" +
+      '<td class="acts">' + QACTS.replace(/\{id\}/g, e.id) + "</td>" +
+      "</tr>";
+  };
+
+  let body = "";
+  if (grouped) {
+    const keys = [], groups = new Map();
+    list.forEach((e) => {
+      const k = e.addressee || "";
+      if (!groups.has(k)) { groups.set(k, []); keys.push(k); }
+      groups.get(k).push(e);
+    });
+    if (sort === "addressee" || sort === "version") keys.sort((a, b) => byAddr({ addressee: a }, { addressee: b }));
+    else keys.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1));
+    keys.forEach((k) => {
+      const items = groups.get(k);
+      const head = k ? k + (items[0].honorific ? "　" + items[0].honorific : "") : "（宛名なし）";
+      body += '<tr class="grp"><td colspan="5">' + esc(head) +
+        '<span class="count">' + items.length + "件</span></td></tr>";
+      items.forEach((e) => { body += row(e, false); });
+    });
+  } else {
+    list.forEach((e) => { body += row(e, true); });
+  }
+
+  box.innerHTML = '<div class="ptbl-wrap"><table class="ptbl"><thead><tr>' +
+    (grouped ? "" : "<th>宛名</th>") +
+    "<th>版</th><th>明細</th><th>内容</th><th>登録日時</th><th></th>" +
+    "</tr></thead><tbody>" + body + "</tbody></table></div>";
+}
+
 function initQuote() {
   qLoad();
   qRender();
@@ -1619,6 +1854,7 @@ function initQuote() {
     qRows[+el.dataset.i][el.dataset.k] = el.value;
     qSave();
     qPaintCalc(el.closest("tr"), qRows[+el.dataset.i]);
+    qRenderTotals();
   });
   $("qBody").addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-qdel]");
@@ -1656,6 +1892,21 @@ function initQuote() {
     $("qPaste").value = "";
   });
   $("qDownload").addEventListener("click", qDownload);
+
+  $("btnQuoteSave").addEventListener("click", saveQuotePreset);
+  $("quoteSearch").addEventListener("input", renderQuotePresets);
+  $("quoteSort").addEventListener("change", renderQuotePresets);
+  $("quoteGroup").addEventListener("change", renderQuotePresets);
+  $("quoteList").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-qact]");
+    if (!btn) return;
+    const id = btn.getAttribute("data-id");
+    if (btn.dataset.qact === "load") loadQuotePreset(id);
+    else if (btn.dataset.qact === "over") overwriteQuotePreset(id);
+    else if (btn.dataset.qact === "del") deleteQuotePreset(id);
+  });
+  renderQuotePresets();
+  syncQuoteHint();
 }
 
 // ═══════════════ Boot ═══════════════
@@ -1737,6 +1988,7 @@ function init() {
   $("editPanel").addEventListener("input", (e) => {
     if (e.target.id === "modelYear" || e.target.id === "cpuSeries" || e.target.id === "cpuGen") refreshCpuAuto();
     syncPresetHint();
+    syncQuoteHint();
     save();
     if (inPreview()) renderPreview();
   });
