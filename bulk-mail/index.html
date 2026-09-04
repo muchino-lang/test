@@ -1,0 +1,477 @@
+<title>一斉配信ファイル工房</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ground:#F2F4F2; --surface:#FFFFFF; --surface-2:#E9EDEA; --line:#D5DCD8;
+  --ink:#16211D; --ink-2:#43524C; --muted:#6E7C76;
+  --accent:#0F6E62; --accent-ink:#0B5048; --accent-soft:#DDEBE7;
+  --warn:#9A6512; --warn-soft:#F6EBD4; --danger:#A5382A; --danger-soft:#F6E0DC;
+  --shadow:0 1px 2px rgba(22,33,29,.06), 0 8px 24px -16px rgba(22,33,29,.35);
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#101614; --surface:#18211E; --surface-2:#212B27; --line:#2E3A35;
+    --muted:#8B9A94;
+    --accent:#4FBFAC; --accent-ink:#8FD9CB; --accent-soft:#1B302C;
+    --warn:#D9A94E; --warn-soft:#2E2718; --danger:#E08878; --danger-soft:#33201C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101614; --surface:#18211E; --surface-2:#212B27; --line:#2E3A35;
+  --ink:#E8EEEB; --ink-2:#BCC7C2; --muted:#8B9A94;
+  --accent:#4FBFAC; --accent-ink:#8FD9CB; --accent-soft:#1B302C;
+  --warn:#D9A94E; --warn-soft:#2E2718; --danger:#E08878; --danger-soft:#33201C;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  font-size:14px; line-height:1.7;
+}
+h1,h2,h3{margin:0; font-weight:700; text-wrap:balance}
+button,input,textarea,select{font:inherit; color:inherit}
+.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace}
+
+/* header */
+header{
+  position:sticky; top:0; z-index:20; background:var(--surface);
+  border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:12px clamp(16px,3vw,32px);
+}
+.brand{display:flex; align-items:baseline; gap:10px; margin-right:auto}
+.brand h1{font-size:17px; letter-spacing:.02em}
+.brand span{font-size:11px; color:var(--muted); letter-spacing:.14em}
+.counts{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.pill{
+  display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px;
+  font-size:12px; font-weight:500; background:var(--surface-2); color:var(--ink-2);
+}
+.pill.ok{background:var(--accent-soft); color:var(--accent-ink)}
+.pill.bad{background:var(--danger-soft); color:var(--danger)}
+.btn{
+  border:1px solid var(--line); background:var(--surface); border-radius:8px;
+  padding:8px 14px; cursor:pointer; font-weight:500; transition:.15s background,.15s border-color;
+}
+.btn:hover{background:var(--surface-2)}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[contenteditable]:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+:root[data-theme="dark"] .btn.primary,
+:root:not([data-theme="light"]) .btn.primary{color:#08201C}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .btn.primary{color:#fff}}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn.tiny{padding:3px 9px; font-size:12px}
+
+/* layout */
+main{
+  display:grid; grid-template-columns:minmax(360px,420px) 1fr; gap:20px;
+  padding:20px clamp(16px,3vw,32px) 64px; align-items:start;
+}
+@media (max-width:1000px){main{grid-template-columns:1fr}}
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+.panel > .head{
+  display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line);
+}
+.panel > .head h2{font-size:14px}
+.panel > .head .sub{font-size:11px; color:var(--muted); margin-left:auto; letter-spacing:.06em}
+.panel > .body{padding:16px; display:flex; flex-direction:column; gap:14px}
+.col-left{position:sticky; top:76px; display:flex; flex-direction:column; gap:20px}
+@media (max-width:1000px){.col-left{position:static}}
+
+label.field{display:flex; flex-direction:column; gap:5px}
+label.field > .lab{font-size:11px; letter-spacing:.1em; color:var(--muted); font-weight:500}
+input[type=text],textarea,select{
+  width:100%; background:var(--ground); border:1px solid var(--line); border-radius:7px;
+  padding:8px 10px;
+}
+textarea{resize:vertical; min-height:190px; line-height:1.8}
+.hint{font-size:11.5px; color:var(--muted)}
+.hint code{background:var(--surface-2); padding:1px 5px; border-radius:4px; font-family:"JetBrains Mono",monospace; font-size:11px}
+
+/* preview */
+.preview{
+  background:var(--ground); border:1px dashed var(--line); border-radius:7px; padding:12px;
+  max-height:230px; overflow:auto; font-size:13px;
+}
+.preview .subj{font-weight:700; padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--line)}
+.preview .to{font-size:11.5px; color:var(--muted); margin-bottom:8px}
+
+/* table */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:720px; font-size:13px}
+th{
+  text-align:left; font-size:10.5px; letter-spacing:.1em; color:var(--muted); font-weight:500;
+  padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; background:var(--surface);
+  position:sticky; top:0;
+}
+td{border-bottom:1px solid var(--line); padding:0; vertical-align:top}
+td .cell{
+  width:100%; border:0; background:transparent; padding:9px 10px; min-height:38px; display:block;
+}
+td .cell:focus{background:var(--accent-soft); outline:none}
+tr.invalid td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+td.num{width:34px; color:var(--muted); text-align:right; padding:9px 4px 0 10px; font-size:11px}
+td.act{width:34px; text-align:center; padding-top:6px}
+.x{border:0; background:transparent; color:var(--muted); cursor:pointer; border-radius:6px; padding:3px 7px}
+.x:hover{background:var(--danger-soft); color:var(--danger)}
+.err{font-size:11px; color:var(--danger); padding:0 10px 7px}
+
+.toolbar{display:flex; gap:8px; flex-wrap:wrap; padding:12px 16px; border-top:1px solid var(--line)}
+.toolbar .spacer{margin-left:auto}
+
+dialog{
+  border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); color:var(--ink);
+  padding:0; width:min(620px,92vw); box-shadow:var(--shadow);
+}
+dialog::backdrop{background:rgba(10,16,14,.5)}
+dialog .body{padding:16px; display:flex; flex-direction:column; gap:12px}
+dialog textarea{min-height:180px}
+.toast{
+  position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+  background:var(--ink); color:var(--ground); padding:10px 18px; border-radius:999px;
+  font-size:13px; box-shadow:var(--shadow); z-index:60;
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<header>
+  <div class="brand">
+    <h1>一斉配信ファイル工房</h1>
+    <span>BULK MAIL SHEET</span>
+  </div>
+  <div class="counts" id="counts"></div>
+  <button class="btn ghost" id="themeBtn" title="テーマ切替">◐</button>
+  <button class="btn primary" id="dlBtn">Excelをダウンロード</button>
+</header>
+
+<main>
+  <div class="col-left">
+    <section class="panel">
+      <div class="head"><h2>配信内容</h2><span class="sub">全宛先に共通</span></div>
+      <div class="body">
+        <label class="field">
+          <span class="lab">件名（E列）</span>
+          <input type="text" id="subject" placeholder="リングロー サイトクローズと今年度のお礼">
+        </label>
+        <label class="field">
+          <span class="lab">本文（F列 → G列に&lt;br&gt;付きで自動変換）</span>
+          <textarea id="body" placeholder="お世話になっております。"></textarea>
+        </label>
+        <p class="hint">
+          改行はそのまま入力してください。G列には <code>&lt;br&gt;</code> に変換した<strong>値</strong>が入るので、F→Gのコピペは不要です。<br>
+          差し込みタグ： <code>{{会社名}}</code> <code>{{名前}}</code> が宛先ごとに置き換わります。
+        </p>
+        <div>
+          <div class="lab" style="font-size:11px;letter-spacing:.1em;color:var(--muted);margin-bottom:5px">プレビュー（1件目）</div>
+          <div class="preview" id="preview"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><h2>共通設定</h2><span class="sub">全行に反映</span></div>
+      <div class="body">
+        <label class="field">
+          <span class="lab">共通CC（K列以降に各行へ追加 / , 区切り）</span>
+          <input type="text" id="commonCc" class="mono">
+        </label>
+        <label class="field">
+          <span class="lab">BCC（D列 / , 区切り）</span>
+          <input type="text" id="bcc" class="mono">
+        </label>
+        <label class="field">
+          <span class="lab">添付ファイルパス（H列）</span>
+          <input type="text" id="filepath" class="mono">
+        </label>
+        <label class="field">
+          <span class="lab">C列（Cc）の区切り文字</span>
+          <select id="sep">
+            <option value=";">セミコロン ;（元ファイルと同じ）</option>
+            <option value=",">カンマ ,</option>
+          </select>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="head">
+      <h2>宛先リスト</h2>
+      <span class="sub">名前・To・個別CC・会社名</span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th style="width:12%">名前（A列）</th>
+            <th style="width:27%">To（B列 / , 区切り可）</th>
+            <th style="width:27%">個別CC（K列〜 / , 区切り）</th>
+            <th style="width:22%">会社名（I列）</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="toolbar">
+      <button class="btn" id="addBtn">＋ 行を追加</button>
+      <button class="btn" id="pasteBtn">Excelから貼り付け</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="clearBtn">全消去</button>
+    </div>
+  </section>
+</main>
+
+<dialog id="pasteDlg">
+  <div class="body">
+    <h2 style="font-size:15px">Excel / スプレッドシートから貼り付け</h2>
+    <p class="hint">1行につき <strong>名前 → To → 個別CC → 会社名</strong> の順（タブ区切り・カンマ区切りどちらでも可）。見出し行は自動で無視します。</p>
+    <textarea id="pasteArea" class="mono" placeholder="佐藤&#9;fujishop.jrs@gmail.com&#9;kurumi@example.ac.jp&#9;有限会社フジタケ"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" id="pasteCancel">キャンセル</button>
+      <button class="btn primary" id="pasteOk">追加する</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const HEADERS = ["名前","To メールアドレス","Cc","Bcc","件名","本文記載内容","本文","ファイルパス","会社名","","CCアドレス→"];
+const STORE = "bulkmail.v1";
+
+const state = {
+  subject: "リングロー サイトクローズと今年度のお礼",
+  body: "お世話になっております。リングローの内野でございます。\n\n表題の件、ご連絡が遅くなり恐縮ですが、新入生向けPC販売サイトをクローズいたしましたのでお知らせいたします。\n\n改めまして展開ご協力いただきありがとうございました。\n\n引き続きどうぞよろしくお願い申し上げます。\n\n内野",
+  commonCc: "h_mori@ringrow.co.jp, k_takizawa@ringrow.co.jp",
+  bcc: "",
+  filepath: "",
+  sep: ";",
+  rows: [
+    { name:"佐藤", to:"sato@example.co.jp", cc:"", company:"有限会社フジタケ" },
+    { name:"", to:"info@example.ac.jp", cc:"kurumi@example.ac.jp", company:"神田外語学院" }
+  ]
+};
+
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE) || "null");
+  if (saved && Array.isArray(saved.rows)) Object.assign(state, saved);
+} catch (e) { /* 保存データが読めないときは初期値のまま */ }
+
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
+
+const splitAddrs = (s) => (s || "").split(/[,;\n]/).map(x => x.trim()).filter(Boolean);
+const isMail = (a) => /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(a);
+const merge = (tpl, row) => (tpl || "")
+  .replace(/\{\{\s*会社名\s*\}\}/g, row.company || "")
+  .replace(/\{\{\s*名前\s*\}\}/g, row.name || "");
+const esc = (s) => s.replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c]));
+const rowCc = (row) => [...splitAddrs(row.cc), ...splitAddrs(state.commonCc)];
+const badAddrs = (row) => [...splitAddrs(row.to), ...rowCc(row)].filter(a => !isMail(a));
+
+/* ---------- 描画 ---------- */
+function renderTable() {
+  const tb = $("#tbody");
+  tb.textContent = "";
+  state.rows.forEach((row, i) => {
+    const bad = badAddrs(row);
+    const tr = document.createElement("tr");
+    if (bad.length) tr.className = "invalid";
+    tr.innerHTML =
+      `<td class="num">${i + 1}</td>` +
+      ["name","to","cc","company"].map(k =>
+        `<td><div class="cell${k === "to" || k === "cc" ? " mono" : ""}" contenteditable="plaintext-only" data-i="${i}" data-k="${k}"></div></td>`
+      ).join("") +
+      `<td class="act"><button class="x" data-del="${i}" title="この行を削除">✕</button></td>`;
+    tr.querySelectorAll(".cell").forEach(c => { c.textContent = row[c.dataset.k] || ""; });
+    tb.appendChild(tr);
+    if (bad.length) {
+      const e = document.createElement("tr");
+      e.innerHTML = `<td></td><td colspan="5" class="err">アドレス形式を確認してください： ${esc(bad.join(" / "))}</td>`;
+      tb.appendChild(e);
+    }
+  });
+  if (!state.rows.length) {
+    tb.innerHTML = `<tr><td colspan="6" style="padding:22px;text-align:center;color:var(--muted)">宛先がありません。「＋ 行を追加」か「Excelから貼り付け」で登録してください。</td></tr>`;
+  }
+}
+
+function renderMeta() {
+  const valid = state.rows.filter(r => splitAddrs(r.to).length && !badAddrs(r).length).length;
+  const bad = state.rows.length - valid;
+  const ccN = splitAddrs(state.commonCc).length;
+  $("#counts").innerHTML =
+    `<span class="pill ok">配信 ${valid} 件</span>` +
+    (bad ? `<span class="pill bad">要確認 ${bad} 行</span>` : "") +
+    `<span class="pill">共通CC ${ccN}</span>`;
+
+  const r = state.rows[0] || { name:"", to:"", cc:"", company:"" };
+  const html = esc(merge(state.body, r)).replace(/\n/g, "<br>");
+  $("#preview").innerHTML =
+    `<div class="subj">${esc(merge(state.subject, r)) || "（件名未入力）"}</div>` +
+    `<div class="to mono">To: ${esc(splitAddrs(r.to).join(", ")) || "—"}<br>Cc: ${esc(rowCc(r).join(", ")) || "—"}</div>` +
+    (html || "<span style='color:var(--muted)'>（本文未入力）</span>");
+}
+
+const render = () => { renderTable(); renderMeta(); save(); };
+
+/* ---------- 入力 ---------- */
+$("#tbody").addEventListener("input", (e) => {
+  const c = e.target.closest(".cell");
+  if (!c) return;
+  state.rows[c.dataset.i][c.dataset.k] = c.textContent.trim();
+  renderMeta(); save();
+});
+$("#tbody").addEventListener("blur", (e) => {
+  if (e.target.closest(".cell")) renderTable();
+}, true);
+$("#tbody").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-del]");
+  if (!b) return;
+  state.rows.splice(Number(b.dataset.del), 1);
+  render();
+});
+
+[["subject","subject"],["body","body"],["commonCc","commonCc"],["bcc","bcc"],["filepath","filepath"],["sep","sep"]]
+  .forEach(([id, key]) => {
+    const el = $("#" + id);
+    el.value = state[key];
+    el.addEventListener("input", () => { state[key] = el.value; renderMeta(); save(); });
+  });
+
+$("#addBtn").addEventListener("click", () => {
+  state.rows.push({ name:"", to:"", cc:"", company:"" });
+  render();
+  const cells = document.querySelectorAll("#tbody .cell");
+  if (cells.length) cells[cells.length - 4].focus();
+});
+$("#clearBtn").addEventListener("click", () => {
+  if (state.rows.length && !confirm("宛先リストをすべて消去します。よろしいですか？")) return;
+  state.rows = [];
+  render();
+});
+
+const dlg = $("#pasteDlg");
+$("#pasteBtn").addEventListener("click", () => { $("#pasteArea").value = ""; dlg.showModal(); });
+$("#pasteCancel").addEventListener("click", () => dlg.close());
+$("#pasteOk").addEventListener("click", () => {
+  const lines = $("#pasteArea").value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  let added = 0;
+  lines.forEach(line => {
+    const f = line.split(/\t|(?:,(?=\s*[^,\s]))/).map(x => x.trim());
+    const cols = line.includes("\t") ? line.split("\t").map(x => x.trim()) : f;
+    const [name, to, cc, company] = [cols[0] || "", cols[1] || "", cols[2] || "", cols[3] || ""];
+    if (/^名前$/.test(name) && /メール|To/i.test(to)) return;   // 見出し行
+    if (!to && !isMail(name)) return;
+    if (!to && isMail(name)) { state.rows.push({ name:"", to:name, cc:"", company:"" }); added++; return; }
+    state.rows.push({ name, to, cc, company });
+    added++;
+  });
+  dlg.close();
+  render();
+  toast(`${added} 件を追加しました`);
+});
+
+$("#themeBtn").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const next = cur === "dark" ? "light" : cur === "light" ? "dark"
+    : (matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+  document.documentElement.setAttribute("data-theme", next);
+});
+
+let toastT;
+function toast(msg) {
+  clearTimeout(toastT);
+  let el = document.querySelector(".toast");
+  if (!el) { el = document.createElement("div"); el.className = "toast"; document.body.appendChild(el); }
+  el.textContent = msg;
+  toastT = setTimeout(() => el.remove(), 2600);
+}
+
+/* ---------- Excel 生成 ---------- */
+function buildSheet() {
+  const sep = state.sep;
+  const bcc = splitAddrs(state.bcc).join(sep);
+  const rows = state.rows.filter(r => splitAddrs(r.to).length);
+  const maxCc = rows.reduce((m, r) => Math.max(m, rowCc(r).length), 0);
+
+  const head = HEADERS.slice();
+  for (let i = 1; i < maxCc; i++) head.push("");
+  const aoa = [head];
+
+  rows.forEach(row => {
+    const cc = rowCc(row);
+    const bodyText = merge(state.body, row);
+    aoa.push([
+      row.name || "",
+      splitAddrs(row.to).join(sep),
+      cc.join(sep),
+      bcc,
+      merge(state.subject, row),
+      bodyText,
+      bodyText.replace(/\r?\n/g, "<br>"),
+      state.filepath || "",
+      row.company || "",
+      "",
+      ...cc
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch:10 }, { wch:29 }, { wch:30 }, { wch:27 }, { wch:37 },
+    { wch:53 }, { wch:53 }, { wch:56 }, { wch:22 }, { wch:3 }
+  ].concat(Array.from({ length: Math.max(maxCc, 1) }, () => ({ wch:28 })));
+  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+  return { wb, count: rows.length };
+}
+
+$("#dlBtn").addEventListener("click", async () => {
+  const flagged = state.rows.filter(r => badAddrs(r).length).length;
+  if (flagged && !confirm(`アドレス形式が怪しい行が ${flagged} 件あります。このまま出力しますか？`)) return;
+
+  if (typeof XLSX === "undefined") {
+    toast("Excel生成ライブラリを読み込めませんでした。オンラインで開き直してください");
+    return;
+  }
+
+  const { wb, count } = buildSheet();
+  if (!count) { toast("Toアドレスの入った行がありません"); return; }
+
+  const buf = XLSX.write(wb, { bookType:"xlsx", type:"array" });
+  const blob = new Blob([buf], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const filename = `一斉配信_${stamp}.xlsx`;
+
+  const downloads = window.claude && window.claude.use ? await window.claude.use("downloads").catch(() => null) : null;
+  if (downloads) {
+    try {
+      await downloads.save({ filename, data: blob });
+      toast(`${count} 件を書き出しました`);
+    } catch (err) {
+      toast(err && err.code === "declined" ? "保存をキャンセルしました" : "保存できませんでした");
+    }
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`${count} 件を書き出しました`);
+});
+
+render();
+</script>
