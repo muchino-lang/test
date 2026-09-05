@@ -31,6 +31,8 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 
 /* ── Container ── */
 .cnt { max-width: 880px; margin: 0 auto; padding: 20px 16px 60px; }
+/* the quote tab is a working table, so it takes the whole window width */
+.cnt.wide { max-width: min(1800px, 98vw); }
 
 /* ── Form ── */
 .sec { margin-bottom: 24px; }
@@ -87,7 +89,7 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .ptools input[type="search"] { flex: 1 1 200px; min-width: 160px; padding: 6px 10px; border: 1px solid var(--bdr); border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--white); }
 .ptools select { padding: 6px 8px; border: 1px solid var(--bdr); border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--white); }
 .pcount { font-size: 11px; color: #888; margin-left: auto; }
-.ptbl-wrap { border: 1px solid var(--bdr); border-radius: 8px; background: var(--white); max-height: 460px; overflow: auto; }
+.ptbl-wrap { border: 1px solid var(--bdr); border-radius: 8px; background: var(--white); max-height: min(620px, 62vh); overflow: auto; }
 table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ptbl thead th { position: sticky; top: 0; z-index: 2; background: var(--priL); color: var(--pri); font-size: 11px; text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--bdr); white-space: nowrap; }
 .ptbl td { padding: 5px 10px; border-bottom: 1px solid #eceff2; vertical-align: middle; }
@@ -138,7 +140,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
 .qtbl input:focus { border-color: var(--pri); background: #fff; outline: none; }
 .qtbl input.qnum { text-align: right; font-variant-numeric: tabular-nums; }
 .qtbl td.qact { width: 40px; text-align: center; }
-.qtbl-wrap { max-height: 420px; overflow-y: auto; }
+.qtbl-wrap { max-height: min(760px, 74vh); overflow-y: auto; }
 .qtbl thead th { position: sticky; top: 0; z-index: 2; }
 .qtbl tbody tr:hover td { background: #f7fafd; }
 .qtbl tbody tr:hover td.qcalc { background: #eef2f6; }
@@ -439,7 +441,11 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
         <input type="hidden" id="priceType" value="卸価格" />
       </div>
       <div class="grid">
-        <div class="fld"><label for="price" id="priceLabel">卸価格（税抜）</label><input id="price" inputmode="numeric" placeholder="例: 35,000" /></div>
+        <div class="fld">
+        <label for="price" id="priceLabel">卸価格（税抜）</label>
+        <input id="price" inputmode="numeric" placeholder="例: 35,000" />
+        <span class="hint" id="priceDerived"></span>
+      </div>
       </div>
     </div>
     <div style="margin-top:10px">
@@ -980,6 +986,7 @@ function renderPreview() {
 
 // ═══════════════ Mode switching ═══════════════
 function showPanel(mode) {
+  document.querySelector(".cnt").classList.toggle("wide", mode === "quote");
   $("editPanel").style.display = mode === "edit" ? "" : "none";
   $("previewPanel").style.display = mode === "preview" ? "" : "none";
   $("quotePanel").style.display = mode === "quote" ? "" : "none";
@@ -1417,6 +1424,23 @@ function syncDraft() {
   $("isDraftLabel").textContent = docTypeLabel() + "として出力する";
 }
 
+/**
+ * Tax-inclusive equivalent and the internal margin, shown next to the price box.
+ * Both live in the edit panel only — neither reaches the sheet, the Word file or
+ * the PDF, which print from the preview.
+ */
+function syncPriceDerived() {
+  const box = $("priceDerived");
+  if (!box) return;
+  const ex = qToNum(V("price"));
+  if (!ex) { box.textContent = ""; return; }
+  const cost = qToNum(($("qDefaultCost") && V("qDefaultCost")) || DEFAULT_COST);
+  const profit = ex - cost;
+  box.innerHTML = "税込 " + qFmt(Math.round(ex * 1.1)) + " 円" +
+    '　/　<b style="color:' + (profit < 0 ? "#b42318" : "#0a6b5b") + '">粗利 ' + qFmt(profit) +
+    " 円</b>（税抜・社内用／原価 " + qFmt(cost) + "）";
+}
+
 function syncPriceRow() {
   const on = $("showPrice").checked;
   const type = V("priceType") || "卸価格";
@@ -1430,6 +1454,7 @@ function syncPriceRow() {
     r.closest(".seg").classList.toggle("on", r.checked);
   });
   $("priceLabel").textContent = priceLabel();
+  syncPriceDerived();
   $("showPriceLabel").textContent = type + (on ? "を仕様書に表示する" : "を仕様書に表示しない");
   $("isDraftPriceLabel").textContent = isDraftPrice() ? type + "は暫定価格として表示中" : "暫定価格として表示する";
 }
@@ -2278,7 +2303,9 @@ function initQuote() {
   $("qDefaultCost").addEventListener("input", () => {
     try { localStorage.setItem(QCOST_KEY, V("qDefaultCost")); } catch (e) { /* ignore */ }
     qRender();
+    syncPriceDerived();
   });
+  syncPriceDerived();
 
   $("btnQuoteSave").addEventListener("click", saveQuotePreset);
   $("quoteSearch").addEventListener("input", renderQuotePresets);
@@ -2376,6 +2403,7 @@ function init() {
   // any edit -> autosave (+ live preview when the sheet is on screen)
   $("editPanel").addEventListener("input", (e) => {
     if (e.target.id === "modelYear" || e.target.id === "cpuSeries" || e.target.id === "cpuGen") refreshCpuAuto();
+    if (e.target.id === "price") syncPriceDerived();
     syncPresetHint();
     syncQuoteHint();
     save();
