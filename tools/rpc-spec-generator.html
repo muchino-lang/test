@@ -116,6 +116,9 @@ table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .pbadge.wholesale { color: #1a3a5c; border-color: #1a3a5c; background: #eef3f8; }
 .pbadge.end { color: #0a6b5b; border-color: #0a6b5b; background: #e9f6f3; }
 .pbadge.draft { color: #a35200; border-color: #e0a44a; background: #fff3e0; }
+.pbadge.fixed { color: #6b7280; border-color: #c8cdd3; background: #f3f5f7; }
+.badge-btn { border: none; background: none; padding: 0; cursor: pointer; font: inherit; }
+.badge-btn:hover .pbadge { filter: brightness(.95); text-decoration: underline; }
 .pst-empty { font-size: 12px; color: #888; padding: 14px 12px; }
 .sh-addr { padding: 12px 24px 0; font-size: 15px; font-weight: 700; }
 
@@ -935,12 +938,20 @@ function addresseeLine() {
   return h ? name + "　" + h : name;
 }
 
+/** Leading price tag, e.g. "エンド85800" — omitted when the sheet states no price. */
+function priceTagOf(price, priceType, showPrice) {
+  const n = String(price || "").replace(/[,\s¥￥円]/g, "");
+  if (!n || showPrice === false) return "";
+  return ((priceType || "卸価格") === "エンド価格" ? "エンド" : "卸") + n;
+}
+
 /** Same naming rule as docFileName, for a snapshot that is not in the form yet. */
 function docFileNameOf(snap) {
   const f = snap.fields || {};
   const d = new Date(), pad = (n) => String(n).padStart(2, "0");
   const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
   const parts = [
+    priceTagOf(f.price, f.priceType, snap.showPrice),
     snap.isDraft ? "暫定" : "", stamp, f.addressee, f.maker, f.productName,
     cpuLabelOf(f.cpuSeries, f.cpuGen), f.memory, f.storage,
   ].filter(Boolean);
@@ -953,6 +964,7 @@ function docFileName() {
   const pad = (n) => String(n).padStart(2, "0");
   const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
   const parts = [
+    priceTagOf(V("price"), V("priceType"), priceShown()),
     isDraft() ? "暫定" : "", stamp, V("addressee"), V("maker"), V("productName"),
     cpuInfo().label, V("memory"), V("storage"),
   ].filter(Boolean);
@@ -1636,11 +1648,15 @@ const rowClient = (r) => String(r.client || "");
 const rowConfirmed = (r) => !r.draft && String(r.retail).trim() !== "";
 
 /** 卸／エンド, plus 暫定 or 確定 — the state the row is in right now. */
-function qRowBadges(r) {
+function qRowBadges(r, i) {
   const end = (r.priceType || "卸価格") === "エンド価格";
   let out = '<span class="pbadge ' + (end ? "end" : "wholesale") + '">' + (end ? "エンド" : "卸") + "</span>";
-  if (r.draft) out += ' <span class="pbadge draft">暫定</span>';
-  else if (rowConfirmed(r)) out += ' <span class="pbadge end">確定</span>';
+  const state = r.draft
+    ? '<span class="pbadge draft">暫定</span>'
+    : rowConfirmed(r) ? '<span class="pbadge end">確定</span>' : '<span class="pbadge fixed">確定扱い</span>';
+  // Clickable, so a row flagged 暫定 by the sheet it came from can be corrected here.
+  out += ' <button type="button" class="badge-btn" data-qtoggle="' + i +
+    '" title="クリックで暫定／確定を切り替え">' + state + "</button>";
   return out;
 }
 
@@ -1743,13 +1759,15 @@ function qRender() {
       if (r.draft) tr.className = "qdraft";
       const canDoc = !!r.specFields;
       const acts = canDoc
-        ? '<button class="mini-btn tmp" type="button" data-qdoc="draft" data-i="' + i + '" title="この内容で暫定版の仕様書を表示し、PDF として保存">暫定PDF</button> ' +
+        ? '<button class="mini-btn ' + (r.draft ? "tmp" : "") + '" type="button" data-qdoc="draft" data-i="' + i +
+          '" title="この行の現在の内容で仕様書を表示し、PDF として保存">' +
+          (r.draft ? "暫定PDF" : "仕様書PDF") + "</button> " +
           '<button class="mini-btn go" type="button" data-qdoc="final" data-i="' + i + '" title="エンド売価で確定版の仕様書を PDF 保存し、確定版として登録">確定PDF</button> ' +
           '<button class="mini-btn" type="button" data-qdoc="load" data-i="' + i + '" title="仕様書タブに読み込む（PDF/印刷用）">反映</button> '
         : "";
       tr.innerHTML =
         '<td class="qname"><input type="text" data-i="' + i + '" data-k="name" /></td>' +
-        "<td>" + qRowBadges(r) + "</td>" +
+        "<td>" + qRowBadges(r, i) + "</td>" +
         '<td><input type="text" class="qnum" data-i="' + i + '" data-k="wholesale" /></td>' +
         '<td><input type="text" class="qnum" data-i="' + i + '" data-k="wholesaleEx" /></td>' +
         '<td><input type="text" class="qnum" data-i="' + i + '" data-k="retail" placeholder="相手先記入" /></td>' +
@@ -1782,11 +1800,14 @@ function rowSnapshot(r, confirmed) {
     f.priceType = "エンド価格";
     f.price = String(roundUp10(qToNum(r.retail) / 1.1));
   }
+  // Only a row that is actually provisional produces a 暫定仕様書; a settled row
+  // prints as the normal sheet even from the left-hand button.
+  const provisional = !confirmed && !!r.draft;
   return {
     fields: f,
     showPrice: !!f.price,
-    isDraft: !confirmed,
-    isDraftPrice: !confirmed && !!r.draft,
+    isDraft: provisional,
+    isDraftPrice: provisional,
     image: r.specImage || null,
   };
 }
@@ -2308,6 +2329,13 @@ function initQuote() {
   $("qBody").addEventListener("click", (e) => {
     const doc = e.target.closest("button[data-qdoc]");
     if (doc) { qRowDoc(+doc.getAttribute("data-i"), doc.getAttribute("data-qdoc")); return; }
+    const tog = e.target.closest("button[data-qtoggle]");
+    if (tog) {
+      const r = qRows[+tog.getAttribute("data-qtoggle")];
+      r.draft = !r.draft;
+      qSave(); qRender();
+      return;
+    }
     const xls = e.target.closest("button[data-qxlsx]");
     if (xls) { qDownload(xls.getAttribute("data-qxlsx")); return; }
     const fill = e.target.closest("button[data-qfill]");
