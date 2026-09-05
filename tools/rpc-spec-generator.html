@@ -119,7 +119,8 @@ table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 /* quote / commission sheet */
 .qbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .qtbl-wrap { overflow-x: auto; border: 1px solid var(--bdr); border-radius: 8px; background: var(--white); }
-table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size: 12px; }
+table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-size: 12px; }
+.qtbl input.qnum { min-width: 62px; }
 .qtbl th, .qtbl td { border: 1px solid var(--bdr); padding: 5px 7px; text-align: right; white-space: nowrap; }
 .qtbl th { background: var(--priL); color: var(--pri); font-size: 11px; text-align: center; font-weight: 700; }
 .qtbl th.qname, .qtbl td.qname {
@@ -145,9 +146,16 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
   font-weight: 700; font-variant-numeric: tabular-nums; border-top: 2px solid var(--pri); }
 .qtbl tr.qgrp td { background: #eef2f6; color: var(--pri); font-weight: 700; text-align: left; }
 .qtbl tr.qgrp .qsub { font-weight: 600; color: var(--txtM); font-size: 11px; margin-left: 10px; }
+.qtbl tr.qtype td { background: #f6f8fa; color: var(--txtM); font-weight: 600; text-align: left; padding-left: 18px; }
+.qtbl tr.qtype .qsub { font-weight: 600; color: #8a929b; font-size: 11px; margin-left: 10px; }
 .qtbl tr.qdraft td { background: #fff8ef; }
 .qtbl tr.qdraft td.qcalc { background: #fdf0dd; }
 .qtbl tr.qdraft:hover td { background: #fff3e0; }
+.qtbl th.cost-col, .qtbl td.cost-col { background: #f7f4ee; }
+.qtbl th.cost-col { color: #8a6d3b; }
+.qtbl td.profit { font-weight: 700; color: #0a6b5b; font-variant-numeric: tabular-nums; }
+.qtbl td.profit.minus { color: #b42318; }
+.qtbl.nocost th.cost-col, .qtbl.nocost td.cost-col { display: none; }
 .qtbl td.qacts { white-space: nowrap; text-align: right; }
 .qtbl td.qacts .mini-btn { padding: 3px 7px; font-size: 10.5px; }
 .mini-btn.go { border-color: #0a6b5b; color: #0a6b5b; font-weight: 700; }
@@ -494,6 +502,15 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
         <span class="track" style="width:34px;height:19px"></span>
         <span>仕様書を作った宛名をすべて表示</span>
       </label>
+      <label class="tgl" for="qShowCost" style="font-size:11px">
+        <input type="checkbox" id="qShowCost" checked />
+        <span class="track" style="width:34px;height:19px"></span>
+        <span>社内用（原価・粗利）を表示</span>
+      </label>
+      <label class="field" style="font-size:11px;color:var(--txtM);display:flex;align-items:center;gap:6px">
+        既定の原価（税抜）
+        <input type="text" id="qDefaultCost" class="qnum" style="width:90px;border:1px solid var(--bdr);border-radius:6px;padding:4px 8px;font-size:12px;text-align:right" />
+      </label>
     </div>
     <div class="qtbl-wrap">
       <table class="qtbl">
@@ -501,9 +518,10 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
           <tr>
             <th class="qname">保証（機種名）</th>
             <th>種別</th>
-            <th>卸価格（税込）</th><th>卸価格（税抜）</th>
-            <th>エンド売価（税込）</th><th>エンド売価（税抜）</th>
-            <th>コミッション（税込）</th><th>コミッション（税抜）</th>
+            <th>卸価格<br>（税込）</th><th>卸価格<br>（税抜）</th>
+            <th>エンド売価<br>（税込）</th><th>エンド売価<br>（税抜）</th>
+            <th>コミッション<br>（税込）</th><th>コミッション<br>（税抜）</th>
+            <th class="cost-col">原価<br>（税抜）</th><th class="cost-col">粗利<br>（税抜）</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -513,6 +531,8 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 850px; font-size
     </div>
     <p class="hint" style="margin-top:6px">
       税抜＝ROUNDUP(税込÷1.1, -1)、コミッション＝エンド売価−卸価格。グレーの列は自動計算です。合計行は画面上の確認用で、xlsx には出力しません。<br>
+      卸価格・エンド売価は<b>税込／税抜どちらに入力しても、もう一方が自動で入ります</b>（税抜→税込は1.1倍、税込→税抜は ROUNDUP(税込÷1.1, -1)）。<br>
+      <b>原価・粗利の列はこの操作画面だけの表示</b>で、xlsx にも仕様書にも出力されません（粗利＝卸価格（税抜）−原価（税抜））。<br>
       オレンジの行は暫定です。エンド売価が決まったら「確定PDF」で確定版の仕様書が開き、確定版として登録されます。
       PDF はブラウザの印刷ダイアログで「送信先／プリンター」を <b>PDF に保存</b> にして保存してください（ファイル名は自動で入ります）。
       Word が必要な場合は「反映」で読み込んでから、プレビュー画面の「Word」をお使いください。
@@ -1422,7 +1442,19 @@ function syncPriceRow() {
 const XLSX_PARTS = {"contentTypes": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/><Override PartName=\"/xl/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/><Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/><Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/><Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/></Types>", "rels": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>", "app": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\"><Application>Microsoft Excel</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><HeadingPairs><vt:vector size=\"2\" baseType=\"variant\"><vt:variant><vt:lpstr>ワークシート</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs><TitlesOfParts><vt:vector size=\"1\" baseType=\"lpstr\"><vt:lpstr>シート1</vt:lpstr></vt:vector></TitlesOfParts><Company></Company><LinksUpToDate>false</LinksUpToDate><SharedDoc>false</SharedDoc><HyperlinksChanged>false</HyperlinksChanged><AppVersion>16.0300</AppVersion></Properties>", "core": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcmitype=\"http://purl.org/dc/dcmitype/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><dc:creator>内野　槙夫</dc:creator><cp:lastModifiedBy>内野　槙夫</cp:lastModifiedBy><dcterms:created xsi:type=\"dcterms:W3CDTF\">2025-08-29T08:26:56Z</dcterms:created><dcterms:modified xsi:type=\"dcterms:W3CDTF\">2025-09-12T12:26:55Z</dcterms:modified></cp:coreProperties>", "workbook": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" mc:Ignorable=\"x15 xr xr6 xr10 xr2\" xmlns:x15=\"http://schemas.microsoft.com/office/spreadsheetml/2010/11/main\" xmlns:xr=\"http://schemas.microsoft.com/office/spreadsheetml/2014/revision\" xmlns:xr6=\"http://schemas.microsoft.com/office/spreadsheetml/2016/revision6\" xmlns:xr10=\"http://schemas.microsoft.com/office/spreadsheetml/2016/revision10\" xmlns:xr2=\"http://schemas.microsoft.com/office/spreadsheetml/2015/revision2\"><fileVersion appName=\"xl\" lastEdited=\"7\" lowestEdited=\"7\" rupBuild=\"29127\"/><workbookPr/><xr:revisionPtr revIDLastSave=\"0\" documentId=\"13_ncr:1_{CE3786C9-262F-439B-A9D1-6570C3E6E0AC}\" xr6:coauthVersionLast=\"47\" xr6:coauthVersionMax=\"47\" xr10:uidLastSave=\"{00000000-0000-0000-0000-000000000000}\"/><bookViews><workbookView xWindow=\"-108\" yWindow=\"-108\" windowWidth=\"23256\" windowHeight=\"12456\" xr2:uid=\"{88D22660-46BB-42DC-AE26-1B258D6C105B}\"/></bookViews><sheets><sheet name=\"シート1\" sheetId=\"1\" r:id=\"rId1\"/></sheets><calcPr fullCalcOnLoad=\"1\" calcId=\"191029\"/><extLst><ext uri=\"{140A7094-0E35-4892-8432-C4D2E57EDEB5}\" xmlns:x15=\"http://schemas.microsoft.com/office/spreadsheetml/2010/11/main\"><x15:workbookPr chartTrackingRefBase=\"1\"/></ext><ext uri=\"{B58B0392-4F1F-4190-BB64-5DF3571DCE5F}\" xmlns:xcalcf=\"http://schemas.microsoft.com/office/spreadsheetml/2018/calcfeatures\"><xcalcf:calcFeatures><xcalcf:feature name=\"microsoft.com:RD\"/><xcalcf:feature name=\"microsoft.com:Single\"/><xcalcf:feature name=\"microsoft.com:FV\"/><xcalcf:feature name=\"microsoft.com:CNMTM\"/><xcalcf:feature name=\"microsoft.com:LET_WF\"/><xcalcf:feature name=\"microsoft.com:LAMBDA_WF\"/><xcalcf:feature name=\"microsoft.com:ARRAYTEXT_WF\"/></xcalcf:calcFeatures></ext></extLst></workbook>", "workbookRels": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"theme/theme1.xml\"/><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>", "styles": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" mc:Ignorable=\"x14ac x16r2 xr\" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\" xmlns:x16r2=\"http://schemas.microsoft.com/office/spreadsheetml/2015/02/main\" xmlns:xr=\"http://schemas.microsoft.com/office/spreadsheetml/2014/revision\"><fonts count=\"11\" x14ac:knownFonts=\"1\"><font><sz val=\"10\"/><color rgb=\"FF000000\"/><name val=\"Arial\"/><family val=\"2\"/><scheme val=\"minor\"/></font><font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Arial\"/><family val=\"2\"/><charset val=\"128\"/><scheme val=\"minor\"/></font><font><sz val=\"10\"/><color rgb=\"FF000000\"/><name val=\"Arial\"/><family val=\"2\"/><scheme val=\"minor\"/></font><font><sz val=\"10\"/><color theme=\"1\"/><name val=\"Arial\"/><family val=\"2\"/><scheme val=\"minor\"/></font><font><sz val=\"6\"/><name val=\"Arial\"/><family val=\"3\"/><charset val=\"128\"/><scheme val=\"minor\"/></font><font><sz val=\"10\"/><color theme=\"1\"/><name val=\"ＭＳ ゴシック\"/><family val=\"3\"/><charset val=\"128\"/></font><font><sz val=\"10\"/><color theme=\"1\"/><name val=\"Arial\"/><family val=\"3\"/><charset val=\"128\"/></font><font><sz val=\"10\"/><color theme=\"1\"/><name val=\"ＭＳ Ｐゴシック\"/><family val=\"3\"/><charset val=\"128\"/></font><font><b/><sz val=\"24\"/><color theme=\"1\"/><name val=\"Arial\"/><family val=\"2\"/><scheme val=\"minor\"/></font><font><sz val=\"10\"/><color rgb=\"FF000000\"/><name val=\"ＭＳ Ｐゴシック\"/><family val=\"2\"/><charset val=\"128\"/></font><font><b/><sz val=\"10\"/><color rgb=\"FFFF0000\"/><name val=\"ＭＳ Ｐゴシック\"/><family val=\"3\"/><charset val=\"128\"/></font></fonts><fills count=\"4\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill><fill><patternFill patternType=\"solid\"><fgColor rgb=\"FFEFEFEF\"/><bgColor rgb=\"FFEFEFEF\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"2\" tint=\"-0.14999847407452621\"/><bgColor indexed=\"64\"/></patternFill></fill></fills><borders count=\"4\"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style=\"thin\"><color rgb=\"FFB7B7B7\"/></left><right style=\"thin\"><color rgb=\"FFB7B7B7\"/></right><top style=\"thin\"><color rgb=\"FFB7B7B7\"/></top><bottom style=\"thin\"><color rgb=\"FFB7B7B7\"/></bottom><diagonal/></border><border><left style=\"thin\"><color rgb=\"FFB7B7B7\"/></left><right style=\"thin\"><color rgb=\"FFB7B7B7\"/></right><top style=\"thin\"><color rgb=\"FFB7B7B7\"/></top><bottom/><diagonal/></border><border><left style=\"thin\"><color rgb=\"FFB7B7B7\"/></left><right/><top style=\"thin\"><color rgb=\"FFB7B7B7\"/></top><bottom style=\"thin\"><color rgb=\"FFB7B7B7\"/></bottom><diagonal/></border></borders><cellStyleXfs count=\"2\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"38\" fontId=\"1\" fillId=\"0\" borderId=\"0\" applyFont=\"0\" applyFill=\"0\" applyBorder=\"0\" applyAlignment=\"0\" applyProtection=\"0\"><alignment vertical=\"center\"/></xf></cellStyleXfs><cellXfs count=\"16\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/><xf numFmtId=\"0\" fontId=\"3\" fillId=\"2\" borderId=\"1\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"2\" borderId=\"1\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"2\" borderId=\"2\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"6\" fillId=\"2\" borderId=\"1\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"3\" fillId=\"0\" borderId=\"1\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\"/><xf numFmtId=\"3\" fontId=\"3\" fillId=\"0\" borderId=\"3\" xfId=\"0\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\"/><xf numFmtId=\"3\" fontId=\"8\" fillId=\"0\" borderId=\"1\" xfId=\"0\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\"/><xf numFmtId=\"38\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"1\" applyFont=\"1\" applyAlignment=\"1\"/><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/><xf numFmtId=\"3\" fontId=\"3\" fillId=\"3\" borderId=\"3\" xfId=\"0\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/><xf numFmtId=\"3\" fontId=\"8\" fillId=\"3\" borderId=\"1\" xfId=\"0\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/><xf numFmtId=\"3\" fontId=\"3\" fillId=\"3\" borderId=\"1\" xfId=\"0\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/><xf numFmtId=\"0\" fontId=\"9\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/><xf numFmtId=\"38\" fontId=\"9\" fillId=\"0\" borderId=\"0\" xfId=\"1\" applyFont=\"1\" applyAlignment=\"1\"/><xf numFmtId=\"0\" fontId=\"10\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/></cellXfs><cellStyles count=\"2\"><cellStyle name=\"桁区切り\" xfId=\"1\" builtinId=\"6\"/><cellStyle name=\"標準\" xfId=\"0\" builtinId=\"0\"/></cellStyles><dxfs count=\"0\"/><tableStyles count=\"0\" defaultTableStyle=\"TableStyleMedium2\" defaultPivotStyle=\"PivotStyleLight16\"/><extLst><ext uri=\"{EB79DEF2-80B8-43e5-95BD-54CBDDF9020C}\" xmlns:x14=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\"><x14:slicerStyles defaultSlicerStyle=\"SlicerStyleLight1\"/></ext><ext uri=\"{9260A510-F301-46a8-8635-F512D64BE5F5}\" xmlns:x15=\"http://schemas.microsoft.com/office/spreadsheetml/2010/11/main\"><x15:timelineStyles defaultTimelineStyle=\"TimeSlicerStyleLight1\"/></ext></extLst></styleSheet>", "theme": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<a:theme xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" name=\"Sheets\"><a:themeElements><a:clrScheme name=\"Sheets\"><a:dk1><a:srgbClr val=\"000000\"/></a:dk1><a:lt1><a:srgbClr val=\"FFFFFF\"/></a:lt1><a:dk2><a:srgbClr val=\"000000\"/></a:dk2><a:lt2><a:srgbClr val=\"FFFFFF\"/></a:lt2><a:accent1><a:srgbClr val=\"4285F4\"/></a:accent1><a:accent2><a:srgbClr val=\"EA4335\"/></a:accent2><a:accent3><a:srgbClr val=\"FBBC04\"/></a:accent3><a:accent4><a:srgbClr val=\"34A853\"/></a:accent4><a:accent5><a:srgbClr val=\"FF6D01\"/></a:accent5><a:accent6><a:srgbClr val=\"46BDC6\"/></a:accent6><a:hlink><a:srgbClr val=\"1155CC\"/></a:hlink><a:folHlink><a:srgbClr val=\"1155CC\"/></a:folHlink></a:clrScheme><a:fontScheme name=\"Sheets\"><a:majorFont><a:latin typeface=\"Arial\"/><a:ea typeface=\"Arial\"/><a:cs typeface=\"Arial\"/></a:majorFont><a:minorFont><a:latin typeface=\"Arial\"/><a:ea typeface=\"Arial\"/><a:cs typeface=\"Arial\"/></a:minorFont></a:fontScheme><a:fmtScheme name=\"Office\"><a:fillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:gradFill rotWithShape=\"1\"><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:lumMod val=\"110000\"/><a:satMod val=\"105000\"/><a:tint val=\"67000\"/></a:schemeClr></a:gs><a:gs pos=\"50000\"><a:schemeClr val=\"phClr\"><a:lumMod val=\"105000\"/><a:satMod val=\"103000\"/><a:tint val=\"73000\"/></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:lumMod val=\"105000\"/><a:satMod val=\"109000\"/><a:tint val=\"81000\"/></a:schemeClr></a:gs></a:gsLst><a:lin ang=\"5400000\" scaled=\"0\"/></a:gradFill><a:gradFill rotWithShape=\"1\"><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:satMod val=\"103000\"/><a:lumMod val=\"102000\"/><a:tint val=\"94000\"/></a:schemeClr></a:gs><a:gs pos=\"50000\"><a:schemeClr val=\"phClr\"><a:satMod val=\"110000\"/><a:lumMod val=\"100000\"/><a:shade val=\"100000\"/></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:lumMod val=\"99000\"/><a:satMod val=\"120000\"/><a:shade val=\"78000\"/></a:schemeClr></a:gs></a:gsLst><a:lin ang=\"5400000\" scaled=\"0\"/></a:gradFill></a:fillStyleLst><a:lnStyleLst><a:ln w=\"6350\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:prstDash val=\"solid\"/><a:miter lim=\"800000\"/></a:ln><a:ln w=\"12700\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:prstDash val=\"solid\"/><a:miter lim=\"800000\"/></a:ln><a:ln w=\"19050\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:prstDash val=\"solid\"/><a:miter lim=\"800000\"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst><a:outerShdw blurRad=\"57150\" dist=\"19050\" dir=\"5400000\" algn=\"ctr\" rotWithShape=\"0\"><a:srgbClr val=\"000000\"><a:alpha val=\"63000\"/></a:srgbClr></a:outerShdw></a:effectLst></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"><a:tint val=\"95000\"/><a:satMod val=\"170000\"/></a:schemeClr></a:solidFill><a:gradFill rotWithShape=\"1\"><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:tint val=\"93000\"/><a:satMod val=\"150000\"/><a:shade val=\"98000\"/><a:lumMod val=\"102000\"/></a:schemeClr></a:gs><a:gs pos=\"50000\"><a:schemeClr val=\"phClr\"><a:tint val=\"98000\"/><a:satMod val=\"130000\"/><a:shade val=\"90000\"/><a:lumMod val=\"103000\"/></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:shade val=\"63000\"/><a:satMod val=\"120000\"/></a:schemeClr></a:gs></a:gsLst><a:lin ang=\"5400000\" scaled=\"0\"/></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements><a:objectDefaults/><a:extraClrSchemeLst/></a:theme>"};
 
 const QUOTE_KEY = "quote-xlsx-rows-v1";
+const QCOST_KEY = "roopc-default-cost-v1";
+const DEFAULT_COST = "47300";        // 税抜
 let qRows = [];
+
+/** 税抜 → 税込. The reverse is Excel's ROUNDUP(x/1.1,-1), so the pair round-trips. */
+const qGrossOf = (exTax) => (qToNum(exTax) ? String(Math.round(qToNum(exTax) * 1.1)) : "");
+const qExOf = (inTax) => (qToNum(inTax) ? String(roundUp10(qToNum(inTax) / 1.1)) : "");
+const rowCost = (r) => (String(r.cost || "").trim() !== "" ? r.cost : (V("qDefaultCost") || DEFAULT_COST));
+/** 粗利（税抜）＝卸価格（税抜）− 原価（税抜）。社内画面だけの数字。 */
+const rowProfit = (r) => {
+  const ex = qToNum(qExOf(r.wholesale));
+  return ex ? ex - qToNum(rowCost(r)) : 0;
+};
 
 /** Excel ROUNDUP(x, -1) */
 const roundUp10 = (n) => {
@@ -1465,12 +1497,22 @@ function qLoad() {
 
 function qPaintCalc(tr, r) {
   const v = qCalc(r);
-  const cells = tr.querySelectorAll("td.qcalc");
   const noRetail = String(r.retail).trim() === "";
+  const set = (name, text) => {
+    const td = tr.querySelector('[data-c="' + name + '"]');
+    if (td) td.textContent = text;
+  };
   // Rows are commonly sent out with the end price left for the customer to fill in,
   // so nothing derived from it is shown (a bare "-66,000" commission reads as an error).
-  const shown = [qBlank(r) ? "" : v.c, noRetail ? "" : v.e, noRetail ? "" : v.f, noRetail ? "" : v.g];
-  shown.forEach((n, i) => { cells[i].textContent = n === "" ? "" : qFmt(n); });
+  set("commIn", noRetail ? "" : qFmt(v.f));
+  set("commEx", noRetail ? "" : qFmt(v.g));
+  const hasWholesale = qToNum(r.wholesale) > 0;
+  const profit = hasWholesale ? rowProfit(r) : 0;
+  const td = tr.querySelector('[data-c="profit"]');
+  if (td) {
+    td.textContent = hasWholesale ? qFmt(profit) : "";
+    td.classList.toggle("minus", profit < 0);
+  }
 }
 
 /** Column totals for the on-screen check (deliberately not written into the xlsx). */
@@ -1480,8 +1522,25 @@ function qTotals() {
     const hasR = String(r.retail).trim() !== "";
     t.b += qToNum(r.wholesale); t.c += v.c;
     if (hasR) { t.d += qToNum(r.retail); t.e += v.e; t.f += v.f; t.g += v.g; }
+    if (qToNum(r.wholesale)) { t.cost += qToNum(rowCost(r)); t.profit += rowProfit(r); }
     return t;
-  }, { b: 0, c: 0, d: 0, e: 0, f: 0, g: 0 });
+  }, { b: 0, c: 0, d: 0, e: 0, f: 0, g: 0, cost: 0, profit: 0 });
+}
+
+/** Subtotals on the client and price-type headings, updated without a re-render. */
+function qRefreshHeads() {
+  document.querySelectorAll("#qBody tr[data-ghead]").forEach((tr) => {
+    const key = tr.dataset.ghead;
+    const rows = qRows.filter((r) => rowClient(r) === key);
+    const span = tr.querySelector(".qsub");
+    if (span) span.textContent = rows.length ? rows.length + " 件　" + qGroupTotal(rows) : "明細なし";
+  });
+  document.querySelectorAll("#qBody tr[data-thead]").forEach((tr) => {
+    const [key, type] = tr.dataset.thead.split("\u0000");
+    const rows = qRows.filter((r) => rowClient(r) === key && (r.priceType || "卸価格") === type);
+    const span = tr.querySelector(".qsub");
+    if (span) span.textContent = rows.length + " 件　" + qGroupTotal(rows);
+  });
 }
 
 function qRenderTotals() {
@@ -1491,6 +1550,9 @@ function qRenderTotals() {
   const t = qTotals();
   foot.innerHTML = '<tr><td class="qname">合計（' + rows.length + " 件）</td><td></td>" +
     [t.b, t.c, t.d, t.e, t.f, t.g].map((n) => "<td>" + (n ? qFmt(n) : "") + "</td>").join("") +
+    '<td class="cost-col">' + (t.cost ? qFmt(t.cost) : "") + "</td>" +
+    '<td class="cost-col profit' + (t.profit < 0 ? " minus" : "") + '">' +
+      (t.cost ? qFmt(t.profit) : "") + "</td>" +
     "<td></td></tr>";
 }
 
@@ -1511,11 +1573,14 @@ function qGroupTotal(rows) {
   const t = rows.reduce((a, r) => {
     a.b += qToNum(r.wholesale);
     if (String(r.retail).trim()) { a.d += qToNum(r.retail); a.f += qCalc(r).f; }
+    if (qToNum(r.wholesale)) a.profit += rowProfit(r);
     return a;
-  }, { b: 0, d: 0, f: 0 });
+  }, { b: 0, d: 0, f: 0, profit: 0 });
   const bits = ["卸 " + qFmt(t.b)];
   if (t.d) bits.push("エンド " + qFmt(t.d), "コミッション " + qFmt(t.f));
-  return bits.join("　/　") + "（税込）";
+  let out = bits.join("　/　") + "（税込）";
+  if (t.b && $("qShowCost").checked) out += "　粗利 " + qFmt(t.profit) + "（税抜・社内）";
+  return out;
 }
 
 function qRender() {
@@ -1552,7 +1617,8 @@ function qRender() {
     const rows = idx.map((i) => qRows[i]);
     const head = document.createElement("tr");
     head.className = "qgrp";
-    head.innerHTML = '<td colspan="9">' +
+    head.dataset.ghead = key;
+    head.innerHTML = '<td colspan="11">' +
       (key && rows.length ? '<button class="mini-btn" type="button" data-qxlsx="' + esc(key) +
         '" style="float:right">この宛名で xlsx</button>' : "") +
       '<span class="qlabel">' + esc(key || "（宛名なし）") +
@@ -1565,14 +1631,34 @@ function qRender() {
 
     if (!rows.length) {
       const empty = document.createElement("tr");
-      empty.innerHTML = '<td class="qname" colspan="9" style="color:#888">' +
+      empty.innerHTML = '<td class="qname" colspan="11" style="color:#888">' +
         "登録済みの仕様書から明細を作成できます　" +
         '<button class="mini-btn" type="button" data-qfill="' + esc(key) + '">最新の登録から明細を作る</button>' +
         "</td>";
       body.appendChild(empty);
     }
 
+    // Within a client the lines are split by price type, which is the distinction
+    // that matters when reading the sheet: 卸 first, then エンド.
+    const byType = [["卸価格", []], ["エンド価格", []]];
     idx.forEach((i) => {
+      const t = (qRows[i].priceType || "卸価格") === "エンド価格" ? 1 : 0;
+      byType[t][1].push(i);
+    });
+
+    byType.forEach(([type, list]) => {
+      if (!list.length) return;
+      const end = type === "エンド価格";
+      const sub = document.createElement("tr");
+      sub.className = "qtype";
+      sub.dataset.thead = key + "\u0000" + type;
+      sub.innerHTML = '<td colspan="11"><span class="qlabel">' +
+        '<span class="pbadge ' + (end ? "end" : "wholesale") + '">' + (end ? "エンド" : "卸") + "</span> " +
+        esc(type) + '<span class="qsub">' + list.length + " 件　" +
+        esc(qGroupTotal(list.map((i) => qRows[i]))) + "</span></span></td>";
+      body.appendChild(sub);
+
+      list.forEach((i) => {
       const r = qRows[i];
       const tr = document.createElement("tr");
       if (r.draft) tr.className = "qdraft";
@@ -1586,16 +1672,24 @@ function qRender() {
         '<td class="qname"><input type="text" data-i="' + i + '" data-k="name" /></td>' +
         "<td>" + qRowBadges(r) + "</td>" +
         '<td><input type="text" class="qnum" data-i="' + i + '" data-k="wholesale" /></td>' +
-        '<td class="qcalc"></td>' +
+        '<td><input type="text" class="qnum" data-i="' + i + '" data-k="wholesaleEx" /></td>' +
         '<td><input type="text" class="qnum" data-i="' + i + '" data-k="retail" placeholder="相手先記入" /></td>' +
-        '<td class="qcalc"></td><td class="qcalc"></td><td class="qcalc"></td>' +
+        '<td><input type="text" class="qnum" data-i="' + i + '" data-k="retailEx" placeholder="相手先記入" /></td>' +
+        '<td class="qcalc" data-c="commIn"></td><td class="qcalc" data-c="commEx"></td>' +
+        '<td class="cost-col"><input type="text" class="qnum" data-i="' + i + '" data-k="cost" /></td>' +
+        '<td class="cost-col profit" data-c="profit"></td>' +
         '<td class="qacts">' + acts +
         '<button class="mini-btn" type="button" data-qdel="' + i + '" title="この行を削除">✕</button></td>';
       tr.querySelector('[data-k="name"]').value = r.name || "";
       tr.querySelector('[data-k="wholesale"]').value = r.wholesale || "";
+      tr.querySelector('[data-k="wholesaleEx"]').value = qExOf(r.wholesale);
       tr.querySelector('[data-k="retail"]').value = r.retail || "";
+      tr.querySelector('[data-k="retailEx"]').value = qExOf(r.retail);
+      tr.querySelector('[data-k="cost"]').value = r.cost || "";
+      tr.querySelector('[data-k="cost"]').placeholder = V("qDefaultCost") || DEFAULT_COST;
       qPaintCalc(tr, r);
       body.appendChild(tr);
+      });
     });
   });
   qRenderTotals();
@@ -2099,11 +2193,32 @@ function initQuote() {
   qRender();
   $("qBody").addEventListener("input", (e) => {
     const el = e.target;
-    if (!el.dataset.k) return;
-    qRows[+el.dataset.i][el.dataset.k] = el.value;
+    const k = el.dataset.k;
+    if (!k) return;
+    const i = +el.dataset.i;
+    const r = qRows[i];
+    const tr = el.closest("tr");
+    const other = (name, value) => {
+      const f = tr.querySelector('[data-k="' + name + '"]');
+      if (f && f !== el) f.value = value;
+    };
+
+    // 税込 and 税抜 are two views of one stored figure (the tax-inclusive one,
+    // which is what the xlsx holds), so whichever is typed fills the other.
+    if (k === "wholesaleEx" || k === "retailEx") {
+      const base = k.slice(0, -2);
+      r[base] = qGrossOf(el.value);
+      other(base, r[base]);
+    } else if (k === "wholesale" || k === "retail") {
+      r[k] = el.value;
+      other(k + "Ex", qExOf(el.value));
+    } else {
+      r[k] = el.value;
+    }
     qSave();
-    qPaintCalc(el.closest("tr"), qRows[+el.dataset.i]);
+    qPaintCalc(tr, r);
     qRenderTotals();
+    qRefreshHeads();
   });
   $("qBody").addEventListener("click", (e) => {
     const doc = e.target.closest("button[data-qdoc]");
@@ -2154,6 +2269,16 @@ function initQuote() {
   });
   $("qDownload").addEventListener("click", () => qDownload());
   $("qAllClients").addEventListener("change", qRender);
+  $("qShowCost").addEventListener("change", () => {
+    document.querySelector(".qtbl").classList.toggle("nocost", !$("qShowCost").checked);
+    qRender();
+  });
+  try { $("qDefaultCost").value = localStorage.getItem(QCOST_KEY) || DEFAULT_COST; }
+  catch (e) { $("qDefaultCost").value = DEFAULT_COST; }
+  $("qDefaultCost").addEventListener("input", () => {
+    try { localStorage.setItem(QCOST_KEY, V("qDefaultCost")); } catch (e) { /* ignore */ }
+    qRender();
+  });
 
   $("btnQuoteSave").addEventListener("click", saveQuotePreset);
   $("quoteSearch").addEventListener("input", renderQuotePresets);
