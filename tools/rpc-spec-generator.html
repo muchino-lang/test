@@ -1505,9 +1505,16 @@ let qRows = [];
 const qGrossOf = (exTax) => (qToNum(exTax) ? String(Math.round(qToNum(exTax) * 1.1)) : "");
 const qExOf = (inTax) => (qToNum(inTax) ? String(roundUp10(qToNum(inTax) / 1.1)) : "");
 const rowCost = (r) => (String(r.cost || "").trim() !== "" ? r.cost : (V("qDefaultCost") || DEFAULT_COST));
-/** 粗利（税抜）＝卸価格（税抜）− 原価（税抜）。社内画面だけの数字。 */
+/**
+ * What we actually take on this line: the wholesale price when a partner is in
+ * between (they earn the commission on top), otherwise the end price, which is a
+ * direct-to-school sale. Whichever is present decides — not the row's label.
+ */
+const rowBaseEx = (r) =>
+  (qToNum(r.wholesale) > 0 ? qExOf(r.wholesale) : qExOf(r.retail));
+/** 粗利（税抜）＝ その行の売価（税抜）− 原価（税抜）。社内画面だけの数字。 */
 const rowProfit = (r) => {
-  const ex = qToNum(qExOf(r.wholesale));
+  const ex = qToNum(rowBaseEx(r));
   return ex ? ex - qToNum(rowCost(r)) : 0;
 };
 
@@ -1548,6 +1555,18 @@ function qLoad() {
     const v = JSON.parse(localStorage.getItem(QUOTE_KEY) || "null");
     qRows = Array.isArray(v) && v.length ? v : [{ name: "", wholesale: "", retail: "" }];
   } catch (e) { qRows = [{ name: "", wholesale: "", retail: "" }]; }
+
+  // Rows added before the fix put an エンド価格 sheet's figure in the wholesale
+  // column. Move it to エンド売価 where it belongs; nothing else matches this shape.
+  let moved = 0;
+  qRows.forEach((r) => {
+    if ((r.priceType || "卸価格") !== "エンド価格") return;
+    if (String(r.retail || "").trim() !== "" || String(r.wholesale || "").trim() === "") return;
+    r.retail = r.wholesale;
+    r.wholesale = "";
+    moved++;
+  });
+  if (moved) qSave();
 }
 
 function qPaintCalc(tr, r) {
@@ -1559,13 +1578,14 @@ function qPaintCalc(tr, r) {
   };
   // Rows are commonly sent out with the end price left for the customer to fill in,
   // so nothing derived from it is shown (a bare "-66,000" commission reads as an error).
-  set("commIn", noRetail ? "" : qFmt(v.f));
-  set("commEx", noRetail ? "" : qFmt(v.g));
-  const hasWholesale = qToNum(r.wholesale) > 0;
-  const profit = hasWholesale ? rowProfit(r) : 0;
+  const bothSides = qToNum(r.wholesale) > 0 && qToNum(r.retail) > 0;
+  set("commIn", bothSides ? qFmt(v.f) : "");
+  set("commEx", bothSides ? qFmt(v.g) : "");
+  const hasBase = qToNum(rowBaseEx(r)) > 0;
+  const profit = hasBase ? rowProfit(r) : 0;
   const td = tr.querySelector('[data-c="profit"]');
   if (td) {
-    td.textContent = hasWholesale ? qFmt(profit) : "";
+    td.textContent = hasBase ? qFmt(profit) : "";
     td.classList.toggle("minus", profit < 0);
   }
 }
@@ -1574,10 +1594,11 @@ function qPaintCalc(tr, r) {
 function qTotals() {
   return qRows.reduce((t, r) => {
     const v = qCalc(r);
-    const hasR = String(r.retail).trim() !== "";
+    const hasR = qToNum(r.retail) > 0;
     t.b += qToNum(r.wholesale); t.c += v.c;
-    if (hasR) { t.d += qToNum(r.retail); t.e += v.e; t.f += v.f; t.g += v.g; }
-    if (qToNum(r.wholesale)) { t.cost += qToNum(rowCost(r)); t.profit += rowProfit(r); }
+    if (hasR) { t.d += qToNum(r.retail); t.e += v.e; }
+    if (hasR && qToNum(r.wholesale) > 0) { t.f += v.f; t.g += v.g; }
+    if (qToNum(rowBaseEx(r))) { t.cost += qToNum(rowCost(r)); t.profit += rowProfit(r); }
     return t;
   }, { b: 0, c: 0, d: 0, e: 0, f: 0, g: 0, cost: 0, profit: 0 });
 }
@@ -1627,15 +1648,18 @@ function qRowBadges(r) {
 function qGroupTotal(rows) {
   const t = rows.reduce((a, r) => {
     a.b += qToNum(r.wholesale);
-    if (String(r.retail).trim()) { a.d += qToNum(r.retail); a.f += qCalc(r).f; }
-    if (qToNum(r.wholesale)) a.profit += rowProfit(r);
+    if (qToNum(r.retail)) a.d += qToNum(r.retail);
+    if (qToNum(r.retail) && qToNum(r.wholesale)) a.f += qCalc(r).f;
+    if (qToNum(rowBaseEx(r))) a.profit += rowProfit(r);
     return a;
   }, { b: 0, d: 0, f: 0, profit: 0 });
-  const bits = ["卸 " + qFmt(t.b)];
-  if (t.d) bits.push("エンド " + qFmt(t.d), "コミッション " + qFmt(t.f));
-  let out = bits.join("　/　") + "（税込）";
-  if (t.b && $("qShowCost").checked) out += "　粗利 " + qFmt(t.profit) + "（税抜・社内）";
-  return out;
+  const bits = [];
+  if (t.b) bits.push("卸 " + qFmt(t.b));
+  if (t.d) bits.push("エンド " + qFmt(t.d));
+  if (t.f) bits.push("コミッション " + qFmt(t.f));
+  let out = bits.length ? bits.join("　/　") + "（税込）" : "";
+  if (t.profit && $("qShowCost").checked) out += "　粗利 " + qFmt(t.profit) + "（税抜・社内）";
+  return out || "金額未入力";
 }
 
 function qRender() {
@@ -1883,10 +1907,13 @@ const qGrossUp = (exTax) => (exTax ? String(Math.round(qToNum(exTax) * 1.1)) : "
 function qAddRowsFrom(entries) {
   const added = entries.map((e) => {
     const f = e.fields || e;
+    // An エンド価格 sheet states the end price, so it belongs in エンド売価 —
+    // that sheet does not state a wholesale figure, so it stays blank.
+    const end = (f.priceType || "卸価格") === "エンド価格";
     return {
       name: quoteNameFrom(f),
-      wholesale: qGrossUp(f.price),
-      retail: "",
+      wholesale: end ? "" : qGrossUp(f.price),
+      retail: end ? qGrossUp(f.price) : "",
       client: f.addressee || "",
       honorific: f.honorific || "",
       priceType: f.priceType || "卸価格",
@@ -1894,7 +1921,7 @@ function qAddRowsFrom(entries) {
       specFields: { ...f },
       specImage: e.image || null,
     };
-  }).filter((r) => r.name || r.wholesale);
+  }).filter((r) => r.name || r.wholesale || r.retail);
   if (!added.length) return 0;
   qRows = qRows.filter((r) => (r.name || "").trim() || String(r.wholesale).trim() || String(r.retail).trim());
   qRows = qRows.concat(added);
@@ -1931,17 +1958,20 @@ function qBuildSheet(data, withNote) {
     const dBlank = String(r.retail).trim() === "";
     // Guarded so an unfilled エンド売価 leaves E/F/G empty instead of showing a
     // negative commission; they fill in the moment the customer enters a price.
+    const fC = 'IF(B' + n + '="","",ROUNDUP(B' + n + '/1.1,-1))';
     const fE = 'IF(D' + n + '="","",ROUNDUP(D' + n + '/1.1,-1))';
-    const fF = 'IF(D' + n + '="","",D' + n + "-B" + n + ")";
+    const fF = 'IF(OR(B' + n + '="",D' + n + '=""),"",D' + n + "-B" + n + ")";
     const fG = 'IF(F' + n + '="","",ROUNDUP(F' + n + '/1.1,-1))';
+    const bBlank = String(r.wholesale).trim() === "";
+    const noComm = dBlank || bBlank;
     x += '<row r="' + n + '" spans="1:7" ht="37.5" customHeight="1">' +
       xText("A" + n, 5, r.name || "") +
-      xNum("B" + n, 6, b, String(r.wholesale).trim() === "") +
-      xFml("C" + n, 10, "ROUNDUP(B" + n + "/1.1,-1)", v.c) +
+      xNum("B" + n, 6, b, bBlank) +
+      (bBlank ? xFmlBlank("C" + n, 10, fC) : xFml("C" + n, 10, fC, v.c)) +
       xNum("D" + n, 7, d, dBlank) +
       (dBlank ? xFmlBlank("E" + n, 11, fE) : xFml("E" + n, 11, fE, v.e)) +
-      (dBlank ? xFmlBlank("F" + n, 12, fF) : xFml("F" + n, 12, fF, v.f)) +
-      (dBlank ? xFmlBlank("G" + n, 12, fG) : xFml("G" + n, 12, fG, v.g)) +
+      (noComm ? xFmlBlank("F" + n, 12, fF) : xFml("F" + n, 12, fF, v.f)) +
+      (noComm ? xFmlBlank("G" + n, 12, fG) : xFml("G" + n, 12, fG, v.g)) +
       "</row>";
   });
 
