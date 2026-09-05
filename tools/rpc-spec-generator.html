@@ -196,6 +196,9 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
 .price-bar { display: flex; align-items: baseline; justify-content: flex-end; padding: 12px 24px; border-top: 2px solid var(--pri); background: var(--priL); }
 .price-bar .lbl { font-size: 12px; color: var(--txtM); margin-right: 8px; }
 .price-bar .val { font-size: 24px; font-weight: 800; color: var(--pri); }
+.price-bar .taxin { font-size: 14px; font-weight: 700; color: var(--pri); margin-left: 12px; }
+.price-bar.end .taxin { color: #0a6b5b; }
+.price-bar.draft .taxin { color: #a35200; }
 .price-bar.end { background: #e9f6f3; border-top-color: #0a6b5b; }
 .price-bar.end .lbl, .price-bar.end .val { color: #0a6b5b; }
 .price-bar.draft { background: #fff8ef; border-top-color: #e0a44a; }
@@ -812,6 +815,11 @@ function priceShown() { return $("showPrice").checked && !!V("price"); }
 
 /** 卸価格 (partner / reseller) or エンド価格 (direct-to-school). */
 const isDraftPrice = () => $("isDraftPrice").checked;
+/** 税込 shown next to the stated tax-exclusive price (consumption tax 10%). */
+function priceWithTax() {
+  const ex = qToNum(V("price"));
+  return ex ? Math.round(ex * 1.1).toLocaleString("ja-JP") : "";
+}
 const isEndPrice = () => V("priceType") === "エンド価格";
 /** draft wins over the type colour, so a provisional price always reads as provisional */
 const priceClass = () => (isDraftPrice() ? " draft" : isEndPrice() ? " end" : "");
@@ -984,7 +992,9 @@ function renderPreview() {
   if (priceShown()) {
     html += '<div class="price-bar' + priceClass() + '">' +
       '<span class="lbl">' + esc(priceLabel()) + '</span><span class="val">¥' +
-      esc(formattedPrice()) + "</span></div>";
+      esc(formattedPrice()) + "</span>" +
+      (priceWithTax() ? '<span class="taxin">（税込 ¥' + esc(priceWithTax()) + "）</span>" : "") +
+      "</div>";
   }
   if (notes || wd) {
     html += '<div class="notes-box"><b>◆備考</b>\n' + (notes ? esc(notes) + "\n\n" : "") + esc(wd) + "</div>";
@@ -1048,6 +1058,9 @@ function downloadWord() {
     "th.sub-hdr{background:#f3f5f7;color:#555555;padding-left:28px}" +
     ".price-box{margin-top:12px;text-align:right;border-top:2px solid #1a3a5c;padding-top:8px}" +
     ".price-box .v{font-size:20pt;font-weight:800;color:#1a3a5c}" +
+    ".price-box .vt{font-size:12pt;font-weight:700;color:#1a3a5c;margin-left:8px}" +
+    ".price-box.end .vt{color:#0a6b5b}" +
+    ".price-box.draft .vt{color:#a35200}" +
     ".price-box.end{border-top-color:#0a6b5b;color:#0a6b5b}" +
     ".price-box.end .v{color:#0a6b5b}" +
     ".price-box.draft{border-top-color:#e0a44a;color:#a35200}" +
@@ -1070,7 +1083,9 @@ function downloadWord() {
     "<table>" + trs + "</table>" +
     (priceShown()
       ? '<div class="price-box' + priceClass() + '">' + esc(priceLabel()) +
-        '<span class="v">　¥' + esc(formattedPrice()) + "</span></div>"
+        '<span class="v">　¥' + esc(formattedPrice()) + "</span>" +
+        (priceWithTax() ? '<span class="vt">（税込 ¥' + esc(priceWithTax()) + "）</span>" : "") +
+        "</div>"
       : "") +
     ((notes || wd)
       ? '<div class="notes">◆備考\n' + (notes ? esc(notes) + "\n\n" : "") + esc(wd) + "</div>"
