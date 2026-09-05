@@ -50,6 +50,16 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .auto-box { padding: 7px 10px; border-radius: 6px; border: 1px solid var(--pri); font-size: 13px; background: var(--priL); color: var(--pri); font-weight: 600; }
 .hint { font-size: 10px; color: #888; }
 
+/* tax-inclusive figure and internal margin, shown beside the price box */
+.derived { display: flex; align-items: baseline; gap: 26px; flex-wrap: wrap;
+  margin-top: 8px; padding: 10px 14px; border: 1px solid var(--bdr); border-radius: 9px; background: #f7f9fb; }
+.derived .d-lbl { font-size: 11px; font-weight: 700; color: var(--txtM); margin-right: 8px; }
+.derived .d-val { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.derived .d-tax .d-val { color: var(--pri); }
+.derived .d-profit .d-val { color: #0a6b5b; }
+.derived .d-profit.minus .d-val { color: #b42318; }
+.derived .d-note { font-size: 10px; color: #999; }
+
 /* toggle switch */
 .tgl { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 600; color: var(--txtM); }
 /* visually hidden but still focusable, so the toggle works from the keyboard */
@@ -444,7 +454,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
         <div class="fld">
         <label for="price" id="priceLabel">卸価格（税抜）</label>
         <input id="price" inputmode="numeric" placeholder="例: 35,000" />
-        <span class="hint" id="priceDerived"></span>
+        <div class="derived" id="priceDerived" hidden></div>
       </div>
       </div>
     </div>
@@ -1433,12 +1443,17 @@ function syncPriceDerived() {
   const box = $("priceDerived");
   if (!box) return;
   const ex = qToNum(V("price"));
-  if (!ex) { box.textContent = ""; return; }
+  if (!ex) { box.hidden = true; box.innerHTML = ""; return; }
   const cost = qToNum(($("qDefaultCost") && V("qDefaultCost")) || DEFAULT_COST);
   const profit = ex - cost;
-  box.innerHTML = "税込 " + qFmt(Math.round(ex * 1.1)) + " 円" +
-    '　/　<b style="color:' + (profit < 0 ? "#b42318" : "#0a6b5b") + '">粗利 ' + qFmt(profit) +
-    " 円</b>（税抜・社内用／原価 " + qFmt(cost) + "）";
+  box.hidden = false;
+  box.innerHTML =
+    '<span class="d-tax"><span class="d-lbl">税込</span>' +
+      '<span class="d-val">¥' + qFmt(Math.round(ex * 1.1)) + "</span></span>" +
+    '<span class="d-profit' + (profit < 0 ? " minus" : "") + '">' +
+      '<span class="d-lbl">粗利（税抜）</span>' +
+      '<span class="d-val">¥' + qFmt(profit) + "</span></span>" +
+    '<span class="d-note">社内用の表示です（原価 ' + qFmt(cost) + " 円・税抜）。仕様書には出力されません。</span>";
 }
 
 function syncPriceRow() {
