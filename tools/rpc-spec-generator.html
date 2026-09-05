@@ -22,6 +22,13 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 /* height:auto + max-height keeps the aspect ratio intact, so the logo can never be cropped */
 .bar-logo { width: auto; height: auto; max-height: 34px; max-width: 190px; object-fit: contain; display: block; flex: 0 0 auto; filter: brightness(0) invert(1); }
 .wordmark { font-weight: 800; font-size: 19px; letter-spacing: .04em; }
+/* provisional state is easy to leave switched on, so it is stated on every tab */
+.bar-flag { display: inline-flex; align-items: center; gap: 8px; margin-right: 8px;
+  background: #fff3e0; color: #a35200; border: 1px solid #e0a44a; border-radius: 6px;
+  padding: 4px 10px; font-size: 12px; font-weight: 700; }
+.bar-flag button { border: 1px solid #e0a44a; background: #fff; color: #a35200;
+  border-radius: 5px; padding: 2px 8px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.bar-flag button:hover { background: #ffe9cc; }
 .bar-btns { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .tab-btn { padding: 5px 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,.4); background: transparent; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
 .tab-btn.active { background: #fff; color: var(--pri); }
@@ -233,6 +240,10 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
     <span>仕様書ジェネレーター</span>
   </div>
   <div class="bar-btns">
+    <span class="bar-flag" id="draftFlag" hidden>
+      <span id="draftFlagText"></span>
+      <button type="button" id="draftFlagClear">解除</button>
+    </span>
     <button class="tab-btn" id="tabEdit" type="button">編集</button>
     <button class="tab-btn" id="tabPreview" type="button">プレビュー</button>
     <button class="tab-btn" id="tabQuote" type="button">見積 / 手数料</button>
@@ -952,7 +963,7 @@ function docFileNameOf(snap) {
   const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
   const parts = [
     priceTagOf(f.price, f.priceType, snap.showPrice),
-    snap.isDraft ? "暫定" : "", stamp, f.addressee, f.maker, f.productName,
+    (snap.isDraft || snap.isDraftPrice) ? "暫定" : "", stamp, f.addressee, f.maker, f.productName,
     cpuLabelOf(f.cpuSeries, f.cpuGen), f.memory, f.storage,
   ].filter(Boolean);
   return safeFileName(parts.join("_")) || "製品仕様書";
@@ -965,7 +976,7 @@ function docFileName() {
   const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
   const parts = [
     priceTagOf(V("price"), V("priceType"), priceShown()),
-    isDraft() ? "暫定" : "", stamp, V("addressee"), V("maker"), V("productName"),
+    (isDraft() || isDraftPrice()) ? "暫定" : "", stamp, V("addressee"), V("maker"), V("productName"),
     cpuInfo().label, V("memory"), V("storage"),
   ].filter(Boolean);
   return safeFileName(parts.join("_")) || docTypeLabel();
@@ -1459,6 +1470,18 @@ function resetAll() {
 
 function syncDraft() {
   $("isDraftLabel").textContent = docTypeLabel() + "として出力する";
+  syncDraftFlag();
+}
+
+/** Says which provisional marks the sheet will carry, and offers to clear them. */
+function syncDraftFlag() {
+  const marks = [];
+  if (isDraft()) marks.push("暫定仕様書");
+  if (isDraftPrice()) marks.push("価格に「※暫定価格」");
+  const flag = $("draftFlag");
+  if (!marks.length) { flag.hidden = true; return; }
+  flag.hidden = false;
+  $("draftFlagText").textContent = "この仕様書は暫定表示です（" + marks.join(" / ") + "）";
 }
 
 /**
@@ -1499,6 +1522,7 @@ function syncPriceRow() {
   syncPriceDerived();
   $("showPriceLabel").textContent = type + (on ? "を仕様書に表示する" : "を仕様書に表示しない");
   $("isDraftPriceLabel").textContent = isDraftPrice() ? type + "は暫定価格として表示中" : "暫定価格として表示する";
+  syncDraftFlag();
 }
 
 
@@ -2443,6 +2467,13 @@ function init() {
     setTimeout(() => { document.title = prev; }, 1000);
   });
   $("btnReset").addEventListener("click", resetAll);
+  $("draftFlagClear").addEventListener("click", () => {
+    $("isDraft").checked = false;
+    $("isDraftPrice").checked = false;
+    syncDraft(); syncPriceRow(); save();
+    if (inPreview()) renderPreview();
+    note("暫定表示を解除しました");
+  });
 
   // presets
   syncPresetHint();
@@ -2486,7 +2517,10 @@ function init() {
     save();
     if (inPreview()) renderPreview();
   });
-  $("isDraftPrice").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
+  $("isDraftPrice").addEventListener("change", () => {
+    syncPriceRow(); syncDraftFlag(); save();
+    if (inPreview()) renderPreview();
+  });
 
   // any edit -> autosave (+ live preview when the sheet is on screen)
   $("editPanel").addEventListener("input", (e) => {
