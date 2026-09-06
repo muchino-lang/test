@@ -143,6 +143,7 @@ table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .qtbl-wrap { overflow-x: auto; border: 1px solid var(--bdr); border-radius: 8px; background: var(--white); }
 table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-size: 12px; }
 .qtbl input.qnum { min-width: 62px; }
+.qtbl input.qghost::placeholder { color: #b9a06a; font-style: italic; opacity: 1; }
 .qtbl th, .qtbl td { border: 1px solid var(--bdr); padding: 5px 7px; text-align: right; white-space: nowrap; }
 .qtbl th { background: var(--priL); color: var(--pri); font-size: 11px; text-align: center; font-weight: 700; }
 .qtbl th.qname, .qtbl td.qname {
@@ -448,6 +449,11 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
         <span class="track"></span>
         <span id="isDraftPriceLabel">暫定価格として表示する</span>
       </label>
+      <label class="tgl" for="isSuggested">
+        <input type="checkbox" id="isSuggested" />
+        <span class="track"></span>
+        <span id="isSuggestedLabel">推奨価格として記載する</span>
+      </label>
     </div>
     <div id="priceRow">
       <div class="fld" style="margin-bottom:12px">
@@ -544,6 +550,11 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
         既定の原価（税抜）
         <input type="text" id="qDefaultCost" class="qnum" style="width:90px;border:1px solid var(--bdr);border-radius:6px;padding:4px 8px;font-size:12px;text-align:right" />
       </label>
+      <label class="field" style="font-size:11px;color:var(--txtM);display:flex;align-items:center;gap:6px">
+        推奨エンド売価＝卸価格 ×
+        <input type="text" id="qSuggestRate" class="qnum" style="width:56px;border:1px solid var(--bdr);border-radius:6px;padding:4px 8px;font-size:12px;text-align:right" />
+      </label>
+      <button class="mini-btn" type="button" id="qFillSuggest">空欄に推奨価格を入れる</button>
     </div>
     <div class="qtbl-wrap">
       <table class="qtbl">
@@ -837,8 +848,11 @@ function priceWithTax() {
 const isEndPrice = () => V("priceType") === "エンド価格";
 /** draft wins over the type colour, so a provisional price always reads as provisional */
 const priceClass = () => (isDraftPrice() ? " draft" : isEndPrice() ? " end" : "");
+/** 推奨価格: the figure is our recommendation, the customer sets the final one. */
+const isSuggested = () => $("isSuggested").checked;
 const priceLabel = () =>
-  (V("priceType") || "卸価格") + "（税抜）" + (isDraftPrice() ? "　※暫定価格" : "");
+  (isSuggested() ? "推奨" : "") + (V("priceType") || "卸価格") + "（税抜）" +
+  (isDraftPrice() ? "　※暫定価格" : "");
 
 function formattedPrice() {
   const raw = V("price").replace(/[,\s]/g, "");
@@ -1134,7 +1148,7 @@ function save() {
   saveTimer = setTimeout(() => {
     const data = {
       fields: {}, showPrice: $("showPrice").checked,
-      isDraft: isDraft(), isDraftPrice: isDraftPrice(),
+      isDraft: isDraft(), isDraftPrice: isDraftPrice(), isSuggested: isSuggested(),
       image: imageData, logo: logoData,
     };
     FIELD_IDS.forEach((id) => { data.fields[id] = V(id); });
@@ -1160,6 +1174,7 @@ function restore() {
   $("showPrice").checked = data.showPrice !== false;
   $("isDraft").checked = !!data.isDraft;
   $("isDraftPrice").checked = !!data.isDraftPrice;
+  $("isSuggested").checked = !!data.isSuggested;
   if (data.image) setImage(data.image);
   if (data.logo) setLogo(data.logo);
   return true;
@@ -1235,7 +1250,8 @@ function snapshot() {
   FIELD_IDS.forEach((id) => { fields[id] = V(id); });
   return {
     fields, showPrice: $("showPrice").checked,
-    isDraft: isDraft(), isDraftPrice: isDraftPrice(), image: imageData,
+    isDraft: isDraft(), isDraftPrice: isDraftPrice(), isSuggested: isSuggested(),
+    image: imageData,
   };
 }
 
@@ -1254,6 +1270,7 @@ function applySnapshot(snap) {
   $("showPrice").checked = snap.showPrice !== false;
   $("isDraft").checked = !!snap.isDraft;
   $("isDraftPrice").checked = !!snap.isDraftPrice;
+  $("isSuggested").checked = !!snap.isSuggested;
   setImage(snap.image || null);
   syncPriceRow();
   syncDraft();
@@ -1460,6 +1477,7 @@ function resetAll() {
   $("showPrice").checked = true;
   $("isDraft").checked = false;
   $("isDraftPrice").checked = false;
+  $("isSuggested").checked = false;
   setImage(null);
   syncPriceRow();
   syncDraft();
@@ -1522,6 +1540,8 @@ function syncPriceRow() {
   syncPriceDerived();
   $("showPriceLabel").textContent = type + (on ? "を仕様書に表示する" : "を仕様書に表示しない");
   $("isDraftPriceLabel").textContent = isDraftPrice() ? type + "は暫定価格として表示中" : "暫定価格として表示する";
+  $("isSuggested").disabled = !on;
+  $("isSuggestedLabel").textContent = isSuggested() ? "「推奨" + type + "」として記載中" : "推奨価格として記載する";
   syncDraftFlag();
 }
 
@@ -1535,12 +1555,30 @@ const XLSX_PARTS = {"contentTypes": "<?xml version=\"1.0\" encoding=\"UTF-8\" st
 const QUOTE_KEY = "quote-xlsx-rows-v1";
 const QCOST_KEY = "roopc-default-cost-v1";
 const DEFAULT_COST = "47300";        // 税抜
+const QRATE_KEY = "roopc-suggest-rate-v1";
+const DEFAULT_SUGGEST_RATE = "1.2";  // 推奨エンド売価 = 卸価格（税抜）× この掛率
 let qRows = [];
 
 /** 税抜 → 税込. The reverse is Excel's ROUNDUP(x/1.1,-1), so the pair round-trips. */
 const qGrossOf = (exTax) => (qToNum(exTax) ? String(Math.round(qToNum(exTax) * 1.1)) : "");
 const qExOf = (inTax) => (qToNum(inTax) ? String(roundUp10(qToNum(inTax) / 1.1)) : "");
 const rowCost = (r) => (String(r.cost || "").trim() !== "" ? r.cost : (V("qDefaultCost") || DEFAULT_COST));
+
+/**
+ * Recommended end price (tax-inclusive) for a line that has none yet: the figure
+ * the sheet itself stated when it was an エンド価格 sheet, otherwise the wholesale
+ * price marked up by the rate in the toolbar. Shown as a ghost in the empty box —
+ * it is never stored until it is actually filled in.
+ */
+function rowSuggestIn(r) {
+  const f = r.specFields || {};
+  if ((f.priceType || "") === "エンド価格" && f.price) return qGrossUp(f.price);
+  const wsEx = qToNum(qExOf(r.wholesale));
+  if (!wsEx) return "";
+  const rate = parseFloat(String(V("qSuggestRate") || DEFAULT_SUGGEST_RATE).replace(/[^\d.]/g, ""));
+  if (!isFinite(rate) || rate <= 0) return "";
+  return qGrossUp(String(roundUp10(wsEx * rate)));
+}
 /**
  * What we actually take on this line: the wholesale price when a partner is in
  * between (they earn the commission on top), otherwise the end price, which is a
@@ -1794,8 +1832,8 @@ function qRender() {
         "<td>" + qRowBadges(r, i) + "</td>" +
         '<td><input type="text" class="qnum" data-i="' + i + '" data-k="wholesale" /></td>' +
         '<td><input type="text" class="qnum" data-i="' + i + '" data-k="wholesaleEx" /></td>' +
-        '<td><input type="text" class="qnum" data-i="' + i + '" data-k="retail" placeholder="相手先記入" /></td>' +
-        '<td><input type="text" class="qnum" data-i="' + i + '" data-k="retailEx" placeholder="相手先記入" /></td>' +
+        '<td><input type="text" class="qnum qghost" data-i="' + i + '" data-k="retail" /></td>' +
+        '<td><input type="text" class="qnum qghost" data-i="' + i + '" data-k="retailEx" /></td>' +
         '<td class="qcalc" data-c="commIn"></td><td class="qcalc" data-c="commEx"></td>' +
         '<td class="cost-col"><input type="text" class="qnum" data-i="' + i + '" data-k="cost" /></td>' +
         '<td class="cost-col profit" data-c="profit"></td>' +
@@ -1806,6 +1844,10 @@ function qRender() {
       tr.querySelector('[data-k="wholesaleEx"]').value = qExOf(r.wholesale);
       tr.querySelector('[data-k="retail"]').value = r.retail || "";
       tr.querySelector('[data-k="retailEx"]').value = qExOf(r.retail);
+      const sug = rowSuggestIn(r);
+      tr.querySelector('[data-k="retail"]').placeholder = sug ? "推奨 " + qFmt(qToNum(sug)) : "相手先記入";
+      tr.querySelector('[data-k="retailEx"]').placeholder =
+        sug ? "推奨 " + qFmt(qToNum(qExOf(sug))) : "相手先記入";
       tr.querySelector('[data-k="cost"]').value = r.cost || "";
       tr.querySelector('[data-k="cost"]').placeholder = V("qDefaultCost") || DEFAULT_COST;
       qPaintCalc(tr, r);
@@ -2412,6 +2454,25 @@ function initQuote() {
   });
   try { $("qDefaultCost").value = localStorage.getItem(QCOST_KEY) || DEFAULT_COST; }
   catch (e) { $("qDefaultCost").value = DEFAULT_COST; }
+  try { $("qSuggestRate").value = localStorage.getItem(QRATE_KEY) || DEFAULT_SUGGEST_RATE; }
+  catch (e) { $("qSuggestRate").value = DEFAULT_SUGGEST_RATE; }
+  $("qSuggestRate").addEventListener("input", () => {
+    try { localStorage.setItem(QRATE_KEY, V("qSuggestRate")); } catch (e) { /* ignore */ }
+    qRender();
+  });
+  $("qFillSuggest").addEventListener("click", () => {
+    let n = 0;
+    qRows.forEach((r) => {
+      if (String(r.retail || "").trim()) return;
+      const sug = rowSuggestIn(r);
+      if (!sug) return;
+      r.retail = sug;
+      n++;
+    });
+    if (!n) { alert("推奨価格を入れられる空欄がありません。"); return; }
+    qSave(); qRender();
+    note(n + " 行に推奨エンド売価を入力しました");
+  });
   $("qDefaultCost").addEventListener("input", () => {
     try { localStorage.setItem(QCOST_KEY, V("qDefaultCost")); } catch (e) { /* ignore */ }
     qRender();
@@ -2519,6 +2580,10 @@ function init() {
   });
   $("isDraftPrice").addEventListener("change", () => {
     syncPriceRow(); syncDraftFlag(); save();
+    if (inPreview()) renderPreview();
+  });
+  $("isSuggested").addEventListener("change", () => {
+    syncPriceRow(); save();
     if (inPreview()) renderPreview();
   });
 
