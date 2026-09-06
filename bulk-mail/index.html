@@ -126,6 +126,20 @@ textarea{resize:vertical; min-height:210px; line-height:1.8}
 .preview .to{font-size:11.5px; color:var(--muted); margin-bottom:10px; line-height:1.6}
 .empty{padding:34px 16px; text-align:center; color:var(--muted); font-size:13px}
 
+.drop{
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  border:2px dashed var(--line); border-radius:9px; padding:28px 16px; cursor:pointer;
+  color:var(--muted); font-size:13px; background:var(--ground);
+}
+.drop:hover,.drop.over{border-color:var(--accent); color:var(--accent-ink); background:var(--accent-soft)}
+.maps{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px}
+.maps select{padding:6px 8px; font-size:13px}
+.cclist{
+  border:1px solid var(--line); border-radius:7px; padding:8px; max-height:130px; overflow:auto;
+  display:flex; flex-direction:column; gap:2px; background:var(--ground);
+}
+.cclist label{display:flex; gap:7px; align-items:center; font-size:12px; cursor:pointer}
+.impinfo{font-size:12px; color:var(--ink-2); background:var(--surface-2); border-radius:7px; padding:9px 11px}
 dialog{
   border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); color:var(--ink);
   padding:0; width:min(620px,92vw); box-shadow:var(--shadow);
@@ -168,6 +182,7 @@ dialog textarea{min-height:170px}
       <div class="toolbar">
         <button class="btn tiny" id="addBtn">＋ 宛先を追加</button>
         <button class="btn tiny" id="pasteBtn">まとめて追加</button>
+        <button class="btn tiny" id="importBtn">Excel読込</button>
         <span class="spacer"></span>
         <button class="btn tiny ghost" id="dupBtn">複製</button>
         <button class="btn tiny ghost" id="delBtn">削除</button>
@@ -205,6 +220,45 @@ dialog textarea{min-height:170px}
     <div class="body" id="editor"></div>
   </section>
 </main>
+
+<dialog id="importDlg">
+  <div class="body">
+    <h2 style="font-size:15px">Excelから取り込む</h2>
+    <div id="impStep1">
+      <p class="hint">作りかけのExcel・CSVをそのまま読み込めます。列の並びが違っても、次の画面でどの列が何かを指定できます。</p>
+      <label class="drop" id="drop" style="margin-top:10px">
+        ここに xlsx / csv をドラッグ、またはクリックして選択
+        <input type="file" id="impFile" accept=".xlsx,.xlsm,.xls,.csv" hidden>
+      </label>
+    </div>
+    <div id="impStep2" hidden>
+      <div class="impinfo" id="impInfo"></div>
+      <div class="maps" style="margin-top:12px">
+        <label class="field"><span class="lab">シート</span><select id="mSheet"></select></label>
+        <label class="field"><span class="lab">見出し行</span><select id="mHead"></select></label>
+        <label class="field"><span class="lab">名前 → A列</span><select data-map="name"></select></label>
+        <label class="field"><span class="lab">会社名 → I列</span><select data-map="company"></select></label>
+        <label class="field"><span class="lab">To → B列</span><select data-map="to"></select></label>
+        <label class="field"><span class="lab">件名 → E列（任意）</span><select data-map="subject"></select></label>
+        <label class="field"><span class="lab">本文 → F/G列（任意）</span><select data-map="body"></select></label>
+        <label class="field"><span class="lab">添付ファイルパス → H列（任意）</span><select data-map="filepath"></select></label>
+      </div>
+      <label class="field" style="margin-top:12px"><span class="lab">個別CC に使う列（複数選択可 / K列以降に展開）</span>
+        <div class="cclist" id="mCc"></div></label>
+      <label class="field" style="margin-top:12px"><span class="lab">取り込み方法</span>
+        <select id="mMode">
+          <option value="append">いまの宛先リストに追加する</option>
+          <option value="replace">いまの宛先リストを置き換える</option>
+        </select></label>
+      <p class="hint" id="impPreview" style="margin-top:10px"></p>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" id="impCancel">キャンセル</button>
+      <button class="btn" id="impBack" hidden>ファイルを選び直す</button>
+      <button class="btn primary" id="impOk" hidden>取り込む</button>
+    </div>
+  </div>
+</dialog>
 
 <dialog id="pasteDlg">
   <div class="body">
@@ -499,6 +553,159 @@ function toast(msg) {
   el.textContent = msg;
   toastT = setTimeout(() => el.remove(), 2600);
 }
+
+/* ---------- Excel 取り込み ---------- */
+const impDlg = $("#importDlg");
+let imp = null;   // { sheets:{name:aoa}, aoa, headRow }
+
+const colName = (i, label) => XLSX.utils.encode_col(i) + "列" + (label ? "：" + label : "");
+const cellText = (v) => v == null ? "" : String(v).trim();
+const brToNl = (s) => s.replace(/<br\s*\/?>/gi, "\n").replace(/&nbsp;/gi, " ");
+
+$("#importBtn").addEventListener("click", () => {
+  if (typeof XLSX === "undefined") { toast("Excel読込ライブラリを読み込めませんでした。オンラインで開き直してください"); return; }
+  imp = null;
+  $("#impStep1").hidden = false; $("#impStep2").hidden = true;
+  $("#impOk").hidden = true; $("#impBack").hidden = true;
+  $("#impFile").value = "";
+  impDlg.showModal();
+});
+$("#impCancel").addEventListener("click", () => impDlg.close());
+$("#impBack").addEventListener("click", () => {
+  $("#impStep1").hidden = false; $("#impStep2").hidden = true;
+  $("#impOk").hidden = true; $("#impBack").hidden = true;
+});
+
+const drop = $("#drop");
+drop.addEventListener("click", () => $("#impFile").click());
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", e => {
+  e.preventDefault(); drop.classList.remove("over");
+  const f = e.dataTransfer.files[0];
+  if (f) readWorkbook(f);
+});
+$("#impFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) readWorkbook(f); });
+
+function readWorkbook(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    let wb;
+    try { wb = XLSX.read(new Uint8Array(fr.result), { type:"array" }); }
+    catch (err) { toast("このファイルは読み込めませんでした"); return; }
+    const sheets = {};
+    wb.SheetNames.forEach(n => {
+      sheets[n] = XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, blankrows:false, defval:"" });
+    });
+    imp = { file: file.name, sheets, sheet: wb.SheetNames[0], headRow: 0 };
+    $("#mSheet").innerHTML = wb.SheetNames.map(n => `<option>${esc(n)}</option>`).join("");
+    $("#impStep1").hidden = true; $("#impStep2").hidden = false;
+    $("#impOk").hidden = false; $("#impBack").hidden = false;
+    buildMapping(true);
+  };
+  fr.readAsArrayBuffer(file);
+}
+
+$("#mSheet").addEventListener("change", e => { imp.sheet = e.target.value; imp.headRow = 0; buildMapping(true); });
+$("#mHead").addEventListener("change", e => { imp.headRow = Number(e.target.value); buildMapping(false); });
+
+function buildMapping(guessHead) {
+  const aoa = imp.sheets[imp.sheet] || [];
+  if (guessHead) {
+    imp.headRow = Math.max(0, aoa.findIndex(r => r.some(c => cellText(c))));
+    $("#mHead").innerHTML = aoa.slice(0, Math.min(aoa.length, 15))
+      .map((r, i) => `<option value="${i}">${i + 1} 行目：${esc(r.map(cellText).filter(Boolean).slice(0, 4).join(" / ")).slice(0, 40)}</option>`).join("");
+  }
+  $("#mHead").value = String(imp.headRow);
+
+  const head = (aoa[imp.headRow] || []).map(cellText);
+  const width = Math.max(head.length, ...aoa.slice(imp.headRow + 1).map(r => r.length), 1);
+  const labels = Array.from({ length: width }, (_, i) => colName(i, head[i] || ""));
+  imp.width = width;
+
+  const find = (re) => head.findIndex(h => h && re.test(h));
+  const guess = {
+    name: find(/名前|氏名|担当|宛名/),
+    company: find(/会社|学校|大学|法人|団体|生協/),
+    to: find(/^to|メールアドレス|アドレス|mail/i),
+    subject: find(/件名|題名|subject/i),
+    body: find(/本文|body|文面/i),
+    filepath: find(/ファイル|添付|path/i)
+  };
+
+  document.querySelectorAll("[data-map]").forEach(sel => {
+    const role = sel.dataset.map;
+    sel.innerHTML = `<option value="-1">（使わない）</option>` +
+      labels.map((l, i) => `<option value="${i}">${esc(l)}</option>`).join("");
+    sel.value = String(guess[role] >= 0 ? guess[role] : -1);
+    sel.onchange = updatePreview;
+  });
+
+  const ccStart = head.findIndex(h => h && /^cc/i.test(h));
+  const used = new Set(Object.values(guess).filter(i => i >= 0));
+  const box = $("#mCc");
+  box.innerHTML = labels.map((l, i) => {
+    const on = ccStart >= 0 && i >= ccStart && !used.has(i);
+    return `<label><input type="checkbox" value="${i}" ${on ? "checked" : ""}><span>${esc(l)}</span></label>`;
+  }).join("");
+  box.querySelectorAll("input").forEach(c => c.onchange = updatePreview);
+  const firstOn = box.querySelector("input:checked");
+  if (firstOn) box.scrollTop = firstOn.parentElement.offsetTop - box.offsetTop;
+
+  updatePreview();
+}
+
+function readImportRows() {
+  const aoa = imp.sheets[imp.sheet] || [];
+  const map = {};
+  document.querySelectorAll("[data-map]").forEach(sel => { map[sel.dataset.map] = Number(sel.value); });
+  const ccCols = [...$("#mCc").querySelectorAll("input:checked")].map(c => Number(c.value));
+  const get = (r, i) => i >= 0 ? cellText(r[i]) : "";
+
+  const out = [];
+  aoa.slice(imp.headRow + 1).forEach(r => {
+    const to = get(r, map.to);
+    if (!to) return;
+    const cc = ccCols.map(i => get(r, i)).filter(Boolean).join(", ");
+    const subject = get(r, map.subject);
+    const body = brToNl(get(r, map.body));
+    out.push({
+      id: uid(), name: get(r, map.name), to, cc, company: get(r, map.company),
+      subject: subject || null, body: body || null,
+      filepath: get(r, map.filepath) || null
+    });
+  });
+  return out;
+}
+
+function updatePreview() {
+  const rows = readImportRows();
+  const bad = rows.filter(r => badAddrs(r).length).length;
+  $("#impInfo").textContent = `${imp.file} / シート「${imp.sheet}」・${imp.width} 列`;
+  $("#impPreview").innerHTML = rows.length
+    ? `取り込める宛先：<strong>${rows.length} 件</strong>` + (bad ? ` （アドレス形式の要確認 ${bad} 件）` : "") +
+      `<br>先頭： ${esc(rows[0].company || rows[0].name || "—")} / ${esc(rows[0].to)}`
+    : `Toアドレスの列を指定してください（この設定では取り込める行がありません）。`;
+  $("#impOk").disabled = !rows.length;
+}
+
+$("#impOk").addEventListener("click", () => {
+  const rows = readImportRows();
+  if (!rows.length) return;
+
+  // 全行で同じ件名・本文なら、個別ではなく共通ひな形として取り込む
+  const allSame = (k) => rows[0][k] && rows.every(r => r[k] === rows[0][k]);
+  if (allSame("subject")) { state.template.subject = rows[0].subject; rows.forEach(r => r.subject = null); }
+  if (allSame("body")) { state.template.body = rows[0].body; rows.forEach(r => r.body = null); }
+
+  if ($("#mMode").value === "replace") state.rows = rows;
+  else state.rows = state.rows.concat(rows);
+
+  impDlg.close();
+  state.sel = "template";
+  render();
+  toast(`${rows.length} 件を取り込みました`);
+});
 
 /* ---------- Excel 生成 ---------- */
 function buildSheet() {
