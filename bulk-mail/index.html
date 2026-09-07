@@ -258,6 +258,7 @@ dialog textarea{min-height:170px}
         <label class="field"><span class="lab">名前 → A列</span><select data-map="name"></select></label>
         <label class="field"><span class="lab">会社名 → I列</span><select data-map="company"></select></label>
         <label class="field"><span class="lab">To → B列</span><select data-map="to"></select></label>
+        <label class="field"><span class="lab">CC → C列（任意 / , ; 区切り可）</span><select data-map="cc"></select></label>
         <label class="field"><span class="lab">件名 → E列（任意）</span><select data-map="subject"></select></label>
         <label class="field"><span class="lab">本文 → F/G列（任意）</span><select data-map="body"></select></label>
         <label class="field"><span class="lab">添付ファイルパス → H列（任意）</span><select data-map="filepath"></select></label>
@@ -283,7 +284,7 @@ dialog textarea{min-height:170px}
 <dialog id="pasteDlg">
   <div class="body">
     <h2 style="font-size:15px">まとめて宛先を追加</h2>
-    <p class="hint">1行につき <strong>名前 → To → 会社名</strong> の順（タブ区切り／カンマ区切り）。見出し行は自動で無視します。追加された宛先は、まず共通ひな形の文面を使います。CCは共通設定の「CC」が全通に入ります。</p>
+    <p class="hint">1行につき <strong>名前 → To → 会社名 →（任意）CC</strong> の順（タブ区切り／カンマ区切り）。見出し行は自動で無視します。追加された宛先は、まず共通ひな形の文面を使います。共通設定の「CC」は全通に自動で入ります。</p>
     <textarea id="pasteArea" class="mono" placeholder="佐藤&#9;sato@example.co.jp&#9;有限会社フジタケ"></textarea>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" id="pasteCancel">キャンセル</button>
@@ -367,8 +368,8 @@ function mergeHtml(tpl, row) {
   return s;
 }
 const rawBody = (row) => row.body !== null ? row.body : state.template.body;
-const rowCc = () => splitAddrs(state.commonCc);
-const badAddrs = (row) => [...splitAddrs(row.to), ...rowCc()].filter(a => !isMail(a));
+const rowCc = (row) => [...splitAddrs(row && row.cc), ...splitAddrs(state.commonCc)];
+const badAddrs = (row) => [...splitAddrs(row.to), ...rowCc(row)].filter(a => !isMail(a));
 const isOwn = (row) => row.subject !== null || row.body !== null;
 const effSubject = (row) => merge(row.subject !== null ? row.subject : state.template.subject, row);
 const effBody = (row) => merge(rawBody(row), row);
@@ -424,7 +425,7 @@ function renderPreview() {
   el.innerHTML =
     `<div class="subj">${esc(sub) || "（件名未入力）"}</div>` +
     `<div class="to mono">To: ${esc(splitAddrs(r.to).join(", ")) || "—"}<br>` +
-    `Cc: ${esc(rowCc().join(", ")) || "—"}<br>` +
+    `Cc: ${esc(rowCc(r).join(", ")) || "—"}<br>` +
     `Bcc: ${esc(splitAddrs(state.bcc).join(", ")) || "—"}` +
     (path ? `<br>添付: ${esc(path)}` : "") + `</div>` +
     (body.replace(/\r?\n/g, "<br>") || "<span style='color:var(--muted)'>（本文未入力）</span>");
@@ -582,6 +583,7 @@ function renderEditor() {
       <label class="field"><span class="lab">名前（A列）</span><input type="text" id="fName"></label>
       <label class="field"><span class="lab">会社名（I列）</span><input type="text" id="fCompany"></label>
       <label class="field"><span class="lab">To（B列 / , 区切りで複数可）</span><input type="text" id="fTo" class="mono"></label>
+      <label class="field"><span class="lab">この宛先のCC（共通CCに追加 / , ; 区切り）</span><input type="text" id="fCc" class="mono" placeholder="${esc(splitAddrs(state.commonCc).join(", ") || "（共通CCのみ）")}"></label>
     </div>
     <div class="modebar">
       <span class="txt">${own ? "この宛先は個別の文面です。ひな形を編集しても影響を受けません。" : "共通ひな形の文面をそのまま送ります。"}</span>
@@ -601,7 +603,7 @@ function renderEditor() {
       <div class="preview" id="preview"></div></div>`;
 
   $("#fName").value = row.name; $("#fCompany").value = row.company;
-  $("#fTo").value = row.to;
+  $("#fTo").value = row.to; $("#fCc").value = row.cc || "";
   $("#fPath").value = row.filepath || "";
   $("#edSubject").value = own ? row.subject : state.template.subject;
   $("#edBody").value = own ? row.body : state.template.body;
@@ -612,7 +614,7 @@ function renderEditor() {
     touch();
   });
   bind("#fName", "name", true); bind("#fCompany", "company", true);
-  bind("#fTo", "to", true);
+  bind("#fTo", "to", true); bind("#fCc", "cc", true);
   $("#fPath").addEventListener("input", e => { row.filepath = e.target.value || null; touch(); });
   ed.querySelectorAll("[data-fi]").forEach(inp => {
     const f = state.fields[Number(inp.dataset.fi)];
@@ -687,11 +689,11 @@ $("#pasteOk").addEventListener("click", () => {
   let added = 0;
   lines.forEach(line => {
     const cols = (line.includes("\t") ? line.split("\t") : line.split(",")).map(x => x.trim());
-    let [name, to, company] = [cols[0] || "", cols[1] || "", cols[2] || ""];
+    let [name, to, company, cc] = [cols[0] || "", cols[1] || "", cols[2] || "", cols[3] || ""];
     if (/^名前$/.test(name) && /メール|To/i.test(to)) return;          // 見出し行
     if (!to && isMail(name)) { to = name; name = ""; }                  // アドレスだけの行
     if (!to) return;
-    state.rows.push({ id: uid(), name, to, company, subject:null, body:null, filepath:null, vars:{} });
+    state.rows.push({ id: uid(), name, to, cc, company, subject:null, body:null, filepath:null, vars:{} });
     added++;
   });
   dlg.close(); render();
@@ -794,6 +796,7 @@ function buildMapping(guessHead) {
     name: find(/名前|氏名|担当|宛名/),
     company: find(/会社|学校|大学|法人|団体|生協/),
     to: find(/^to|メールアドレス|アドレス|mail/i),
+    cc: find(/^cc/i),
     subject: find(/件名|題名|subject/i),
     body: find(/本文|body|文面/i),
     filepath: find(/ファイル|添付|path/i)
@@ -845,7 +848,7 @@ function readImportRows() {
     const subject = get(r, map.subject);
     const body = brToNl(get(r, map.body));
     out.push({
-      id: uid(), name: get(r, map.name), to, company: get(r, map.company),
+      id: uid(), name: get(r, map.name), to, cc: get(r, map.cc), company: get(r, map.company),
       vars,
       subject: subject || null, body: body || null,
       filepath: get(r, map.filepath) || null
@@ -894,14 +897,14 @@ function buildSheet() {
   const sep = state.sep;
   const bcc = splitAddrs(state.bcc).join(sep);
   const rows = state.rows.filter(r => splitAddrs(r.to).length);
-  const cc = rowCc();
-  const maxCc = cc.length;
+  const maxCc = rows.reduce((m, r) => Math.max(m, rowCc(r).length), 0);
 
   const head = HEADERS.slice();
   for (let i = 1; i < maxCc; i++) head.push("");
   const aoa = [head];
 
   rows.forEach(row => {
+    const cc = rowCc(row);
     const body = effBody(row);
     const bodyHtml = effBodyHtml(row);
     aoa.push([
