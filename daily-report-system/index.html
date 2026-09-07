@@ -137,6 +137,17 @@ textarea{resize:vertical;min-height:56px}
 .catchip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 10px;font-size:11px;color:var(--sub);transition:.15s}
 .catchip:hover{border-color:var(--brand);color:var(--brand)}
 .catchip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+/* ハイライト（◎／△） */
+.hl{border:1px solid var(--line);border-left-width:3px;border-radius:9px;padding:9px 11px;margin-bottom:7px;background:var(--panel2)}
+.hl.good{border-left-color:var(--ok)}
+.hl.bad{border-left-color:var(--amber)}
+.hl label.f{margin-bottom:3px}
+.hl.good label.f{color:var(--ok)}
+.hl.bad label.f{color:var(--warn)}
+.pickpair{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:9px}
+.pickpair button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 12px;font-size:11.5px;font-weight:700;color:var(--sub)}
+.pickpair button.on[data-pick="good"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.pickpair button.on[data-pick="bad"]{background:var(--amber);border-color:var(--amber);color:#fff}
 /* 前回の宣言の振り返り */
 .actcard{border:1px solid var(--amber);background:rgba(245,158,11,.07);border-radius:14px;padding:14px 16px;margin-bottom:16px}
 .actcard>h4{font-size:13px;display:flex;align-items:center;gap:7px;margin-bottom:3px}
@@ -302,7 +313,7 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
   </div>
 
   <div class="card">
-    <h3><span class="ttl">📝 日報入力（モ・ゲ・ジョ × アクション）</span><span class="xs muted">目安10分</span></h3>
+    <h3><span class="ttl">📝 日報入力（ハイライト × 深掘り × 次のアクション）</span><span class="xs muted">目安10分</span></h3>
     <div class="pad">
       <div class="grid2" style="margin-bottom:14px">
         <div><label class="f">提出日</label><input type="date" id="fDate"></div>
@@ -312,21 +323,28 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
       <label class="f">■ 1. 今日の業務内容 <span style="color:var(--bad)">*</span></label>
       <div class="tkhead">
         <span class="xs muted" id="taskCount"></span>
-        <span class="xs muted">Enterで次の行／🔬でモ・ゲ・ジョ分析</span>
+        <span class="xs muted">Enterで次の行／🔬で深掘り</span>
       </div>
       <div id="taskBox"></div>
       <button class="btn dz sm" id="btnAddTask" style="margin-top:6px">＋ 業務内容の行を追加</button>
 
       <div style="margin-top:14px">
         <div class="row" style="justify-content:space-between;margin-bottom:2px">
-          <label class="f" style="margin:0">■ 2. 業務を通じた気づき・全体課題 <span style="color:var(--bad)">*</span></label>
+          <label class="f" style="margin:0">■ 2. 今日のハイライト <span style="color:var(--bad)">*</span> <span class="xs" style="font-weight:400">各1〜2行でよい／どちらかが「特になし」の日はそう書く</span></label>
           <span class="xs muted">ここの記述が、下のスキル項目の候補精度を決めます</span>
         </div>
-        <div class="xs muted" style="margin-bottom:5px;line-height:1.7">
+        <div class="xs muted" style="margin-bottom:6px;line-height:1.7">
           「忙しかった」「勉強になった」ではなく、<b>何が起きて・何を判断して・どう動いたか</b>を書いてください。
           <b>数字・固有名詞・自分が取った行動</b>が入っていると、該当するスキル項目が正しく拾えます。
         </div>
-        <textarea id="fInsight" rows="3" placeholder="例：新規校への提案で手数料モデルへの抵抗感が想定以上に強かった（3件中2件で指摘）。価格から入る説明順序を、事業インパクトの試算から入る順序に変えて再提案した。"></textarea>
+        <div class="hl good">
+          <label class="f">◎ よかった・効いたこと</label>
+          <textarea id="fGood" rows="2" placeholder="例：前年度データを先に読んで工程を洗い出してから着手したため、手戻りゼロで30分弱で完了できた。"></textarea>
+        </div>
+        <div class="hl bad">
+          <label class="f">△ 引っかかった・うまくいかなかったこと</label>
+          <textarea id="fBad" rows="2" placeholder="例：ガイドブック掲載データが締切を過ぎた。依頼時点で着手日を決めていなかった。"></textarea>
+        </div>
       </div>
 
       <!-- 達成項目（本システムの核） -->
@@ -361,10 +379,10 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
 
       <!-- モゲジョ -->
       <div style="margin-top:18px">
-        <label class="f">■ 4. 背景の深掘りとアクション（モ・ゲ・ジョ分析）<span class="xs muted">／ 任意</span></label>
+        <label class="f">■ 4. 深掘りと次のアクション<span class="xs muted">／ 任意・深掘りは1日1つでよい</span></label>
         <div id="topicBox"></div>
         <div id="topicNotice"></div>
-        <button class="btn dz sm" id="btnAddTopic">＋ モ・ゲ・ジョ分析を追加する</button>
+        <button class="btn dz sm" id="btnAddTopic">＋ 深掘りを追加する</button>
       </div>
 
       <div class="row" style="margin-top:18px;justify-content:space-between">
@@ -776,7 +794,7 @@ function taskRow(v=''){
   const d=document.createElement('div');d.className='tkrow';
   d.innerHTML=`<span class="idx"></span>
     <input type="text" class="tk" placeholder="業務内容を入力" value="${esc(v)}">
-    <button class="iconbtn mgjbtn" title="この業務をモ・ゲ・ジョ分析する">🔬</button>
+    <button class="iconbtn mgjbtn" title="この業務を深掘りする">🔬</button>
     <button class="iconbtn del" title="削除">✕</button>`;
   d.querySelector('.del').onclick=()=>{d.remove(); if(!$$('.tk').length) $('#taskBox').appendChild(taskRow()); renumberTasks();};
   // Enter で下に1行足して連続入力できるようにする
@@ -795,7 +813,7 @@ function taskRow(v=''){
     $('#topicBox').appendChild(b); renumberTopics(); renderTopicNotice();
     b.scrollIntoView({behavior:'smooth',block:'center'});
     b.querySelector('.tp-p').focus();
-    toast('この業務のモ・ゲ・ジョ分析を作りました');
+    toast('この業務の深掘りを作りました');
   };
   return d;
 }
@@ -811,7 +829,8 @@ function renumberTasks(){
   rows.forEach(r=>r.querySelector('.mgjbtn').classList.toggle('has',titles.has(r.querySelector('.tk').value.trim())));
 }
 $('#taskBox').addEventListener('input',()=>{renumberTasks();scheduleSuggest();$$('#evBox .evrow').forEach(fillEvTasks);});
-$('#fInsight').addEventListener('input',scheduleSuggest);
+$('#fGood').addEventListener('input',scheduleSuggest);
+$('#fBad').addEventListener('input',scheduleSuggest);
 $('#btnAddTask').onclick=()=>{const r=taskRow();$('#taskBox').appendChild(r);renumberTasks();r.querySelector('.tk').focus();};
 
 function topicBlock(t={}){
@@ -824,6 +843,11 @@ function topicBlock(t={}){
       <button class="iconbtn tchev" title="折りたたむ／ひらく">▾</button>
     </div>
     <div class="body">
+      <div class="pickpair">
+        <span class="xs muted">深掘りするのは：</span>
+        <button type="button" class="tp-pick-g ${t.pick==='good'?'on':''}" data-pick="good">◎ よかったこと</button>
+        <button type="button" class="tp-pick-b ${t.pick==='bad'?'on':''}" data-pick="bad">△ うまくいかなかったこと</button>
+      </div>
       <div class="mgj">
         <div><label class="f">【目的（モ）】何のためにそれをやるのか</label><textarea class="tp-p" rows="2" placeholder="例：FY27までに提携校100校を達成し、参入障壁を確立する。">${esc(t.p||'')}</textarea></div>
         <div><label class="f">【現状（ゲ）】いまどういう状態か（定量・定性）</label><textarea class="tp-s" rows="2" placeholder="例：現在50校。商談化率のデータが浅く獲得ペースが読めない。">${esc(t.s||'')}</textarea></div>
@@ -838,12 +862,22 @@ function topicBlock(t={}){
           </div>
         </div>
       </div>
+      <div class="mgj" style="border-top:0;border-top-left-radius:0;border-top-right-radius:0;margin-top:-9px">
+        <div><label class="f">【そうなった要因】自分の行動・判断まで降りる（◎でも△でも同じ）</label><textarea class="tp-h" rows="2" placeholder="例：依頼時に「いつまでに・何をするか」を工程に分解していなかった。時間が足りなかったのではなく、着手の判断ができていなかった。">${esc(t.h||'')}</textarea></div>
+      </div>
       <div class="pro">
-        <div><label class="f">【こう考える（仮説）】分析を踏まえて、自分はどう捉えたか</label><textarea class="tp-h" rows="2" placeholder="例：回答書は他校に8割転用できる。汎用テンプレ化すればリードタイムを短縮できる。">${esc(t.h||'')}</textarea></div>
-        <div><label class="f">【だからこうする（やること・試すこと）】期日を切って言い切る</label><textarea class="tp-w" rows="3" placeholder="・7/30までに汎用版テンプレートに再構成する。&#10;・8/1までに次候補2校の提案ドラフトを作成し、反応を見て型を固める。">${esc(t.w||'')}</textarea></div>
+        <div class="xs" style="font-weight:700;color:var(--ok);margin-bottom:-4px">■ 次にどうする</div>
+        <div><label class="f">【続ける／変えること】期日を切って言い切る</label><textarea class="tp-w" rows="3" placeholder="例：依頼を受けたその場で、締切から逆算した工程と着手日をNotionに登録する。本日中に現在の依頼をすべて同じ形で登録し直す。">${esc(t.w||'')}</textarea></div>
+        <div><label class="f">【次に同じ場面が来たときの判断】← ここが再現性になる</label><textarea class="tp-j" rows="2" placeholder="例：締切のある業務と目の前の業務が競合したら、着手日ベースで前者を先に取る。">${esc(t.j||'')}</textarea></div>
       </div>
     </div>`;
   d.querySelector('.del').onclick=()=>{d.remove();renumberTopics();renderTopicNotice();};
+  // ◎／△ の選択（同じボタンをもう一度押すと解除）
+  d.querySelectorAll('.pickpair button').forEach(b=>b.onclick=()=>{
+    const on=b.classList.contains('on');
+    d.querySelectorAll('.pickpair button').forEach(x=>x.classList.remove('on'));
+    if(!on) b.classList.add('on');
+  });
   // ヘッダー（タイトル入力欄以外）のクリックで開閉
   const toggle=()=>d.classList.toggle('closed');
   d.querySelector('.tchev').onclick=e=>{e.stopPropagation();toggle();};
@@ -863,8 +897,8 @@ function renumberTopics(){ $$('#topicBox .topic .tlabel').forEach((e,i)=>e.textC
 function renderTopicNotice(){
   const n=$$('#topicBox .topic').length;
   $('#topicNotice').innerHTML = n ? '' :
-    `<div class="alert w" style="margin:0 0 8px">💡 <div>モ・ゲ・ジョ分析は<b>なくても日報は提出できます</b>。ただ、1個でも課題を見つけて改善を目指すといいですね。<br>
-      業務内容の行にある <b>🔬</b> を押すと、その業務をそのままテーマにして分析を作れます。</div></div>`;
+    `<div class="alert w" style="margin:0 0 8px">💡 <div>深掘りは<b>なくても日報は提出できます</b>。ただ、◎△どちらか1つでも掘り下げて次の一手まで書けるといいですね。<br>
+      業務内容の行にある <b>🔬</b> を押すと、その業務をそのままテーマにして深掘りを作れます。</div></div>`;
 }
 $('#btnAddTopic').onclick=()=>{$('#topicBox').appendChild(topicBlock());renumberTopics();renderTopicNotice();};
 
@@ -1084,7 +1118,7 @@ ${d.tasks.length?d.tasks.map(t=>'・'+t).join('\n'):'（未入力）'}
 
 # 業務を通じた気づき・課題
 ${d.insight||'（未入力）'}
-${d.topics.length?`\n# モ・ゲ・ジョ分析\n${d.topics.map(t=>`【${t.title}】\n目的:${t.p}\n現状:${t.s}\n条件:${t.c||'（未記入）'}\nこう考える:${t.h}\nだからこうする:${t.w}`).join('\n\n')}\n`:''}`;
+${d.topics.length?`\n# 深掘り\n${d.topics.map(t=>`【${t.title}】${t.pick==='good'?'（◎を深掘り）':t.pick==='bad'?'（△を深掘り）':''}\n目的:${t.p}\n現状:${t.s}\n条件:${t.c||'（未記入）'}\nそうなった要因:${t.h}\n次にどうする:${t.w}\n次に同じ場面が来たときの判断:${t.j}`).join('\n\n')}\n`:''}`;
 }
 function buildPrompt(full){
   const d=formData();
@@ -1093,7 +1127,7 @@ ${d.tasks.length?d.tasks.map(t=>'・'+t).join('\n'):'（未入力）'}
 
 # 業務を通じた気づき・課題
 ${d.insight||'（未入力）'}
-${d.topics.length?`\n# モ・ゲ・ジョ分析\n${d.topics.map(t=>`【${t.title}】\n目的:${t.p}\n現状:${t.s}\n条件:${t.c||'（未記入）'}\nこう考える:${t.h}\nだからこうする:${t.w}`).join('\n\n')}\n`:''}`;
+${d.topics.length?`\n# 深掘り\n${d.topics.map(t=>`【${t.title}】${t.pick==='good'?'（◎を深掘り）':t.pick==='bad'?'（△を深掘り）':''}\n目的:${t.p}\n現状:${t.s}\n条件:${t.c||'（未記入）'}\nそうなった要因:${t.h}\n次にどうする:${t.w}\n次に同じ場面が来たときの判断:${t.j}`).join('\n\n')}\n`:''}`;
   const list=SKILLS.map(s=>full
     ? `${s.id} [${LV_NAME[s.lv]}／${s.ph}／${s.cat}／${SK_NAME[s.sk]}] ${s.name}\n    基準: ${s.std}`
     : `${s.id} [${LV_NAME[s.lv]}／${s.cat}] ${s.name}`).join('\n');
@@ -1143,13 +1177,13 @@ ${d.tasks.length?d.tasks.map(t=>'・'+t).join('\n'):'（未入力）'}
 
 # 業務を通じた気づき・課題
 ${d.insight||'（未入力）'}
-${d.topics.length?`\n# モ・ゲ・ジョ分析\n${d.topics.map(t=>`【${t.title}】\n目的:${t.p}\n現状:${t.s}\n条件:${t.c||'（未記入）'}\nこう考える:${t.h}\nだからこうする:${t.w}`).join('\n\n')}\n`:''}
+${d.topics.length?`\n# 深掘り\n${d.topics.map(t=>`【${t.title}】${t.pick==='good'?'（◎を深掘り）':t.pick==='bad'?'（△を深掘り）':''}\n目的:${t.p}\n現状:${t.s}\n条件:${t.c||'（未記入）'}\nそうなった要因:${t.h}\n次にどうする:${t.w}\n次に同じ場面が来たときの判断:${t.j}`).join('\n\n')}\n`:''}
 # スキルマップ項目一覧
 ${SKILLS.map(s=>`${s.id} [${LV_NAME[s.lv]}／${s.ph}／${s.cat}] ${s.name}\n    基準: ${s.std}`).join('\n')}`;
 }
 $('#btnFindPrompt').onclick=()=>{
   const d=formData();
-  if(!d.tasks.length && !d.insight){ toast('先に業務内容か気づきを入力してください'); $$('.tk')[0].focus(); return; }
+  if(!d.tasks.length && !d.insight){ toast('先に業務内容かハイライトを入力してください'); $$('.tk')[0].focus(); return; }
   // エージェントを使わない設定のときは、スキル表を含む自己完結プロンプトを渡す
   const t=DB.settings.aiSelf? buildFindPrompt() : buildBody();
   toast(copy(t)
@@ -1177,7 +1211,7 @@ function importPasted(raw){
 $('#btnIdCall').onclick=()=>importPasted($('#evPaste').value);
 $('#btnAi').onclick=()=>{
   const d=formData();
-  if(!d.tasks.length && !d.insight){ toast('先に「業務内容」か「気づき」を入力してください'); $$('.tk')[0].focus(); return; }
+  if(!d.tasks.length && !d.insight){ toast('先に「業務内容」か「ハイライト」を入力してください'); $$('.tk')[0].focus(); return; }
   $('#aiResp').value=''; $('#aiSelf').checked=!!DB.settings.aiSelf; renderPrompt(); $('#aiModal').classList.add('on');
 };
 $('#aiFull').onchange=renderPrompt;
@@ -1239,25 +1273,32 @@ $('#aiImport').onclick=()=>{
 
 /* ---- フォーム読み書き ---- */
 function formData(){
-  return {
+  const d = {
     date: $('#fDate').value || today(),
     name: $('#fName').value.trim(),
     tasks: $$('.tk').map(i=>i.value.trim()).filter(Boolean),
-    insight: $('#fInsight').value.trim(),
+    good: $('#fGood').value.trim(),
+    bad: $('#fBad').value.trim(),
     ev: $$('#evBox .evrow').map(r=>({sid:r.dataset.sid,text:r.querySelector('.ev-t').value.trim()})),
     topics: $$('#topicBox .topic').map(t=>({
-      title:t.querySelector('.tp-title').value.trim(), p:t.querySelector('.tp-p').value.trim(),
+      title:t.querySelector('.tp-title').value.trim(),
+      pick:t.querySelector('.pickpair button.on')?.dataset.pick||'',
+      p:t.querySelector('.tp-p').value.trim(),
       s:t.querySelector('.tp-s').value.trim(), c:t.querySelector('.tp-c').value.trim(),
-      h:t.querySelector('.tp-h').value.trim(), w:t.querySelector('.tp-w').value.trim()
-    })).filter(t=>t.title||t.p||t.s||t.c||t.h||t.w)
+      h:t.querySelector('.tp-h').value.trim(), w:t.querySelector('.tp-w').value.trim(),
+      j:t.querySelector('.tp-j').value.trim()
+    })).filter(t=>t.title||t.p||t.s||t.c||t.h||t.w||t.j)
   };
+  // 検索・候補算出・旧データ互換のため、ハイライトを1本の文字列にもしておく
+  d.insight=[d.good&&'◎ '+d.good, d.bad&&'△ '+d.bad].filter(Boolean).join('\n');
+  return d;
 }
 function clearForm(keepDate){
   editing=null; $('#editNote').textContent='';
   if(!keepDate) $('#fDate').value=today();
   $('#fName').value=DB.settings.name||'';
   $('#taskBox').innerHTML=''; $('#taskBox').appendChild(taskRow()); renumberTasks();
-  $('#fInsight').value=''; $('#evBox').innerHTML=''; renderEvEmpty(); renderEvPins();
+  $('#fGood').value=''; $('#fBad').value=''; $('#evBox').innerHTML=''; renderEvEmpty(); renderEvPins();
   $('#topicBox').innerHTML=''; renderTopicNotice(); $('#outBox').style.display='none';
   $$('.err').forEach(e=>e.classList.remove('err'));
 }
@@ -1266,7 +1307,8 @@ function loadReport(id){
   editing=id;
   $('#fDate').value=r.date; $('#fName').value=r.name||'';
   $('#taskBox').innerHTML=''; (r.tasks.length?r.tasks:['']).forEach(t=>$('#taskBox').appendChild(taskRow(t))); renumberTasks();
-  $('#fInsight').value=r.insight||'';
+  // 旧フォーマット（気づき1欄）の日報は △ 側に読み込む
+  $('#fGood').value=r.good||''; $('#fBad').value=r.bad||(r.good?'':r.insight||'');
   $('#evBox').innerHTML='';
   (r.ev||[]).forEach(e=>{ addEv(e.sid); const row=$(`#evBox [data-sid="${e.sid}"]`); if(row) row.querySelector('.ev-t').value=e.text||''; });
   renderEvEmpty(); renderEvPins();
@@ -1280,7 +1322,7 @@ function validate(){
   const d=formData(); let bad=null;
   if(!d.name){ $('#fName').classList.add('err'); bad ||= $('#fName'); }
   if(!d.tasks.length){ const t=$$('.tk')[0]; t.classList.add('err'); bad ||= t; }
-  if(!d.insight){ $('#fInsight').classList.add('err'); bad ||= $('#fInsight'); }
+  if(!d.good&&!d.bad){ $('#fGood').classList.add('err'); $('#fBad').classList.add('err'); bad ||= $('#fGood'); }
   const evs=$$('#evBox .evrow');
   if(!evs.length){ toast('スキルマップの達成項目を最低1件、記録してください'); goTab('today'); $('#btnPick').focus(); $('#btnPick').scrollIntoView({behavior:'smooth',block:'center'}); return null; }
   evs.forEach(r=>{ const t=r.querySelector('.ev-t'); if(!t.value.trim()){ t.classList.add('err'); bad ||= t; } });
@@ -1311,7 +1353,7 @@ $('#btnSave').onclick=()=>{
   $('#editNote').innerHTML=`<span style="color:var(--ok);font-weight:700">✅ ${d.date} の日報を保存済みです。</span>`
     +` 内容はこのまま残ります。修正して再度保存すると<b>同じ日報が上書き</b>されます。別の日の日報を書くときは「🆕 新しい日報を書く」を押してください。`;
   toast((copied?'保存＋チャット用にコピーしました':'保存しました（コピーは下の枠から）')
-    + `／実績${n}件${noTopic?'。次はどれか1つ、課題を見つけてモ・ゲ・ジョ分析まで書けるといいですね':' 🎉'}`);
+    + `／実績${n}件${noTopic?'。次は◎△どちらか1つを深掘りして、次の一手まで書けるといいですね':' 🎉'}`);
 };
 $('#btnNew').onclick=()=>{
   const d=formData();
@@ -1387,7 +1429,7 @@ function restoreDraft(){
   const d=DB.draft; if(!d) return false;
   $('#fDate').value=d.date||today(); $('#fName').value=d.name||DB.settings.name||'';
   $('#taskBox').innerHTML=''; (d.tasks&&d.tasks.length?d.tasks:['']).forEach(t=>$('#taskBox').appendChild(taskRow(t))); renumberTasks();
-  $('#fInsight').value=d.insight||'';
+  $('#fGood').value=d.good||''; $('#fBad').value=d.bad||(d.good?'':d.insight||'');
   $('#evBox').innerHTML='';
   (d.ev||[]).forEach(e=>{ if(!SMAP[e.sid]) return; addEv(e.sid);
     const r=$(`#evBox [data-sid="${e.sid}"]`); if(r) r.querySelector('.ev-t').value=e.text||''; });
@@ -1401,29 +1443,31 @@ function restoreDraft(){
 function reportText(d){
   const ix=evIndex();
   const ev=d.ev.map(e=>{const s=SMAP[e.sid];return `・【${LV_NAME[s.lv]}／${s.cat}】${s.name}\n　→ ${e.text}`;}).join('\n');
-  const tp=d.topics.map((t,i)=>`【テーマ${i+1}】${t.title}
-■ 背景の深掘り（モ・ゲ・ジョ）
+  const tp=d.topics.map((t,i)=>`【テーマ${i+1}】${t.title}${t.pick==='good'?'（◎を深掘り）':t.pick==='bad'?'（△を深掘り）':''}
+■ 深掘り
 ［目的］${t.p}
 ［現状］${t.s}
 ［条件］${t.c}
-■ 仮説とアクション
-［こう考える］${t.h}
-［だからこうする］
-${t.w}`).join('\n--------------------------------\n');
+［そうなった要因］${t.h}
+■ 次にどうする
+［続ける／変えること］
+${t.w}
+［次に同じ場面が来たときの判断］${t.j}`).join('\n--------------------------------\n');
   return `━━━━━━━━━━━━━━━━━━━━━━
-■ 業務日報（モ・ゲ・ジョ × アクション）
+■ 業務日報
 ━━━━━━━━━━━━━━━━━━━━━━
 【提出日】${d.date}　【氏名】${d.name}
 
 ■ 1. 今日の業務内容
 ${d.tasks.map(t=>'・'+t).join('\n')}
 
-■ 2. 業務を通じた気づき・課題
-${d.insight}
+■ 2. 今日のハイライト
+◎ ${d.good||'（特になし）'}
+△ ${d.bad||'（特になし）'}
 
 ■ 3. 今日できたこと（スキルマップ実績）
 ${ev}
-${tp?`\n■ 4. 背景の深掘りとアクション\n${tp}\n`:''}━━━━━━━━━━━━━━━━━━━━━━`;
+${tp?`\n■ 4. 深掘りと次のアクション\n${tp}\n`:''}━━━━━━━━━━━━━━━━━━━━━━`;
 }
 function showOut(t){ const b=$('#outBox'); b.textContent=t; b.style.display='block'; b.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 function copy(t){
@@ -1435,10 +1479,10 @@ $('#btnCopyTsv').onclick=()=>{
   const d=validate(); if(!d) return;
   const q=s=>`"${String(s||'').replace(/"/g,'""')}"`;
   const ev=d.ev.map(e=>`【${SMAP[e.sid].name}】${e.text}`).join('\n');
-  const tsv=[d.date.replace(/-/g,'/'),d.name,q(d.tasks.map(t=>'・'+t).join('\n')),q(d.insight),q(ev),
+  const tsv=[d.date.replace(/-/g,'/'),d.name,q(d.tasks.map(t=>'・'+t).join('\n')),q('◎ '+(d.good||'特になし')+'\n△ '+(d.bad||'特になし')),q(ev),
     q(d.topics.map(t=>`【${t.title}】${t.p}`).join('\n\n')),q(d.topics.map(t=>`【${t.title}】${t.s}`).join('\n\n')),
     q(d.topics.map(t=>`【${t.title}】${t.c}`).join('\n\n')),
-    q(d.topics.map(t=>`【${t.title}】［こう考える］${t.h} ［だからこうする］${t.w}`).join('\n\n'))].join('\t');
+    q(d.topics.map(t=>`【${t.title}】［要因］${t.h} ［次にどうする］${t.w} ［次の判断］${t.j}`).join('\n\n'))].join('\t');
   showOut(tsv); toast(copy(tsv)?'Excel貼付用にコピーしました（A列でCtrl+V）':'コピーできませんでした');
 };
 $('#btnSample').onclick=()=>{
@@ -1448,18 +1492,20 @@ $('#btnSample').onclick=()=>{
   ['学内展示会（2日間）の来場者アンケート集計（回答87件・当日申込9件）','展示什器および持ち込み機の返却手配','展示会レポートの下書き作成']
     .forEach(t=>$('#taskBox').appendChild(taskRow(t)));
   renumberTasks();
-  $('#fInsight').value='アンケートで「価格が決め手」と答えたのは約2割にとどまり、大半は「入学後の使い方をイメージできるか」を重視していた。一方で当日の説明は価格・スペック中心で、来場者の関心とズレが生じていた。';
+  $('#fGood').value='アンケートの自由記述を先に3分類してから集計したため、傾向を短時間で整理できた。';
+  $('#fBad').value='アンケートで「価格が決め手」と答えたのは約2割にとどまり、大半は「入学後の使い方をイメージできるか」を重視していた。一方で当日の説明は価格・スペック中心で、来場者の関心とズレが生じていた。';
   const pick=[SKILLS.find(s=>s.name.includes('課題設定')),SKILLS.find(s=>s.name.includes('事実と解釈')),SKILLS.find(s=>s.name.includes('仮説を立てて'))].filter(Boolean);
   const txt=['来場者アンケートの自由記述を読み込み、「価格が課題」という現場の思い込みに対して、実際の不安は利用イメージの不足であると整理して上長に共有した。',
              '展示会レポートで、来場87件／当日申込9件という事実と、「説明の切り口がズレていた」という自分の解釈を分けて記載した。',
              '「決め切れない要因は価格ではなく利用イメージの不足」という仮説を立て、次回展示の冒頭トークで検証する設計にした。'];
   pick.forEach((s,i)=>{ addEv(s.id); const r=$(`#evBox [data-sid="${s.id}"]`); if(r) r.querySelector('.ev-t').value=txt[i]||''; });
-  $('#topicBox').appendChild(topicBlock({title:'展示会での案内・接客フロー改善',
+  $('#topicBox').appendChild(topicBlock({title:'展示会での案内・接客フロー改善', pick:'bad',
     p:'展示会を認知の場ではなく「購入導線を固定する場」に位置づけ、来場者からの成約率を引き上げること。',
     s:'来場87件に対し当日申込は9件と約1割。持ち帰り検討組へのフォロー導線がなく離脱後の追跡ができていない。',
     c:'展示時間・什器・持ち込み機の台数は増やせないため、改善余地は「説明の中身」と「離脱後の接点設計」に限られる。',
-    h:'決め切れない要因は価格ではなく利用イメージの不足にあり、冒頭を授業での具体的な使用シーンに差し替えれば当日申込率を改善できるのではないか。',
-    w:'・今週木曜までに自由記述を「使い方・価格・時期」の3分類で整理し、頻出の不安点を抽出する。\n・来週火曜までに冒頭2分のトークを利用シーン起点に再構成し、次回展示で当日申込率が動くか試す。'}));
+    h:'説明の組み立てを、来場者が何で迷うかを確かめないまま価格・スペック中心で用意していた。相手の判断基準を先に確認していなかったことが要因。',
+    w:'・今週木曜までに自由記述を「使い方・価格・時期」の3分類で整理し、頻出の不安点を抽出する。\n・来週火曜までに冒頭2分のトークを利用シーン起点に再構成し、次回展示で当日申込率が動くか試す。',
+    j:'説明資料を作る前に、相手が何で迷っているかを確かめる。確かめられないときは仮説を明示してから作る。'}));
   renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins();
   toast('見本データを流し込みました');
 };
@@ -1594,7 +1640,7 @@ function renderHist(){
   const q=$('#qHist').value.trim();
   const list=[...DB.reports].reverse().filter(r=>{
     if(!q) return true;
-    const hay=[r.date,r.name,...(r.tasks||[]),r.insight,...(r.ev||[]).map(e=>(SMAP[e.sid]?.name||'')+e.text),
+    const hay=[r.date,r.name,...(r.tasks||[]),r.insight,r.good,r.bad,...(r.ev||[]).map(e=>(SMAP[e.sid]?.name||'')+e.text),
       ...(r.topics||[]).map(t=>Object.values(t).join(''))].join('');
     return hay.includes(q);
   });
@@ -1612,7 +1658,7 @@ function renderHist(){
       </div>
       <div class="sm">${(r.tasks||[]).map(t=>'・'+esc(t)).join('<br>')}</div>
       <div class="row" style="gap:4px;margin-top:7px">${(r.ev||[]).map(e=>`<span class="chip lv${SMAP[e.sid]?.lv??0}">${esc(SMAP[e.sid]?.name||e.sid)}</span>`).join('')}</div>
-      ${r.insight?`<pre>${esc(r.insight)}</pre>`:''}
+      ${(r.good||r.bad||r.insight)?`<pre>${esc(r.good?'◎ '+r.good+'\n':'')}${esc(r.bad?'△ '+r.bad:(r.good?'':r.insight||''))}</pre>`:''}
     </div>`).join('') : '<div class="emptymsg">まだ日報がありません</div>';
 }
 function delReport(id){

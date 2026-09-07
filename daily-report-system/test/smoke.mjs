@@ -16,7 +16,7 @@ ok('11行入力', await p.locator('#taskBox .tkrow').count()===11);
 ok('件数表示', (await p.locator('#taskCount').textContent())==='全11件');
 ok('スクロール化', await p.locator('#taskBox').evaluate(e=>e.classList.contains('scroll')));
 // 候補
-await p.fill('#fInsight','新規取引先の与信申請を楽楽販売で入力し、支払条件と与信枠の根拠を整理して説明した。'); await p.waitForTimeout(900);
+await p.fill('#fGood','新規取引先の与信申請を楽楽販売で入力し、支払条件と与信枠の根拠を整理して説明した。'); await p.waitForTimeout(900);
 const cand=await p.locator('#evSuggest .sugrow').last().locator('.sug').allTextContents();
 ok('候補に与信関連', cand.some(c=>c.includes('与信')));
 // 貼付枠でJSON取り込み
@@ -32,6 +32,9 @@ await p.locator('.topic .tchev').first().click(); await p.waitForTimeout(200);
 await p.locator('.tp-c-none').first().click(); await p.waitForTimeout(200);
 ok('制約なしチップ', (await p.locator('.tp-c').first().inputValue()).includes('制約なし'));
 await p.locator('.tp-w').first().fill('明日から依頼受領時に工程をNotionへ登録する。');
+await p.locator('.tp-j').first().fill('締切のある業務を着手日ベースで先に取る。');
+await p.locator('.pickpair button[data-pick="bad"]').first().click(); await p.waitForTimeout(200);
+ok('◎△の選択', await p.locator('.pickpair button.on').count()===1);
 // 保存＝コピー＋内容保持＋宣言記録
 await p.click('#btnSave'); await p.waitForTimeout(700);
 ok('保存後も内容が残る', (await p.locator('.tk').first().inputValue())==='業務1');
