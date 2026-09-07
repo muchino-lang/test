@@ -392,7 +392,11 @@ function autoLines(row, html) {
 function withList(text, row, html) {
   const lines = autoLines(row, html);
   const slot = /\{\{\s*リンク一覧\s*\}\}/;
-  if (slot.test(text)) return text.replace(new RegExp(slot.source, "g"), () => lines.join("\n"));
+  if (slot.test(text)) {
+    // 入れる項目が無い行は、タグごと（その行ごと）消す
+    if (!lines.length) return text.replace(/[ \t]*\{\{\s*リンク一覧\s*\}\}[ \t]*\n?/g, "");
+    return text.replace(/\{\{\s*リンク一覧\s*\}\}/g, () => lines.join("\n"));
+  }
   if (!lines.length) return text;
   return text.replace(/\s*$/, "") + "\n" + lines.join("\n");
 }
@@ -484,6 +488,11 @@ function wireChips(scope) {
     el.selectionStart = el.selectionEnd = a + tag.length;
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }));
+}
+
+function listHint() {
+  if (!state.autoList || !state.fields.some(f => f.key)) return "";
+  return `差し込み項目は<strong>本文の最後</strong>に自動で並びます。位置を変えたいときは、入れたい場所に <code>{{リンク一覧}}</code> を挿入してください（その下に続きの文章を書けます）。`;
 }
 
 /** 選択中の宛先に出す、差し込み項目の入力欄 */
@@ -589,7 +598,7 @@ function renderEditor() {
       <label class="field"><span class="lab">本文（F列 → G列に &lt;br&gt; 付きで自動変換）</span>
         <textarea id="edBody"></textarea></label>
       ${chipsHtml()}
-      <p class="hint">改行はそのまま入力してください。差し込みタグは宛先ごとに置き換わります。</p>
+      <p class="hint">改行はそのまま入力してください。差し込みタグは宛先ごとに置き換わります。${listHint()}</p>
       <div class="modebar">
         <span class="txt">個別に書き換えた宛先には、このひな形は反映されません。</span>
         <button class="btn tiny" id="resetAll">すべて共通ひな形にそろえる</button>
@@ -634,6 +643,7 @@ function renderEditor() {
     <label class="field"><span class="lab">本文（F列 → G列に &lt;br&gt; 付きで自動変換）</span>
       <textarea id="edBody" ${own ? "" : "disabled"}></textarea></label>
     ${chipsHtml()}
+    <p class="hint">${listHint() || "差し込みタグは宛先ごとに置き換わります。"}</p>
     ${fieldInputsHtml()}
     <label class="field"><span class="lab">添付ファイルパス（H列 / 空欄なら共通設定の値）</span>
       <input type="text" id="fPath" class="mono" placeholder="${esc(state.filepath || "（未設定）")}"></label>
