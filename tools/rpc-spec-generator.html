@@ -517,6 +517,10 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
       <textarea id="noticeBody" style="min-height:56px">メーカー・型番のみが異なり、仕様・価格は本仕様書と同一です。掲載が確定次第、ECサイトにてご案内いたします。</textarea>
       <span class="hint">仕様書の先頭に、赤字・下線の ※注記として表示されます。未入力の項目は出力されません。</span>
     </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="mini-btn" type="button" id="btnNoticeGen">文面を作り直す（機種名を反映）</button>
+      <button class="mini-btn" type="button" id="btnNoticeFromNotes">備考の同じ内容をこの注記に置き換える</button>
+    </div>
   </div>
 
   <!-- Saved presets -->
@@ -712,6 +716,24 @@ const WARRANTY_LIST = ["R∞PCAcademy(4年保証)","R∞PC(1年保証)","R∞PC(
  * Boilerplate for the 備考 box. Written as functions so a template can name the
  * model that is actually on the sheet rather than a fixed one.
  */
+/**
+ * The listing notice. Keeps what mattered in the long 備考 version — same spec and
+ * price, which model is the main one, notification on the EC site, the customer
+ * only picks the make — in three sentences instead of four lines.
+ */
+function noticeTemplate() {
+  const model = [V("maker"), V("productName")].filter(Boolean).join(" ") || "Fujitsu LIFEBOOK U9311";
+  return {
+    title: "同等スペックの別機種を追加掲載する場合がございます",
+    body: "メーカー・型番のみが異なり、仕様・スペック・価格は本仕様書と同一です。" +
+      "メイン機種は " + model + " を予定しており、掲載が確定次第、ECサイトにてご案内いたします。" +
+      "お客様にはメーカー・機種のみをお選びいただく形となります。",
+  };
+}
+
+/** The paragraph the old 備考 template inserted, so it can be lifted back out. */
+const LEGACY_NOTE_HEAD = "※掲載機種についての補足";
+
 const NOTE_TEMPLATES = {
   refImage: () => "画像は参考画像です。",
 };
@@ -2665,6 +2687,42 @@ function init() {
     syncPriceRow(); save();
     if (inPreview()) renderPreview();
   });
+  $("btnNoticeGen").addEventListener("click", () => {
+    const t = noticeTemplate();
+    $("noticeTitle").value = t.title;
+    $("noticeBody").value = t.body;
+    $("showNotice").checked = true;
+    $("showNoticeLabel").textContent = "お知らせを表示中";
+    save();
+    if (inPreview()) renderPreview();
+    note("お知らせの文面を作成しました");
+  });
+
+  $("btnNoticeFromNotes").addEventListener("click", () => {
+    const box = $("notes");
+    const at = box.value.indexOf(LEGACY_NOTE_HEAD);
+    if (at < 0) { alert("備考に置き換え対象の文（" + LEGACY_NOTE_HEAD + "…）が見つかりません。"); return; }
+    // Cut from the heading to the end of that paragraph (a blank line, or the end).
+    const rest = box.value.slice(at);
+    const end = rest.search(/\n\s*\n/);
+    box.value = (box.value.slice(0, at) + (end < 0 ? "" : rest.slice(end)))
+      .replace(/\n{3,}/g, "\n\n").trim();
+    // The point of this button is to move that content up here, so the notice takes
+    // the fuller wording — unless it has been hand-edited, which is asked about first.
+    const untouched = (!V("noticeTitle") && !V("noticeBody")) ||
+      (V("noticeTitle") === DEFAULTS.noticeTitle && V("noticeBody") === DEFAULTS.noticeBody);
+    if (untouched || confirm("お知らせの文面を、備考にあった内容で置き換えますか？\n（現在の文面は破棄されます）")) {
+      const t = noticeTemplate();
+      $("noticeTitle").value = t.title;
+      $("noticeBody").value = t.body;
+    }
+    $("showNotice").checked = true;
+    $("showNoticeLabel").textContent = "お知らせを表示中";
+    save();
+    if (inPreview()) renderPreview();
+    note("備考の重複文を削除し、注記に置き換えました");
+  });
+
   $("showNotice").addEventListener("change", () => {
     $("showNoticeLabel").textContent = $("showNotice").checked
       ? "お知らせを表示中" : "お知らせを仕様書に表示する";
