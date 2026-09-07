@@ -311,6 +311,7 @@ const state = {
   sep: ";",
   sel: "template",
   fields: [],
+  autoList: true,
   rows: [
     { id: uid(), name:"佐藤", to:"sato@example.co.jp", company:"有限会社フジタケ", subject:null, body:null, filepath:null, vars:{} },
     { id: uid(), name:"", to:"info@example.ac.jp", company:"神田外語学院", subject:null, body:null, filepath:null, vars:{} }
@@ -324,6 +325,7 @@ try {
     Object.assign(state, v2);
     state.rows.forEach(r => { if (!r.id) r.id = uid(); if (!r.vars) r.vars = {}; });
     if (!Array.isArray(state.fields)) state.fields = [];
+    if (typeof state.autoList !== "boolean") state.autoList = true;
   } else {
     const v1 = JSON.parse(localStorage.getItem("bulkmail.v1") || "null");
     if (v1 && Array.isArray(v1.rows)) {
@@ -368,12 +370,38 @@ function mergeHtml(tpl, row) {
   return s;
 }
 const rawBody = (row) => row.body !== null ? row.body : state.template.body;
+const rawSubject = (row) => row.subject !== null ? row.subject : state.template.subject;
+const hasTag = (text, key) => new RegExp("\\{\\{\\s*" + escRe(key) + "\\s*\\}\\}").test(text || "");
+
+/** 自動で並べる行（本文に {{項目名}} を直接書いた項目は除く） */
+function autoLines(row, html) {
+  if (!state.autoList) return [];
+  const written = rawBody(row) + "\n" + rawSubject(row);
+  return state.fields.map(f => {
+    if (!f.key || hasTag(written, f.key)) return null;
+    const v = varValue(row, f);
+    if (!v) return null;
+    if (html && f.link) {
+      // 表示文字を決めているなら、それ自体が項目名なので「項目名：」は付けない
+      return f.label ? `<a href="${v}">${f.label}</a>` : `${f.key}：<a href="${v}">${v}</a>`;
+    }
+    return `${f.key}：${v}`;
+  }).filter(Boolean);
+}
+/** 自動一覧を差し込む。{{リンク一覧}} があればその位置、なければ本文の最後 */
+function withList(text, row, html) {
+  const lines = autoLines(row, html);
+  const slot = /\{\{\s*リンク一覧\s*\}\}/;
+  if (slot.test(text)) return text.replace(new RegExp(slot.source, "g"), () => lines.join("\n"));
+  if (!lines.length) return text;
+  return text.replace(/\s*$/, "") + "\n" + lines.join("\n");
+}
 const rowCc = (row) => [...splitAddrs(row && row.cc), ...splitAddrs(state.commonCc)];
 const badAddrs = (row) => [...splitAddrs(row.to), ...rowCc(row)].filter(a => !isMail(a));
 const isOwn = (row) => row.subject !== null || row.body !== null;
 const effSubject = (row) => merge(row.subject !== null ? row.subject : state.template.subject, row);
-const effBody = (row) => merge(rawBody(row), row);
-const effBodyHtml = (row) => mergeHtml(rawBody(row), row);
+const effBody = (row) => withList(merge(rawBody(row), row), row, false);
+const effBodyHtml = (row) => withList(mergeHtml(rawBody(row), row), row, true);
 const effPath = (row) => (row.filepath !== null && row.filepath !== "") ? row.filepath : state.filepath;
 const selRow = () => state.rows.find(r => r.id === state.sel) || null;
 const rowLabel = (r) => r.company || r.name || splitAddrs(r.to)[0] || "（未入力）";
@@ -420,7 +448,9 @@ function renderPreview() {
   if (!el) return;
   const r = selRow() || state.rows[0] || { name:"", to:"", cc:"", company:"" };
   const sub = state.sel === "template" ? merge(state.template.subject, r) : effSubject(r);
-  const body = state.sel === "template" ? mergeHtml(state.template.body, r) : effBodyHtml(r);
+  const body = state.sel === "template"
+    ? withList(mergeHtml(state.template.body, r), r, true)
+    : effBodyHtml(r);
   const path = state.sel === "template" ? state.filepath : effPath(r);
   el.innerHTML =
     `<div class="subj">${esc(sub) || "（件名未入力）"}</div>` +
@@ -435,6 +465,7 @@ function renderPreview() {
 let lastTarget = null;
 function chipsHtml() {
   const tags = ["会社名", "名前"].concat(state.fields.filter(f => f.key).map(f => f.key));
+  if (state.autoList && state.fields.some(f => f.key)) tags.push("リンク一覧");
   return `<div class="chips"><span class="lb">クリックで本文に挿入</span>` +
     tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}">{{${esc(t)}}}</button>`).join("") +
     `</div>`;
@@ -467,6 +498,13 @@ function fieldInputsHtml() {
 function renderFields() {
   const box = $("#fieldsBody");
   box.textContent = "";
+  const t = document.createElement("label");
+  t.className = "opt";
+  t.style.cssText = "display:flex;gap:7px;align-items:flex-start;padding-bottom:10px;font-size:11.5px;color:var(--ink-2);cursor:pointer";
+  t.innerHTML = `<input type="checkbox" id="autoList" ${state.autoList ? "checked" : ""} style="margin-top:3px">` +
+    `<span>本文に自動で並べる<br><span class="hint">本文に {{項目名}} を書いていない項目を「項目名：値」の形で末尾に追加します（{{リンク一覧}} と書けばその位置に）。</span></span>`;
+  box.appendChild(t);
+  t.querySelector("#autoList").addEventListener("change", e => { state.autoList = e.target.checked; touch(); });
   state.fields.forEach((f, i) => {
     const d = document.createElement("div");
     d.className = "frow";
