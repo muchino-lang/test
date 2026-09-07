@@ -116,6 +116,24 @@ textarea{resize:vertical; min-height:210px; line-height:1.8}
 .hint{font-size:11.5px; color:var(--muted)}
 .hint code, code{background:var(--surface-2); padding:1px 5px; border-radius:4px; font-family:"JetBrains Mono",monospace; font-size:11px}
 
+.frow{display:grid; grid-template-columns:1fr auto; gap:5px; padding:10px 0; border-top:1px solid var(--line)}
+.frow:first-child{border-top:0; padding-top:2px}
+.frow input[type=text]{padding:6px 9px; font-size:12.5px}
+.frow .wide{grid-column:1 / -1}
+.frow .opt{grid-column:1 / -1; display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--ink-2)}
+.frow .tagname{grid-column:1 / -1; font-size:10.5px; color:var(--muted); font-family:"JetBrains Mono",monospace; overflow:hidden; text-overflow:ellipsis}
+.chips{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+.chips .lb{font-size:11px; color:var(--muted); letter-spacing:.09em}
+.chip{
+  border:1px solid var(--line); background:var(--ground); border-radius:999px; padding:3px 11px;
+  font-size:11.5px; cursor:pointer; font-family:"JetBrains Mono",monospace;
+}
+.chip:hover{background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink)}
+.collist{
+  border:1px solid var(--line); border-radius:7px; padding:8px; max-height:130px; overflow:auto;
+  display:flex; flex-direction:column; gap:2px; background:var(--ground);
+}
+.collist label{display:flex; gap:7px; align-items:center; font-size:12px; cursor:pointer}
 .modebar{
   display:flex; align-items:center; gap:8px; flex-wrap:wrap;
   padding:9px 12px; border-radius:8px; background:var(--surface-2);
@@ -185,6 +203,12 @@ dialog textarea{min-height:170px}
     </section>
 
     <section class="panel">
+      <div class="head"><h2>差し込み項目</h2><span class="sub">宛先ごとの値</span></div>
+      <div class="body" id="fieldsBody" style="gap:0"></div>
+      <div class="toolbar"><button class="btn tiny" id="addFieldBtn">＋ 項目を追加</button></div>
+    </section>
+
+    <section class="panel">
       <div class="head"><h2>共通設定</h2><span class="sub">全行に反映</span></div>
       <div class="body">
         <label class="field">
@@ -238,6 +262,9 @@ dialog textarea{min-height:170px}
         <label class="field"><span class="lab">本文 → F/G列（任意）</span><select data-map="body"></select></label>
         <label class="field"><span class="lab">添付ファイルパス → H列（任意）</span><select data-map="filepath"></select></label>
       </div>
+      <label class="field" style="margin-top:12px"><span class="lab">本文に差し込む列（任意・複数選択可）</span>
+        <div class="collist" id="mVars"></div>
+        <span class="hint">チェックした列は差し込み項目になり、本文に <code>{{見出し名}}</code> と書くとその行の値が入ります。</span></label>
       <label class="field" style="margin-top:12px"><span class="lab">取り込み方法</span>
         <select id="mMode">
           <option value="append">いまの宛先リストに追加する</option>
@@ -282,9 +309,10 @@ const state = {
   filepath: "",
   sep: ";",
   sel: "template",
+  fields: [],
   rows: [
-    { id: uid(), name:"佐藤", to:"sato@example.co.jp", company:"有限会社フジタケ", subject:null, body:null, filepath:null },
-    { id: uid(), name:"", to:"info@example.ac.jp", company:"神田外語学院", subject:null, body:null, filepath:null }
+    { id: uid(), name:"佐藤", to:"sato@example.co.jp", company:"有限会社フジタケ", subject:null, body:null, filepath:null, vars:{} },
+    { id: uid(), name:"", to:"info@example.ac.jp", company:"神田外語学院", subject:null, body:null, filepath:null, vars:{} }
   ]
 };
 
@@ -293,13 +321,14 @@ try {
   const v2 = JSON.parse(localStorage.getItem(STORE) || "null");
   if (v2 && Array.isArray(v2.rows)) {
     Object.assign(state, v2);
-    state.rows.forEach(r => { if (!r.id) r.id = uid(); });
+    state.rows.forEach(r => { if (!r.id) r.id = uid(); if (!r.vars) r.vars = {}; });
+    if (!Array.isArray(state.fields)) state.fields = [];
   } else {
     const v1 = JSON.parse(localStorage.getItem("bulkmail.v1") || "null");
     if (v1 && Array.isArray(v1.rows)) {
       state.template = { subject: v1.subject || "", body: v1.body || "" };
       ["commonCc","bcc","filepath","sep"].forEach(k => { if (v1[k] != null) state[k] = v1[k]; });
-      state.rows = v1.rows.map(r => ({ id: uid(), name:r.name||"", to:r.to||"", company:r.company||"", subject:null, body:null, filepath:null }));
+      state.rows = v1.rows.map(r => ({ id: uid(), name:r.name||"", to:r.to||"", company:r.company||"", subject:null, body:null, filepath:null, vars:{} }));
     }
   }
 } catch (e) { /* 読めないときは初期値のまま */ }
@@ -310,14 +339,40 @@ const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); }
 const splitAddrs = (s) => (s || "").split(/[,;\n]/).map(x => x.trim()).filter(Boolean);
 const isMail = (a) => /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(a);
 const esc = (s) => String(s).replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c]));
-const merge = (tpl, row) => (tpl || "")
-  .replace(/\{\{\s*会社名\s*\}\}/g, row.company || "")
-  .replace(/\{\{\s*名前\s*\}\}/g, row.name || "");
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const tagRe = (key) => new RegExp("\\{\\{\\s*" + escRe(key) + "\\s*\\}\\}", "g");
+const varValue = (row, f) => {
+  const own = row.vars ? (row.vars[f.key] || "") : "";
+  return own !== "" ? own : (f.def || "");
+};
+const baseMerge = (tpl, row) => (tpl || "")
+  .replace(/\{\{\s*会社名\s*\}\}/g, () => row.company || "")
+  .replace(/\{\{\s*名前\s*\}\}/g, () => row.name || "");
+
+/** 件名・F列用：値をそのまま差し込む */
+function merge(tpl, row) {
+  let s = baseMerge(tpl, row);
+  state.fields.forEach(f => { if (f.key) s = s.replace(tagRe(f.key), () => varValue(row, f)); });
+  return s;
+}
+/** G列・プレビュー用：リンク指定の項目は <a href> にする */
+function mergeHtml(tpl, row) {
+  let s = baseMerge(tpl, row);
+  state.fields.forEach(f => {
+    if (!f.key) return;
+    const v = varValue(row, f);
+    const out = (f.link && v) ? `<a href="${v}">${f.label || v}</a>` : v;
+    s = s.replace(tagRe(f.key), () => out);
+  });
+  return s;
+}
+const rawBody = (row) => row.body !== null ? row.body : state.template.body;
 const rowCc = () => splitAddrs(state.commonCc);
 const badAddrs = (row) => [...splitAddrs(row.to), ...rowCc()].filter(a => !isMail(a));
 const isOwn = (row) => row.subject !== null || row.body !== null;
 const effSubject = (row) => merge(row.subject !== null ? row.subject : state.template.subject, row);
-const effBody = (row) => merge(row.body !== null ? row.body : state.template.body, row);
+const effBody = (row) => merge(rawBody(row), row);
+const effBodyHtml = (row) => mergeHtml(rawBody(row), row);
 const effPath = (row) => (row.filepath !== null && row.filepath !== "") ? row.filepath : state.filepath;
 const selRow = () => state.rows.find(r => r.id === state.sel) || null;
 const rowLabel = (r) => r.company || r.name || splitAddrs(r.to)[0] || "（未入力）";
@@ -364,7 +419,7 @@ function renderPreview() {
   if (!el) return;
   const r = selRow() || state.rows[0] || { name:"", to:"", cc:"", company:"" };
   const sub = state.sel === "template" ? merge(state.template.subject, r) : effSubject(r);
-  const body = state.sel === "template" ? merge(state.template.body, r) : effBody(r);
+  const body = state.sel === "template" ? mergeHtml(state.template.body, r) : effBodyHtml(r);
   const path = state.sel === "template" ? state.filepath : effPath(r);
   el.innerHTML =
     `<div class="subj">${esc(sub) || "（件名未入力）"}</div>` +
@@ -372,8 +427,112 @@ function renderPreview() {
     `Cc: ${esc(rowCc().join(", ")) || "—"}<br>` +
     `Bcc: ${esc(splitAddrs(state.bcc).join(", ")) || "—"}` +
     (path ? `<br>添付: ${esc(path)}` : "") + `</div>` +
-    (esc(body).replace(/\n/g, "<br>") || "<span style='color:var(--muted)'>（本文未入力）</span>");
+    (body.replace(/\r?\n/g, "<br>") || "<span style='color:var(--muted)'>（本文未入力）</span>");
 }
+
+/** 本文欄などにタグを挿し込むチップ */
+let lastTarget = null;
+function chipsHtml() {
+  const tags = ["会社名", "名前"].concat(state.fields.filter(f => f.key).map(f => f.key));
+  return `<div class="chips"><span class="lb">クリックで本文に挿入</span>` +
+    tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}">{{${esc(t)}}}</button>`).join("") +
+    `</div>`;
+}
+function wireChips(scope) {
+  const track = (el) => { if (el) el.addEventListener("focus", () => { lastTarget = el; }); };
+  track($("#edBody")); track($("#edSubject"));
+  lastTarget = lastTarget && scope.contains(lastTarget) ? lastTarget : $("#edBody");
+  scope.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+    const el = (lastTarget && !lastTarget.disabled) ? lastTarget : $("#edBody");
+    if (!el || el.disabled) { toast("先に「この宛先だけ書き換える」を押してください"); return; }
+    const tag = `{{${b.dataset.tag}}}`;
+    const a = el.selectionStart ?? el.value.length, z = el.selectionEnd ?? a;
+    el.value = el.value.slice(0, a) + tag + el.value.slice(z);
+    el.focus();
+    el.selectionStart = el.selectionEnd = a + tag.length;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }));
+}
+
+/** 選択中の宛先に出す、差し込み項目の入力欄 */
+function fieldInputsHtml() {
+  const fs = state.fields.filter(f => f.key);
+  if (!fs.length) return "";
+  return `<div class="grid2">` + state.fields.map((f, i) => f.key ? `
+    <label class="field"><span class="lab">${esc(f.key)}${f.link ? "（リンク）" : ""}</span>
+      <input type="text" data-fi="${i}" class="mono" placeholder="${esc(f.def || "未入力（既定値なし）")}"></label>` : "").join("") + `</div>`;
+}
+
+function renderFields() {
+  const box = $("#fieldsBody");
+  box.textContent = "";
+  state.fields.forEach((f, i) => {
+    const d = document.createElement("div");
+    d.className = "frow";
+    d.innerHTML =
+      `<input type="text" class="fkey" data-i="${i}" placeholder="項目名（例：実施要項）">` +
+      `<button class="btn tiny ghost" data-delf="${i}" title="この項目を削除">✕</button>` +
+      `<input type="text" class="fdef wide mono" data-i="${i}" placeholder="既定値（未入力の宛先に使う値）">` +
+      `<label class="opt"><input type="checkbox" class="flink" data-i="${i}"> リンクにする（G列で &lt;a href&gt;）</label>` +
+      `<input type="text" class="flabel wide" data-i="${i}" placeholder="リンクの表示文字（空ならURLを表示）">` +
+      `<span class="tagname"></span>`;
+    d.querySelector(".fkey").value = f.key;
+    d.querySelector(".fdef").value = f.def || "";
+    d.querySelector(".flink").checked = !!f.link;
+    const lab = d.querySelector(".flabel");
+    lab.value = f.label || "";
+    lab.hidden = !f.link;
+    d.querySelector(".tagname").textContent = f.key ? `本文に {{${f.key}}} と書くと差し込まれます` : "項目名を入れると差し込みタグになります";
+    box.appendChild(d);
+  });
+  if (!state.fields.length) {
+    box.innerHTML = `<p class="hint">Excelの列（リンクなど）を本文に差し込みたいときに使います。「Excel読込」で列を選ぶと自動で作られます。</p>`;
+  }
+
+  box.querySelectorAll(".fdef").forEach(el => el.addEventListener("input", e => {
+    state.fields[Number(el.dataset.i)].def = e.target.value; touch();
+  }));
+  box.querySelectorAll(".flabel").forEach(el => el.addEventListener("input", e => {
+    state.fields[Number(el.dataset.i)].label = e.target.value; touch();
+  }));
+  box.querySelectorAll(".flink").forEach(el => el.addEventListener("change", e => {
+    state.fields[Number(el.dataset.i)].link = e.target.checked;
+    renderFields(); touch();
+  }));
+  box.querySelectorAll(".fkey").forEach(el => el.addEventListener("change", e => {
+    const f = state.fields[Number(el.dataset.i)];
+    const from = f.key, to = e.target.value.trim();
+    if (from === to) return;
+    state.rows.forEach(r => {
+      if (r.vars && r.vars[from] !== undefined) { r.vars[to] = r.vars[from]; delete r.vars[from]; }
+    });
+    if (from) {
+      const swap = (t) => t.replace(tagRe(from), () => `{{${to}}}`);
+      state.template.subject = swap(state.template.subject);
+      state.template.body = swap(state.template.body);
+      state.rows.forEach(r => {
+        if (r.subject !== null) r.subject = swap(r.subject);
+        if (r.body !== null) r.body = swap(r.body);
+      });
+    }
+    f.key = to;
+    render();
+  }));
+  box.querySelectorAll("[data-delf]").forEach(b => b.addEventListener("click", () => {
+    const i = Number(b.dataset.delf), f = state.fields[i];
+    if (f.key && !confirm(`差し込み項目「${f.key}」を削除します。各宛先に入っている値も消えます。よろしいですか？`)) return;
+    state.rows.forEach(r => { if (r.vars) delete r.vars[f.key]; });
+    state.fields.splice(i, 1);
+    render();
+  }));
+}
+
+$("#addFieldBtn").addEventListener("click", () => {
+  state.fields.push({ key:"", def:"", link:false, label:"" });
+  renderFields(); save();
+  const ks = document.querySelectorAll("#fieldsBody .fkey");
+  if (ks.length) ks[ks.length - 1].focus();
+});
 
 function renderEditor() {
   const ed = $("#editor");
@@ -390,7 +549,8 @@ function renderEditor() {
         <input type="text" id="edSubject"></label>
       <label class="field"><span class="lab">本文（F列 → G列に &lt;br&gt; 付きで自動変換）</span>
         <textarea id="edBody"></textarea></label>
-      <p class="hint">改行はそのまま入力してください。差し込みタグ <code>{{会社名}}</code> <code>{{名前}}</code> は宛先ごとに置き換わります。</p>
+      ${chipsHtml()}
+      <p class="hint">改行はそのまま入力してください。差し込みタグは宛先ごとに置き換わります。</p>
       <div class="modebar">
         <span class="txt">個別に書き換えた宛先には、このひな形は反映されません。</span>
         <button class="btn tiny" id="resetAll">すべて共通ひな形にそろえる</button>
@@ -401,6 +561,7 @@ function renderEditor() {
     $("#edBody").value = state.template.body;
     $("#edSubject").addEventListener("input", e => { state.template.subject = e.target.value; touch(); });
     $("#edBody").addEventListener("input", e => { state.template.body = e.target.value; touch(); });
+    wireChips(ed);
     $("#resetAll").addEventListener("click", () => {
       const own = state.rows.filter(isOwn).length;
       if (!own) { toast("個別に書かれた宛先はありません"); return; }
@@ -432,6 +593,8 @@ function renderEditor() {
       <input type="text" id="edSubject" ${own ? "" : "disabled"}></label>
     <label class="field"><span class="lab">本文（F列 → G列に &lt;br&gt; 付きで自動変換）</span>
       <textarea id="edBody" ${own ? "" : "disabled"}></textarea></label>
+    ${chipsHtml()}
+    ${fieldInputsHtml()}
     <label class="field"><span class="lab">添付ファイルパス（H列 / 空欄なら共通設定の値）</span>
       <input type="text" id="fPath" class="mono" placeholder="${esc(state.filepath || "（未設定）")}"></label>
     <div><div class="lab" style="font-size:11px;letter-spacing:.09em;color:var(--muted);margin-bottom:5px">送信プレビュー（差し込み後）</div>
@@ -451,6 +614,17 @@ function renderEditor() {
   bind("#fName", "name", true); bind("#fCompany", "company", true);
   bind("#fTo", "to", true);
   $("#fPath").addEventListener("input", e => { row.filepath = e.target.value || null; touch(); });
+  ed.querySelectorAll("[data-fi]").forEach(inp => {
+    const f = state.fields[Number(inp.dataset.fi)];
+    if (!f) return;
+    inp.value = (row.vars && row.vars[f.key]) || "";
+    inp.addEventListener("input", e => {
+      if (!row.vars) row.vars = {};
+      row.vars[f.key] = e.target.value;
+      touch();
+    });
+  });
+  wireChips(ed);
 
   if (own) {
     $("#edSubject").addEventListener("input", e => { row.subject = e.target.value; touch(); });
@@ -476,7 +650,7 @@ function renderEditor() {
 }
 
 const touch = () => { renderCounts(); renderPreview(); save(); };
-const render = () => { renderCounts(); renderList(); renderEditor(); save(); };
+const render = () => { renderCounts(); renderList(); renderFields(); renderEditor(); save(); };
 
 /* ---------- 操作 ---------- */
 const select = (id) => { state.sel = id; render(); };
@@ -489,12 +663,12 @@ $("#list").addEventListener("keydown", e => {
 });
 
 $("#addBtn").addEventListener("click", () => {
-  const r = { id: uid(), name:"", to:"", company:"", subject:null, body:null, filepath:null };
+  const r = { id: uid(), name:"", to:"", company:"", subject:null, body:null, filepath:null, vars:{} };
   state.rows.push(r); select(r.id); $("#fName").focus();
 });
 $("#dupBtn").addEventListener("click", () => {
   const r = selRow(); if (!r) return;
-  const c = { ...r, id: uid() };
+  const c = { ...r, id: uid(), vars: { ...(r.vars || {}) } };
   state.rows.splice(state.rows.indexOf(r) + 1, 0, c);
   select(c.id); toast("宛先を複製しました");
 });
@@ -517,7 +691,7 @@ $("#pasteOk").addEventListener("click", () => {
     if (/^名前$/.test(name) && /メール|To/i.test(to)) return;          // 見出し行
     if (!to && isMail(name)) { to = name; name = ""; }                  // アドレスだけの行
     if (!to) return;
-    state.rows.push({ id: uid(), name, to, company, subject:null, body:null, filepath:null });
+    state.rows.push({ id: uid(), name, to, company, subject:null, body:null, filepath:null, vars:{} });
     added++;
   });
   dlg.close(); render();
@@ -633,7 +807,26 @@ function buildMapping(guessHead) {
     sel.onchange = updatePreview;
   });
 
+  const used = new Set(Object.values(guess).filter(i => i >= 0));
+  const known = new Set(state.fields.map(f => f.key));
+  const box = $("#mVars");
+  box.innerHTML = labels.map((l, i) => {
+    const h = head[i] || "";
+    const on = !!h && !used.has(i) && known.has(h);
+    return `<label><input type="checkbox" value="${i}" ${on ? "checked" : ""}><span>${esc(l)}</span></label>`;
+  }).join("");
+  box.querySelectorAll("input").forEach(c => c.onchange = updatePreview);
+
   updatePreview();
+}
+
+function varColumns() {
+  const aoa = imp.sheets[imp.sheet] || [];
+  const head = (aoa[imp.headRow] || []).map(cellText);
+  return [...$("#mVars").querySelectorAll("input:checked")].map(c => {
+    const i = Number(c.value);
+    return { i, key: head[i] || (XLSX.utils.encode_col(i) + "列") };
+  });
 }
 
 function readImportRows() {
@@ -641,15 +834,19 @@ function readImportRows() {
   const map = {};
   document.querySelectorAll("[data-map]").forEach(sel => { map[sel.dataset.map] = Number(sel.value); });
   const get = (r, i) => i >= 0 ? cellText(r[i]) : "";
+  const cols = varColumns();
 
   const out = [];
   aoa.slice(imp.headRow + 1).forEach(r => {
     const to = get(r, map.to);
     if (!to) return;
+    const vars = {};
+    cols.forEach(c => { vars[c.key] = get(r, c.i); });
     const subject = get(r, map.subject);
     const body = brToNl(get(r, map.body));
     out.push({
       id: uid(), name: get(r, map.name), to, company: get(r, map.company),
+      vars,
       subject: subject || null, body: body || null,
       filepath: get(r, map.filepath) || null
     });
@@ -661,8 +858,10 @@ function updatePreview() {
   const rows = readImportRows();
   const bad = rows.filter(r => badAddrs(r).length).length;
   $("#impInfo").textContent = `${imp.file} / シート「${imp.sheet}」・${imp.width} 列`;
+  const vc = varColumns();
   $("#impPreview").innerHTML = rows.length
     ? `取り込める宛先：<strong>${rows.length} 件</strong>` + (bad ? ` （アドレス形式の要確認 ${bad} 件）` : "") +
+      (vc.length ? `<br>差し込み項目： ${esc(vc.map(c => "{{" + c.key + "}}").join(" "))}` : "") +
       `<br>先頭： ${esc(rows[0].company || rows[0].name || "—")} / ${esc(rows[0].to)}`
     : `Toアドレスの列を指定してください（この設定では取り込める行がありません）。`;
   $("#impOk").disabled = !rows.length;
@@ -676,6 +875,10 @@ $("#impOk").addEventListener("click", () => {
   const allSame = (k) => rows[0][k] && rows.every(r => r[k] === rows[0][k]);
   if (allSame("subject")) { state.template.subject = rows[0].subject; rows.forEach(r => r.subject = null); }
   if (allSame("body")) { state.template.body = rows[0].body; rows.forEach(r => r.body = null); }
+
+  varColumns().forEach(c => {
+    if (!state.fields.some(f => f.key === c.key)) state.fields.push({ key:c.key, def:"", link:false, label:"" });
+  });
 
   if ($("#mMode").value === "replace") state.rows = rows;
   else state.rows = state.rows.concat(rows);
@@ -700,6 +903,7 @@ function buildSheet() {
 
   rows.forEach(row => {
     const body = effBody(row);
+    const bodyHtml = effBodyHtml(row);
     aoa.push([
       row.name || "",
       splitAddrs(row.to).join(sep),
@@ -707,7 +911,7 @@ function buildSheet() {
       bcc,
       effSubject(row),
       body,
-      body.replace(/\r?\n/g, "<br>"),
+      bodyHtml.replace(/\r?\n/g, "<br>"),
       effPath(row) || "",
       row.company || "",
       "",
