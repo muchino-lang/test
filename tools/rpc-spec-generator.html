@@ -197,6 +197,8 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
 .sh-notice { margin: 12px 0 6px; color: #c0392b; }
 .sh-notice .n-ttl { font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; line-height: 1.7; }
 .sh-notice .n-body { font-size: 11.5px; line-height: 1.7; margin-top: 2px; padding-left: 1.1em; white-space: pre-wrap; }
+.sh-notice .n-ttl + .n-body { margin-bottom: 7px; }
+.sh-notice .n-body + .n-ttl, .sh-notice .n-ttl + .n-ttl { margin-top: 7px; }
 .sh-body .img-center { text-align: center; margin: 10px 0; }
 .sh-body .img-center img { max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; }
 .spec-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -521,6 +523,19 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
       <button class="mini-btn" type="button" id="btnNoticeGen">文面を作り直す（機種名を反映）</button>
       <button class="mini-btn" type="button" id="btnNoticeFromNotes">備考の同じ内容をこの注記に置き換える</button>
     </div>
+
+    <div class="fld" style="margin-top:16px">
+      <label for="noticeTitle2">お知らせ2・見出し（1行）</label>
+      <input id="noticeTitle2" placeholder="例: 本年度はCPUを第11世代へ強化し、学校向け特価にてご提供いたします" />
+    </div>
+    <div class="fld" style="margin-top:8px">
+      <label for="noticeBody2">お知らせ2・本文</label>
+      <textarea id="noticeBody2" style="min-height:56px"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="mini-btn" type="button" id="btnNoticeGen2">世代アップの案内を入れる（世代を自動反映）</button>
+      <button class="mini-btn" type="button" id="btnNoticeClear2">お知らせ2を消す</button>
+    </div>
   </div>
 
   <!-- Saved presets -->
@@ -731,6 +746,24 @@ function noticeTemplate() {
   };
 }
 
+/**
+ * This year's step up in CPU generation, said in a way that explains the price:
+ * the spec moved up, and the increase is held down. The generations come from the
+ * CPU actually selected, so the text cannot contradict the spec table.
+ */
+function noticeUpgradeTemplate() {
+  const g = V("cpuGen");
+  const now = !isNaN(g) && g !== "" ? Number(g) : 11;
+  const prev = now - 1;
+  return {
+    title: "本年度はCPUを第" + now + "世代へ強化し、学校向け特価にてご提供いたします",
+    body: "昨年度は第" + prev + "世代を中心にご提供しておりましたが、本年度は第" + now +
+      "世代の調達が叶い、メイン機種のスペックを向上しております。" +
+      "価格は昨年度をわずかに上回りますが、性能向上分を含め、" +
+      "学校向けの特別価格として可能な限り抑えた設定としております。",
+  };
+}
+
 /** The paragraph the old 備考 template inserted, so it can be lifted back out. */
 const LEGACY_NOTE_HEAD = "※掲載機種についての補足";
 
@@ -748,7 +781,7 @@ const FIELD_IDS = [
   "os","osNote","weight","refUrl","preinstall","office",
   "hdmi","usbTypeC","usbTypeA","lanPort","vgaPort","sdSlot","audioJack","bluetooth","otherPort",
   "accessories","warranty","warrantyUrl","warrantyDetail","priceType","price",
-  "noticeTitle","noticeBody","notes",
+  "noticeTitle","noticeBody","noticeTitle2","noticeBody2","notes",
 ];
 const STORAGE_KEY = "roopc-spec-generator-v1";
 const PRESET_KEY = "roopc-spec-presets-v1";
@@ -1015,12 +1048,16 @@ function footnote() {
  */
 function noticeMarkup() {
   if (!$("showNotice").checked) return "";
-  const title = V("noticeTitle"), body = V("noticeBody");
-  if (!title && !body) return "";
-  return '<div class="sh-notice">' +
+  const blocks = noticePairs().map(([title, body]) =>
     (title ? '<div class="n-ttl">※' + esc(title) + "</div>" : "") +
-    (body ? '<div class="n-body">' + esc(body) + "</div>" : "") +
-    "</div>";
+    (body ? '<div class="n-body">' + esc(body) + "</div>" : ""));
+  return blocks.length ? '<div class="sh-notice">' + blocks.join("") + "</div>" : "";
+}
+
+/** The notices that have something to say, in order. */
+function noticePairs() {
+  return [[V("noticeTitle"), V("noticeBody")], [V("noticeTitle2"), V("noticeBody2")]]
+    .filter(([t, b]) => t || b);
 }
 
 /** Meta line parts. Each is omitted entirely when its field is blank. */
@@ -1181,7 +1218,7 @@ function downloadWord() {
     ".notes{margin-top:10px;font-size:9pt;color:#555;white-space:pre-wrap;line-height:1.6}" +
     ".notice{margin:8pt 0 6pt;color:#c0392b}" +
     ".notice .nt{font-size:10.5pt;font-weight:700;text-decoration:underline}" +
-    ".notice .nb{font-size:9pt;margin-top:2pt;padding-left:1.1em;white-space:pre-wrap}" +
+    ".notice .nb{font-size:9pt;margin-top:2pt;margin-bottom:5pt;padding-left:1.1em;white-space:pre-wrap}" +
     ".img-box{text-align:center;margin:10px 0}" +
     ".img-box img{max-width:360px}" +
     ".foot{margin-top:14px;font-size:8pt;color:#888;white-space:pre-wrap;line-height:1.5}" +
@@ -1195,11 +1232,10 @@ function downloadWord() {
         (personLine() ? '<span class="rt">担当：<b>' + esc(personLine()) + "</b></span>" : "") +
         "</div>"
       : "") +
-    (($("showNotice").checked && (V("noticeTitle") || V("noticeBody")))
-      ? '<div class="notice">' +
-        (V("noticeTitle") ? '<div class="nt">※' + esc(V("noticeTitle")) + "</div>" : "") +
-        (V("noticeBody") ? '<div class="nb">' + esc(V("noticeBody")) + "</div>" : "") +
-        "</div>"
+    (($("showNotice").checked && noticePairs().length)
+      ? '<div class="notice">' + noticePairs().map(([t, bd]) =>
+          (t ? '<div class="nt">※' + esc(t) + "</div>" : "") +
+          (bd ? '<div class="nb">' + esc(bd) + "</div>" : "")).join("") + "</div>"
       : "") +
     (imageData ? '<div class="img-box"><img src="' + imageData + '" /></div>' : "") +
     "<table>" + trs + "</table>" +
@@ -2721,6 +2757,24 @@ function init() {
     save();
     if (inPreview()) renderPreview();
     note("備考の重複文を削除し、注記に置き換えました");
+  });
+
+  $("btnNoticeGen2").addEventListener("click", () => {
+    const t = noticeUpgradeTemplate();
+    $("noticeTitle2").value = t.title;
+    $("noticeBody2").value = t.body;
+    $("showNotice").checked = true;
+    $("showNoticeLabel").textContent = "お知らせを表示中";
+    save();
+    if (inPreview()) renderPreview();
+    note("世代アップの案内を追加しました");
+  });
+  $("btnNoticeClear2").addEventListener("click", () => {
+    $("noticeTitle2").value = "";
+    $("noticeBody2").value = "";
+    save();
+    if (inPreview()) renderPreview();
+    note("お知らせ2を消しました");
   });
 
   $("showNotice").addEventListener("change", () => {
