@@ -134,11 +134,6 @@ textarea{resize:vertical; min-height:210px; line-height:1.8}
 .drop:hover,.drop.over{border-color:var(--accent); color:var(--accent-ink); background:var(--accent-soft)}
 .maps{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px}
 .maps select{padding:6px 8px; font-size:13px}
-.cclist{
-  border:1px solid var(--line); border-radius:7px; padding:8px; max-height:130px; overflow:auto;
-  display:flex; flex-direction:column; gap:2px; background:var(--ground);
-}
-.cclist label{display:flex; gap:7px; align-items:center; font-size:12px; cursor:pointer}
 .impinfo{font-size:12px; color:var(--ink-2); background:var(--surface-2); border-radius:7px; padding:9px 11px}
 dialog{
   border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); color:var(--ink);
@@ -193,7 +188,7 @@ dialog textarea{min-height:170px}
       <div class="head"><h2>共通設定</h2><span class="sub">全行に反映</span></div>
       <div class="body">
         <label class="field">
-          <span class="lab">共通CC（K列以降へ各行に追加 / , 区切り）</span>
+          <span class="lab">CC（全通に入ります / C列・K列以降 / , 区切り）</span>
           <input type="text" id="commonCc" class="mono">
         </label>
         <label class="field">
@@ -243,8 +238,6 @@ dialog textarea{min-height:170px}
         <label class="field"><span class="lab">本文 → F/G列（任意）</span><select data-map="body"></select></label>
         <label class="field"><span class="lab">添付ファイルパス → H列（任意）</span><select data-map="filepath"></select></label>
       </div>
-      <label class="field" style="margin-top:12px"><span class="lab">個別CC に使う列（複数選択可 / K列以降に展開）</span>
-        <div class="cclist" id="mCc"></div></label>
       <label class="field" style="margin-top:12px"><span class="lab">取り込み方法</span>
         <select id="mMode">
           <option value="append">いまの宛先リストに追加する</option>
@@ -263,8 +256,8 @@ dialog textarea{min-height:170px}
 <dialog id="pasteDlg">
   <div class="body">
     <h2 style="font-size:15px">まとめて宛先を追加</h2>
-    <p class="hint">1行につき <strong>名前 → To → 個別CC → 会社名</strong> の順（タブ区切り／カンマ区切り）。見出し行は自動で無視します。追加された宛先は、まず共通ひな形の文面を使います。</p>
-    <textarea id="pasteArea" class="mono" placeholder="佐藤&#9;sato@example.co.jp&#9;cc@example.co.jp&#9;有限会社フジタケ"></textarea>
+    <p class="hint">1行につき <strong>名前 → To → 会社名</strong> の順（タブ区切り／カンマ区切り）。見出し行は自動で無視します。追加された宛先は、まず共通ひな形の文面を使います。CCは共通設定の「CC」が全通に入ります。</p>
+    <textarea id="pasteArea" class="mono" placeholder="佐藤&#9;sato@example.co.jp&#9;有限会社フジタケ"></textarea>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" id="pasteCancel">キャンセル</button>
       <button class="btn primary" id="pasteOk">追加する</button>
@@ -290,8 +283,8 @@ const state = {
   sep: ";",
   sel: "template",
   rows: [
-    { id: uid(), name:"佐藤", to:"sato@example.co.jp", cc:"", company:"有限会社フジタケ", subject:null, body:null, filepath:null },
-    { id: uid(), name:"", to:"info@example.ac.jp", cc:"kurumi@example.ac.jp", company:"神田外語学院", subject:null, body:null, filepath:null }
+    { id: uid(), name:"佐藤", to:"sato@example.co.jp", company:"有限会社フジタケ", subject:null, body:null, filepath:null },
+    { id: uid(), name:"", to:"info@example.ac.jp", company:"神田外語学院", subject:null, body:null, filepath:null }
   ]
 };
 
@@ -306,7 +299,7 @@ try {
     if (v1 && Array.isArray(v1.rows)) {
       state.template = { subject: v1.subject || "", body: v1.body || "" };
       ["commonCc","bcc","filepath","sep"].forEach(k => { if (v1[k] != null) state[k] = v1[k]; });
-      state.rows = v1.rows.map(r => ({ id: uid(), name:r.name||"", to:r.to||"", cc:r.cc||"", company:r.company||"", subject:null, body:null, filepath:null }));
+      state.rows = v1.rows.map(r => ({ id: uid(), name:r.name||"", to:r.to||"", company:r.company||"", subject:null, body:null, filepath:null }));
     }
   }
 } catch (e) { /* 読めないときは初期値のまま */ }
@@ -320,8 +313,8 @@ const esc = (s) => String(s).replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", 
 const merge = (tpl, row) => (tpl || "")
   .replace(/\{\{\s*会社名\s*\}\}/g, row.company || "")
   .replace(/\{\{\s*名前\s*\}\}/g, row.name || "");
-const rowCc = (row) => [...splitAddrs(row.cc), ...splitAddrs(state.commonCc)];
-const badAddrs = (row) => [...splitAddrs(row.to), ...rowCc(row)].filter(a => !isMail(a));
+const rowCc = () => splitAddrs(state.commonCc);
+const badAddrs = (row) => [...splitAddrs(row.to), ...rowCc()].filter(a => !isMail(a));
 const isOwn = (row) => row.subject !== null || row.body !== null;
 const effSubject = (row) => merge(row.subject !== null ? row.subject : state.template.subject, row);
 const effBody = (row) => merge(row.body !== null ? row.body : state.template.body, row);
@@ -376,7 +369,7 @@ function renderPreview() {
   el.innerHTML =
     `<div class="subj">${esc(sub) || "（件名未入力）"}</div>` +
     `<div class="to mono">To: ${esc(splitAddrs(r.to).join(", ")) || "—"}<br>` +
-    `Cc: ${esc(rowCc(r).join(", ")) || "—"}<br>` +
+    `Cc: ${esc(rowCc().join(", ")) || "—"}<br>` +
     `Bcc: ${esc(splitAddrs(state.bcc).join(", ")) || "—"}` +
     (path ? `<br>添付: ${esc(path)}` : "") + `</div>` +
     (esc(body).replace(/\n/g, "<br>") || "<span style='color:var(--muted)'>（本文未入力）</span>");
@@ -428,7 +421,6 @@ function renderEditor() {
       <label class="field"><span class="lab">名前（A列）</span><input type="text" id="fName"></label>
       <label class="field"><span class="lab">会社名（I列）</span><input type="text" id="fCompany"></label>
       <label class="field"><span class="lab">To（B列 / , 区切りで複数可）</span><input type="text" id="fTo" class="mono"></label>
-      <label class="field"><span class="lab">個別CC（K列〜 / , 区切り）</span><input type="text" id="fCc" class="mono"></label>
     </div>
     <div class="modebar">
       <span class="txt">${own ? "この宛先は個別の文面です。ひな形を編集しても影響を受けません。" : "共通ひな形の文面をそのまま送ります。"}</span>
@@ -446,7 +438,7 @@ function renderEditor() {
       <div class="preview" id="preview"></div></div>`;
 
   $("#fName").value = row.name; $("#fCompany").value = row.company;
-  $("#fTo").value = row.to; $("#fCc").value = row.cc;
+  $("#fTo").value = row.to;
   $("#fPath").value = row.filepath || "";
   $("#edSubject").value = own ? row.subject : state.template.subject;
   $("#edBody").value = own ? row.body : state.template.body;
@@ -457,7 +449,7 @@ function renderEditor() {
     touch();
   });
   bind("#fName", "name", true); bind("#fCompany", "company", true);
-  bind("#fTo", "to", true); bind("#fCc", "cc", true);
+  bind("#fTo", "to", true);
   $("#fPath").addEventListener("input", e => { row.filepath = e.target.value || null; touch(); });
 
   if (own) {
@@ -497,7 +489,7 @@ $("#list").addEventListener("keydown", e => {
 });
 
 $("#addBtn").addEventListener("click", () => {
-  const r = { id: uid(), name:"", to:"", cc:"", company:"", subject:null, body:null, filepath:null };
+  const r = { id: uid(), name:"", to:"", company:"", subject:null, body:null, filepath:null };
   state.rows.push(r); select(r.id); $("#fName").focus();
 });
 $("#dupBtn").addEventListener("click", () => {
@@ -521,11 +513,11 @@ $("#pasteOk").addEventListener("click", () => {
   let added = 0;
   lines.forEach(line => {
     const cols = (line.includes("\t") ? line.split("\t") : line.split(",")).map(x => x.trim());
-    let [name, to, cc, company] = [cols[0] || "", cols[1] || "", cols[2] || "", cols[3] || ""];
+    let [name, to, company] = [cols[0] || "", cols[1] || "", cols[2] || ""];
     if (/^名前$/.test(name) && /メール|To/i.test(to)) return;          // 見出し行
     if (!to && isMail(name)) { to = name; name = ""; }                  // アドレスだけの行
     if (!to) return;
-    state.rows.push({ id: uid(), name, to, cc, company, subject:null, body:null, filepath:null });
+    state.rows.push({ id: uid(), name, to, company, subject:null, body:null, filepath:null });
     added++;
   });
   dlg.close(); render();
@@ -641,17 +633,6 @@ function buildMapping(guessHead) {
     sel.onchange = updatePreview;
   });
 
-  const ccStart = head.findIndex(h => h && /^cc/i.test(h));
-  const used = new Set(Object.values(guess).filter(i => i >= 0));
-  const box = $("#mCc");
-  box.innerHTML = labels.map((l, i) => {
-    const on = ccStart >= 0 && i >= ccStart && !used.has(i);
-    return `<label><input type="checkbox" value="${i}" ${on ? "checked" : ""}><span>${esc(l)}</span></label>`;
-  }).join("");
-  box.querySelectorAll("input").forEach(c => c.onchange = updatePreview);
-  const firstOn = box.querySelector("input:checked");
-  if (firstOn) box.scrollTop = firstOn.parentElement.offsetTop - box.offsetTop;
-
   updatePreview();
 }
 
@@ -659,18 +640,16 @@ function readImportRows() {
   const aoa = imp.sheets[imp.sheet] || [];
   const map = {};
   document.querySelectorAll("[data-map]").forEach(sel => { map[sel.dataset.map] = Number(sel.value); });
-  const ccCols = [...$("#mCc").querySelectorAll("input:checked")].map(c => Number(c.value));
   const get = (r, i) => i >= 0 ? cellText(r[i]) : "";
 
   const out = [];
   aoa.slice(imp.headRow + 1).forEach(r => {
     const to = get(r, map.to);
     if (!to) return;
-    const cc = ccCols.map(i => get(r, i)).filter(Boolean).join(", ");
     const subject = get(r, map.subject);
     const body = brToNl(get(r, map.body));
     out.push({
-      id: uid(), name: get(r, map.name), to, cc, company: get(r, map.company),
+      id: uid(), name: get(r, map.name), to, company: get(r, map.company),
       subject: subject || null, body: body || null,
       filepath: get(r, map.filepath) || null
     });
@@ -712,14 +691,14 @@ function buildSheet() {
   const sep = state.sep;
   const bcc = splitAddrs(state.bcc).join(sep);
   const rows = state.rows.filter(r => splitAddrs(r.to).length);
-  const maxCc = rows.reduce((m, r) => Math.max(m, rowCc(r).length), 0);
+  const cc = rowCc();
+  const maxCc = cc.length;
 
   const head = HEADERS.slice();
   for (let i = 1; i < maxCc; i++) head.push("");
   const aoa = [head];
 
   rows.forEach(row => {
-    const cc = rowCc(row);
     const body = effBody(row);
     aoa.push([
       row.name || "",
