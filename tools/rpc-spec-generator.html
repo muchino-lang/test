@@ -194,10 +194,9 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
 .sh-sum { text-align: right; padding: 6px 24px 2px; font-size: 11px; color: var(--txtM); word-break: break-all; }
 .sh-meta { display: flex; justify-content: space-between; gap: 12px; padding: 6px 24px 10px; font-size: 12px; color: var(--txtM); }
 .sh-body { padding: 0 24px 18px; }
-.sh-notice { border: 1.5px solid var(--pri); border-left-width: 6px; border-radius: 8px;
-  background: var(--priL); padding: 11px 15px; margin: 12px 0 4px; }
-.sh-notice .n-ttl { font-size: 14px; font-weight: 800; color: var(--pri); line-height: 1.5; }
-.sh-notice .n-body { font-size: 12px; color: var(--txt); margin-top: 5px; line-height: 1.7; white-space: pre-wrap; }
+.sh-notice { margin: 12px 0 6px; color: #c0392b; }
+.sh-notice .n-ttl { font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; line-height: 1.7; }
+.sh-notice .n-body { font-size: 11.5px; line-height: 1.7; margin-top: 2px; padding-left: 1.1em; white-space: pre-wrap; }
 .sh-body .img-center { text-align: center; margin: 10px 0; }
 .sh-body .img-center img { max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; }
 .spec-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -228,7 +227,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
   .sheet { box-shadow: none; border: none; border-radius: 0; }
   .spec-tbl th.sec-hdr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .price-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .sh-notice { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sh-notice { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #c0392b !important; }
 }
 @media (max-width: 600px) {
   .grid, .grid3 { grid-template-columns: 1fr; }
@@ -501,12 +500,12 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
 
   <!-- Notice box -->
   <div class="sec">
-    <div class="sec-title">◆ お知らせ（仕様書内にボックス表示）</div>
+    <div class="sec-title">◆ お知らせ（仕様書に ※注記として表示）</div>
     <div style="margin-bottom:10px">
       <label class="tgl" for="showNotice">
         <input type="checkbox" id="showNotice" />
         <span class="track"></span>
-        <span id="showNoticeLabel">お知らせボックスを仕様書に表示する</span>
+        <span id="showNoticeLabel">お知らせを仕様書に表示する</span>
       </label>
     </div>
     <div class="fld">
@@ -516,7 +515,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
     <div class="fld" style="margin-top:8px">
       <label for="noticeBody">本文（簡潔に）</label>
       <textarea id="noticeBody" style="min-height:56px">メーカー・型番のみが異なり、仕様・価格は本仕様書と同一です。掲載が確定次第、ECサイトにてご案内いたします。</textarea>
-      <span class="hint">仕様書の先頭に枠付きで表示されます。未入力の項目は出力されません。</span>
+      <span class="hint">仕様書の先頭に、赤字・下線の ※注記として表示されます。未入力の項目は出力されません。</span>
     </div>
   </div>
 
@@ -997,7 +996,7 @@ function noticeMarkup() {
   const title = V("noticeTitle"), body = V("noticeBody");
   if (!title && !body) return "";
   return '<div class="sh-notice">' +
-    (title ? '<div class="n-ttl">【お知らせ】' + esc(title) + "</div>" : "") +
+    (title ? '<div class="n-ttl">※' + esc(title) + "</div>" : "") +
     (body ? '<div class="n-body">' + esc(body) + "</div>" : "") +
     "</div>";
 }
@@ -1158,10 +1157,9 @@ function downloadWord() {
     ".price-box.draft{border-top-color:#e0a44a;color:#a35200}" +
     ".price-box.draft .v{color:#a35200}" +
     ".notes{margin-top:10px;font-size:9pt;color:#555;white-space:pre-wrap;line-height:1.6}" +
-    ".notice{border:1pt solid #1a3a5c;border-left:4pt solid #1a3a5c;background:#eef3f8;" +
-    "padding:8pt 10pt;margin:8pt 0 6pt}" +
-    ".notice .nt{font-size:12pt;font-weight:700;color:#1a3a5c}" +
-    ".notice .nb{font-size:9.5pt;color:#1c1c1c;margin-top:3pt;white-space:pre-wrap}" +
+    ".notice{margin:8pt 0 6pt;color:#c0392b}" +
+    ".notice .nt{font-size:10.5pt;font-weight:700;text-decoration:underline}" +
+    ".notice .nb{font-size:9pt;margin-top:2pt;padding-left:1.1em;white-space:pre-wrap}" +
     ".img-box{text-align:center;margin:10px 0}" +
     ".img-box img{max-width:360px}" +
     ".foot{margin-top:14px;font-size:8pt;color:#888;white-space:pre-wrap;line-height:1.5}" +
@@ -1177,7 +1175,7 @@ function downloadWord() {
       : "") +
     (($("showNotice").checked && (V("noticeTitle") || V("noticeBody")))
       ? '<div class="notice">' +
-        (V("noticeTitle") ? '<div class="nt">【お知らせ】' + esc(V("noticeTitle")) + "</div>" : "") +
+        (V("noticeTitle") ? '<div class="nt">※' + esc(V("noticeTitle")) + "</div>" : "") +
         (V("noticeBody") ? '<div class="nb">' + esc(V("noticeBody")) + "</div>" : "") +
         "</div>"
       : "") +
@@ -2669,7 +2667,7 @@ function init() {
   });
   $("showNotice").addEventListener("change", () => {
     $("showNoticeLabel").textContent = $("showNotice").checked
-      ? "お知らせボックスを表示中" : "お知らせボックスを仕様書に表示する";
+      ? "お知らせを表示中" : "お知らせを仕様書に表示する";
     save();
     if (inPreview()) renderPreview();
   });
