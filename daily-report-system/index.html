@@ -137,6 +137,16 @@ textarea{resize:vertical;min-height:56px}
 .catchip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 10px;font-size:11px;color:var(--sub);transition:.15s}
 .catchip:hover{border-color:var(--brand);color:var(--brand)}
 .catchip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+/* 前回の宣言の振り返り */
+.actcard{border:1px solid var(--amber);background:rgba(245,158,11,.07);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.actcard>h4{font-size:13px;display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.actitem{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px;margin-top:9px}
+.actitem .meta{font-size:10.5px;color:var(--sub);margin-bottom:3px}
+.actitem .txt{font-size:12.5px;white-space:pre-wrap;line-height:1.6}
+.actitem .ops{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.actitem input.note{flex:1;min-width:150px;font-size:11.5px;padding:5px 9px}
+.btn.yes{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.no{background:var(--bad);border-color:var(--bad);color:#fff}
 /* 実績のワンタップ候補 */
 .sugrow{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:7px}
 .sugrow>.lb{font-size:10.5px;font-weight:700;color:var(--sub);flex:none;padding-top:3px}
@@ -276,6 +286,7 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
 
 <!-- ================= TODAY ================= -->
 <section class="view on" id="v-today">
+  <div id="actBox"></div>
   <div id="statusAlert"></div>
 
   <!-- 強制表示：今日の重点 -->
@@ -621,11 +632,12 @@ rebuildSkillIndex();
 const KEY='drSkillMap.v1';
 
 /* ============ ストア ============ */
-const blank = ()=>({version:1,settings:{name:'',theme:'auto'},reports:[],eval:{},pins:[],skills:null,draft:null});
+const blank = ()=>({version:1,settings:{name:'',theme:'auto'},reports:[],eval:{},pins:[],skills:null,draft:null,acts:[]});
 let DB = load();
 function load(){
   try{const r=JSON.parse(localStorage.getItem(KEY));
     if(r&&r.reports){ const d=Object.assign(blank(),r);
+      if(!Array.isArray(d.acts)) d.acts=[];
       // CSVで差し替えたスキル表があればそれを使う
       if(Array.isArray(d.skills)&&d.skills.length){ SKILLS=d.skills; rebuildSkillIndex(); }
       // 旧バージョンのバックアップにも対応（存在しない項目IDは捨てる）
@@ -1289,8 +1301,9 @@ $('#btnSave').onclick=()=>{
   }
   DB.reports.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
   DB.settings.name=d.name;
+  syncActs(newId,d.date,d.topics);
   DB.draft=null;
-  save(); refreshKpi(); renderFocus(); renderEvPins(); renderStatus();
+  save(); refreshKpi(); renderFocus(); renderEvPins(); renderStatus(); renderActs();
   // 保存してもフォームは消さない。以降の保存は同じ日報の上書きになる
   editing=newId;
   const t=reportText(d); showOut(t); const copied=copy(t);
@@ -1308,6 +1321,51 @@ $('#btnNew').onclick=()=>{
 };
 $('#btnClear').onclick=()=>{ if(!confirm('入力内容をクリアしますか？（保存済みの日報は消えません）')) return;
   clearForm(); DB.draft=null; save(); };
+
+/* ---- 「次にどうする」の宣言と、翌日の振り返り ---- */
+// 保存時に各モ・ゲ・ジョ分析の［だからこうする］を宣言として端末に残す
+function syncActs(rid,date,topics){
+  const keep=new Set();
+  topics.forEach((t,i)=>{
+    const text=(t.w||'').trim(); if(!text) return;
+    const key=rid+'#'+i; keep.add(key);
+    const cur=DB.acts.find(a=>a.key===key);
+    if(cur){ cur.date=date; cur.title=t.title||''; cur.text=text; }
+    else DB.acts.push({key,rid,date,title:t.title||'',text,done:null,note:'',answeredAt:''});
+  });
+  // その日報から消えた宣言は取り下げ扱いで削除（回答済みは残す）
+  DB.acts=DB.acts.filter(a=>a.rid!==rid||keep.has(a.key)||a.done!=null);
+}
+const pendingActs = ()=> DB.acts.filter(a=>a.done==null&&a.date<today()).sort((a,b)=>b.date.localeCompare(a.date));
+function renderActs(){
+  const list=pendingActs(), box=$('#actBox');
+  if(!list.length){ box.innerHTML=''; return; }
+  const show=list.slice(0,3), rest=list.length-show.length;
+  box.innerHTML=`<div class="actcard">
+    <h4>🔁 前回の「次にどうする」— 実践できましたか？</h4>
+    <div class="xs muted">書いて終わりにしないための確認です。できなかった場合も正直に。原因が次の打ち手になります。</div>
+    ${show.map(a=>`<div class="actitem" data-key="${esc(a.key)}">
+      <div class="meta">${a.date}${a.title?`　【${esc(a.title)}】`:''}</div>
+      <div class="txt">${esc(a.text)}</div>
+      <div class="ops">
+        <button class="btn sm yes" data-ans="1">できた</button>
+        <button class="btn sm no" data-ans="0">できなかった</button>
+        <input type="text" class="note" placeholder="ひとこと（できなかった理由・やったこと）任意">
+        <button class="btn sm" data-ans="skip">あとで</button>
+      </div>
+    </div>`).join('')}
+    ${rest>0?`<div class="xs muted" style="margin-top:8px">ほか ${rest}件が未回答です（回答すると次が出てきます）</div>`:''}
+  </div>`;
+  box.querySelectorAll('.actitem').forEach(el=>{
+    el.querySelectorAll('[data-ans]').forEach(b=>b.onclick=()=>{
+      const v=b.dataset.ans; if(v==='skip'){ el.remove(); if(!$('#actBox .actitem')) $('#actBox').innerHTML=''; return; }
+      const a=DB.acts.find(x=>x.key===el.dataset.key); if(!a) return;
+      a.done=v==='1'; a.note=el.querySelector('.note').value.trim(); a.answeredAt=today();
+      save(); renderActs(); renderReview();
+      toast(a.done?'できた、を記録しました 🎉':'できなかった、を記録しました。今日の日報でその原因を書きましょう');
+    });
+  });
+}
 
 /* ---- 下書きの自動保存（誤ってタブを閉じても消えないように） ---- */
 let draftTimer=null, draftDirty=false;
@@ -1559,7 +1617,9 @@ function renderHist(){
 }
 function delReport(id){
   if(!confirm('この日報を削除しますか？紐づく実績記録も一緒に消えます。')) return;
-  DB.reports=DB.reports.filter(r=>r.id!==id); save(); refreshKpi(); renderHist(); renderFocus(); renderStatus(); toast('削除しました');
+  DB.reports=DB.reports.filter(r=>r.id!==id);
+  DB.acts=DB.acts.filter(a=>a.rid!==id||a.done!=null);
+  save(); refreshKpi(); renderHist(); renderFocus(); renderStatus(); renderActs(); toast('削除しました');
 }
 function copyOne(id){ const r=DB.reports.find(x=>x.id===id); if(!r) return; toast(copy(reportText(r))?'コピーしました':'コピーできませんでした'); }
 
@@ -1577,7 +1637,11 @@ function renderReview(){
     <div class="kpibox"><b>${evTot}</b><span>実績記録の総数</span></div>
     <div class="kpibox"><b>${cov}/${SKILLS.length}</b><span>実績のある項目（${Math.round(cov/SKILLS.length*100)}%）</span></div>
     <div class="kpibox"><b>${avg}</b><span>自己評価 平均スコア（0-4）</span></div>
-    <div class="kpibox"><b>${SKILLS.filter(s=>(ix[s.id]||[]).length>=3).length}</b><span>語れる項目（3件以上）</span></div>`;
+    <div class="kpibox"><b>${SKILLS.filter(s=>(ix[s.id]||[]).length>=3).length}</b><span>語れる項目（3件以上）</span></div>
+    ${(()=>{const lim=days?new Date(Date.now()-days*864e5).toISOString().slice(0,10):'';
+      const a=DB.acts.filter(x=>!lim||x.date>=lim), ans=a.filter(x=>x.done!=null), ok=ans.filter(x=>x.done);
+      return `<div class="kpibox"><b>${ans.length?Math.round(ok.length/ans.length*100)+'%':'—'}</b>
+        <span>宣言の実践率（${ok.length}/${ans.length}件・宣言${a.length}件）</span></div>`;})()}`;
 
   const barBlock=(label,items)=>{
     const c=items.filter(s=>(ix[s.id]||[]).length>0).length, p=items.length?c/items.length*100:0;
@@ -1787,7 +1851,7 @@ function initUI(){
   $('#setAgent').value=agentUrl(); syncAgentLinks();
   clearForm();
   restoreDraft();
-  refreshKpi(); renderStatus(); renderFocus(); renderEvPins(); renderMap(); renderHist(); renderReview();
+  refreshKpi(); renderStatus(); renderActs(); renderFocus(); renderEvPins(); renderMap(); renderHist(); renderReview();
 }
 initUI();
 </script>
