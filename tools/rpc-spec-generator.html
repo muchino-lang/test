@@ -194,6 +194,10 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
 .sh-sum { text-align: right; padding: 6px 24px 2px; font-size: 11px; color: var(--txtM); word-break: break-all; }
 .sh-meta { display: flex; justify-content: space-between; gap: 12px; padding: 6px 24px 10px; font-size: 12px; color: var(--txtM); }
 .sh-body { padding: 0 24px 18px; }
+.sh-notice { border: 1.5px solid var(--pri); border-left-width: 6px; border-radius: 8px;
+  background: var(--priL); padding: 11px 15px; margin: 12px 0 4px; }
+.sh-notice .n-ttl { font-size: 14px; font-weight: 800; color: var(--pri); line-height: 1.5; }
+.sh-notice .n-body { font-size: 12px; color: var(--txt); margin-top: 5px; line-height: 1.7; white-space: pre-wrap; }
 .sh-body .img-center { text-align: center; margin: 10px 0; }
 .sh-body .img-center img { max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; }
 .spec-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -224,6 +228,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
   .sheet { box-shadow: none; border: none; border-radius: 0; }
   .spec-tbl th.sec-hdr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .price-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sh-notice { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 @media (max-width: 600px) {
   .grid, .grid3 { grid-template-columns: 1fr; }
@@ -489,9 +494,29 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
       <textarea id="notes" placeholder="画像は参考画像です。" style="min-height:60px"></textarea>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
         <span class="hint">定型文：</span>
-        <button class="mini-btn" type="button" data-note-tpl="addModel">機種追加の可能性について</button>
         <button class="mini-btn" type="button" data-note-tpl="refImage">画像は参考画像です</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Notice box -->
+  <div class="sec">
+    <div class="sec-title">◆ お知らせ（仕様書内にボックス表示）</div>
+    <div style="margin-bottom:10px">
+      <label class="tgl" for="showNotice">
+        <input type="checkbox" id="showNotice" />
+        <span class="track"></span>
+        <span id="showNoticeLabel">お知らせボックスを仕様書に表示する</span>
+      </label>
+    </div>
+    <div class="fld">
+      <label for="noticeTitle">見出し（1行）</label>
+      <input id="noticeTitle" value="同等スペックの別機種を追加掲載する場合がございます" />
+    </div>
+    <div class="fld" style="margin-top:8px">
+      <label for="noticeBody">本文（簡潔に）</label>
+      <textarea id="noticeBody" style="min-height:56px">メーカー・型番のみが異なり、仕様・価格は本仕様書と同一です。掲載が確定次第、ECサイトにてご案内いたします。</textarea>
+      <span class="hint">仕様書の先頭に枠付きで表示されます。未入力の項目は出力されません。</span>
     </div>
   </div>
 
@@ -689,15 +714,6 @@ const WARRANTY_LIST = ["R∞PCAcademy(4年保証)","R∞PC(1年保証)","R∞PC(
  * model that is actually on the sheet rather than a fixed one.
  */
 const NOTE_TEMPLATES = {
-  addModel: () => {
-    const model = [V("maker"), V("productName")].filter(Boolean).join(" ") || "FUJITSU LIFEBOOK U9311";
-    return "※掲載機種についての補足\n" +
-      "現在、調達の調整を進めており、もう1機種を追加で掲載する可能性がございます。" +
-      "掲載が確定次第、ECサイトにて随時お知らせいたします。\n" +
-      "メイン機種は " + model + " を予定しております。" +
-      "追加機種はメーカー・型番が異なるのみで、仕様・スペックはほぼ同一となる見込みです。\n" +
-      "お客様には同一のスペック・同一価格でご案内し、メーカーと機種のみをお選びいただく形を想定しております。";
-  },
   refImage: () => "画像は参考画像です。",
 };
 
@@ -710,7 +726,8 @@ const FIELD_IDS = [
   "memory","storage","opticalDrive","displaySize","wifi","resolution","numpad","camera",
   "os","osNote","weight","refUrl","preinstall","office",
   "hdmi","usbTypeC","usbTypeA","lanPort","vgaPort","sdSlot","audioJack","bluetooth","otherPort",
-  "accessories","warranty","warrantyUrl","warrantyDetail","priceType","price","notes",
+  "accessories","warranty","warrantyUrl","warrantyDetail","priceType","price",
+  "noticeTitle","noticeBody","notes",
 ];
 const STORAGE_KEY = "roopc-spec-generator-v1";
 const PRESET_KEY = "roopc-spec-presets-v1";
@@ -970,6 +987,21 @@ function footnote() {
     "米国およびその他の国における登録商標または商標です。";
 }
 
+/**
+ * A short boxed notice at the head of the sheet, for something the reader must
+ * not miss (a second model being listed, for instance). Emitted only when the
+ * switch is on and there is text; each line is dropped when empty.
+ */
+function noticeMarkup() {
+  if (!$("showNotice").checked) return "";
+  const title = V("noticeTitle"), body = V("noticeBody");
+  if (!title && !body) return "";
+  return '<div class="sh-notice">' +
+    (title ? '<div class="n-ttl">【お知らせ】' + esc(title) + "</div>" : "") +
+    (body ? '<div class="n-body">' + esc(body) + "</div>" : "") +
+    "</div>";
+}
+
 /** Meta line parts. Each is omitted entirely when its field is blank. */
 const yearLine = () => (V("targetYear") ? V("targetYear") + "年度入学生向け" : "");
 const personLine = () => (V("person") ? V("person") : "");
@@ -1037,6 +1069,7 @@ function renderPreview() {
       : "") +
     '<div class="sh-body">';
 
+  html += noticeMarkup();
   if (imageData) html += '<div class="img-center"><img src="' + imageData + '" alt="商品画像" /></div>';
 
   html += '<table class="spec-tbl"><tbody>';
@@ -1125,6 +1158,10 @@ function downloadWord() {
     ".price-box.draft{border-top-color:#e0a44a;color:#a35200}" +
     ".price-box.draft .v{color:#a35200}" +
     ".notes{margin-top:10px;font-size:9pt;color:#555;white-space:pre-wrap;line-height:1.6}" +
+    ".notice{border:1pt solid #1a3a5c;border-left:4pt solid #1a3a5c;background:#eef3f8;" +
+    "padding:8pt 10pt;margin:8pt 0 6pt}" +
+    ".notice .nt{font-size:12pt;font-weight:700;color:#1a3a5c}" +
+    ".notice .nb{font-size:9.5pt;color:#1c1c1c;margin-top:3pt;white-space:pre-wrap}" +
     ".img-box{text-align:center;margin:10px 0}" +
     ".img-box img{max-width:360px}" +
     ".foot{margin-top:14px;font-size:8pt;color:#888;white-space:pre-wrap;line-height:1.5}" +
@@ -1136,6 +1173,12 @@ function downloadWord() {
     (yearLine() || personLine()
       ? '<div class="meta"><span>' + esc(yearLine()) + "</span>" +
         (personLine() ? '<span class="rt">担当：<b>' + esc(personLine()) + "</b></span>" : "") +
+        "</div>"
+      : "") +
+    (($("showNotice").checked && (V("noticeTitle") || V("noticeBody")))
+      ? '<div class="notice">' +
+        (V("noticeTitle") ? '<div class="nt">【お知らせ】' + esc(V("noticeTitle")) + "</div>" : "") +
+        (V("noticeBody") ? '<div class="nb">' + esc(V("noticeBody")) + "</div>" : "") +
         "</div>"
       : "") +
     (imageData ? '<div class="img-box"><img src="' + imageData + '" /></div>' : "") +
@@ -1171,6 +1214,7 @@ function save() {
     const data = {
       fields: {}, showPrice: $("showPrice").checked,
       isDraft: isDraft(), isDraftPrice: isDraftPrice(), isSuggested: isSuggested(),
+      showNotice: $("showNotice").checked,
       image: imageData, logo: logoData,
     };
     FIELD_IDS.forEach((id) => { data.fields[id] = V(id); });
@@ -1197,6 +1241,7 @@ function restore() {
   $("isDraft").checked = !!data.isDraft;
   $("isDraftPrice").checked = !!data.isDraftPrice;
   $("isSuggested").checked = !!data.isSuggested;
+  $("showNotice").checked = !!data.showNotice;
   if (data.image) setImage(data.image);
   if (data.logo) setLogo(data.logo);
   return true;
@@ -1273,7 +1318,7 @@ function snapshot() {
   return {
     fields, showPrice: $("showPrice").checked,
     isDraft: isDraft(), isDraftPrice: isDraftPrice(), isSuggested: isSuggested(),
-    image: imageData,
+    showNotice: $("showNotice").checked, image: imageData,
   };
 }
 
@@ -1293,6 +1338,7 @@ function applySnapshot(snap) {
   $("isDraft").checked = !!snap.isDraft;
   $("isDraftPrice").checked = !!snap.isDraftPrice;
   $("isSuggested").checked = !!snap.isSuggested;
+  $("showNotice").checked = !!snap.showNotice;
   setImage(snap.image || null);
   syncPriceRow();
   syncDraft();
@@ -1500,6 +1546,7 @@ function resetAll() {
   $("isDraft").checked = false;
   $("isDraftPrice").checked = false;
   $("isSuggested").checked = false;
+  $("showNotice").checked = false;
   setImage(null);
   syncPriceRow();
   syncDraft();
@@ -2618,6 +2665,12 @@ function init() {
   });
   $("isSuggested").addEventListener("change", () => {
     syncPriceRow(); save();
+    if (inPreview()) renderPreview();
+  });
+  $("showNotice").addEventListener("change", () => {
+    $("showNoticeLabel").textContent = $("showNotice").checked
+      ? "お知らせボックスを表示中" : "お知らせボックスを仕様書に表示する";
+    save();
     if (inPreview()) renderPreview();
   });
 
