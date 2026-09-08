@@ -137,6 +137,13 @@ textarea{resize:vertical;min-height:56px}
 .catchip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 10px;font-size:11px;color:var(--sub);transition:.15s}
 .catchip:hover{border-color:var(--brand);color:var(--brand)}
 .catchip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+/* スキルマップ実績セクション（折りたたみ） */
+.evsec .evhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px;cursor:pointer;border-radius:12px}
+.evsec .evhead:hover{background:rgba(79,70,229,.05)}
+.evsec .evbody{padding:0 13px 13px}
+.evsec.closed .evbody{display:none}
+.evsec .evchev{color:var(--brand);font-size:13px;transition:transform .2s}
+.evsec.closed .evchev{transform:rotate(-90deg)}
 /* ハイライト（◎／△） */
 .hl{border:1px solid var(--line);border-left-width:3px;border-radius:9px;padding:9px 11px;margin-bottom:7px;background:var(--panel2)}
 .hl.good{border-left-color:var(--ok)}
@@ -347,18 +354,27 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
         </div>
       </div>
 
-      <!-- 達成項目（本システムの核） -->
-      <div style="margin-top:18px;border:1px solid var(--brand);border-radius:12px;padding:13px;background:rgba(79,70,229,.05)">
-        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <!-- 深掘り -->
+      <div style="margin-top:18px">
+        <label class="f">■ 3. 深掘りと次のアクション<span class="xs muted">／ 任意・深掘りは1日1つでよい</span></label>
+        <div id="topicBox"></div>
+        <div id="topicNotice"></div>
+        <button class="btn dz sm" id="btnAddTopic">＋ 深掘りを追加する</button>
+      </div>
+      <!-- スキルマップ実績（既定は折りたたみ） -->
+      <div id="evSection" class="evsec closed" style="margin-top:18px;border:1px solid var(--brand);border-radius:12px;background:rgba(79,70,229,.05)">
+        <div class="evhead" id="evHead">
           <div>
-            <label class="f" style="margin:0;color:var(--brand)">■ 3. 今日できたこと＝スキルマップ実績 <span style="color:var(--bad)">*</span> 最低1件</label>
-            <div class="xs muted">「この項目に対してこういう事象があった」を書く。ここが評価面談の材料になって貯まっていく。</div>
+            <label class="f" style="margin:0;color:var(--brand);cursor:pointer">■ 4. 今日できたこと＝スキルマップ実績 <span style="color:var(--bad)">*</span> 最低1件 <span id="evCount" class="chip"></span></label>
+            <div class="xs muted">評価面談の材料として貯まっていく記録です。日報を書き終えてから開いてください。</div>
           </div>
           <div class="row" style="gap:6px">
             <button class="btn p sm" id="btnAi">🤖 AIに割り当てさせる</button>
             <button class="btn sm" id="btnPick">＋ 手動で選ぶ</button>
+            <span class="evchev">▾</span>
           </div>
         </div>
+        <div class="evbody">
         <div id="evSuggest"></div>
         <div class="idcall">
           <div class="row" style="justify-content:space-between;width:100%">
@@ -375,14 +391,8 @@ pre.out{background:#0b1120;color:#e2e8f0;border-radius:12px;padding:14px;font-si
           </div>
         </div>
         <div id="evBox"></div>
-      </div>
+        </div>
 
-      <!-- モゲジョ -->
-      <div style="margin-top:18px">
-        <label class="f">■ 4. 深掘りと次のアクション<span class="xs muted">／ 任意・深掘りは1日1つでよい</span></label>
-        <div id="topicBox"></div>
-        <div id="topicNotice"></div>
-        <button class="btn dz sm" id="btnAddTopic">＋ 深掘りを追加する</button>
       </div>
 
       <div class="row" style="margin-top:18px;justify-content:space-between">
@@ -900,6 +910,9 @@ function renderTopicNotice(){
     `<div class="alert w" style="margin:0 0 8px">💡 <div>深掘りは<b>なくても日報は提出できます</b>。ただ、◎△どちらか1つでも掘り下げて次の一手まで書けるといいですね。<br>
       業務内容の行にある <b>🔬</b> を押すと、その業務をそのままテーマにして深掘りを作れます。</div></div>`;
 }
+$('#evHead').onclick=e=>{ if(!e.target.closest('button')) toggleEvSection(); };
+// 「AIに割り当てさせる」「手動で選ぶ」を押したら自動で開く
+['#btnAi','#btnPick'].forEach(id=>$(id).addEventListener('click',()=>toggleEvSection(true),true));
 $('#btnAddTopic').onclick=()=>{$('#topicBox').appendChild(topicBlock());renumberTopics();renderTopicNotice();};
 
 /* ---- 実績（エビデンス）行 ---- */
@@ -938,11 +951,11 @@ function addEv(sid,jump){
     <div class="xs muted" style="margin-bottom:5px">基準：${esc(s.std)}</div>
     <div class="evtasks"></div>
     <textarea class="ev-t" rows="2" placeholder="この項目に対して、今日どういう事象があったか（誰に・何を・どうした・結果どうなった）"></textarea>`;
-  d.querySelector('.iconbtn').onclick=()=>{d.remove(); renderEvEmpty(); renderEvPins();};
+  d.querySelector('.iconbtn').onclick=()=>{d.remove(); renderEvEmpty(); renderEvPins(); renderEvCount();};
   fillEvTasks(d);
   $('#evBox').appendChild(d);
   if(jump){ goTab('today'); d.scrollIntoView({behavior:'smooth',block:'center'}); d.querySelector('.ev-t').focus(); }
-  renderEvEmpty(); renderEvPins();
+  renderEvEmpty(); renderEvPins(); renderEvCount();
 }
 // 実績のワンタップ候補（モーダルを開かずにここで選び終われるようにする）
 function freqTop(n){
@@ -978,6 +991,16 @@ function renderEvPins(){
 // 業務内容や気づきを書き換えたら候補も追従させる
 let sugTimer=null;
 function scheduleSuggest(){ clearTimeout(sugTimer); sugTimer=setTimeout(renderEvPins,400); }
+function toggleEvSection(open){
+  const s=$('#evSection');
+  s.classList.toggle('closed', open===undefined? !s.classList.contains('closed') : !open);
+}
+function renderEvCount(){
+  const n=$$('#evBox .evrow').length;
+  const c=$('#evCount');
+  c.textContent = n? `${n}件` : '未記入';
+  c.className = n? 'chip lv1' : 'chip pr1';
+}
 function renderEvEmpty(){
   const box=$('#evBox');
   const ph=box.querySelector('.emptymsg');
@@ -1204,7 +1227,7 @@ function importPasted(raw){
     ok++;
   });
   $('#evPaste').value='';
-  renderEvEmpty(); renderEvPins();
+  renderEvEmpty(); renderEvPins(); renderEvCount();
   toast(ok? `${ok}件を取り込みました。内容は自分の言葉で確認・修正してください` : 'すべて追加済みの項目でした');
   if(ok) $('#evBox').lastElementChild.scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -1266,7 +1289,7 @@ $('#aiImport').onclick=()=>{
     added++;
   });
   $('#aiModal').classList.remove('on');
-  renderEvEmpty(); renderEvPins();
+  renderEvEmpty(); renderEvPins(); renderEvCount();
   toast(added?`${added}件を取り込みました。内容を自分の言葉で確認・修正してください`:'すべて追加済みの項目でした');
   $('#evBox').scrollIntoView({behavior:'smooth',block:'center'});
 };
@@ -1298,8 +1321,9 @@ function clearForm(keepDate){
   if(!keepDate) $('#fDate').value=today();
   $('#fName').value=DB.settings.name||'';
   $('#taskBox').innerHTML=''; $('#taskBox').appendChild(taskRow()); renumberTasks();
-  $('#fGood').value=''; $('#fBad').value=''; $('#evBox').innerHTML=''; renderEvEmpty(); renderEvPins();
+  $('#fGood').value=''; $('#fBad').value=''; $('#evBox').innerHTML=''; renderEvEmpty(); renderEvPins(); renderEvCount();
   $('#topicBox').innerHTML=''; renderTopicNotice(); $('#outBox').style.display='none';
+  $('#evSection').classList.add('closed');
   $$('.err').forEach(e=>e.classList.remove('err'));
 }
 function loadReport(id){
@@ -1311,7 +1335,7 @@ function loadReport(id){
   $('#fGood').value=r.good||''; $('#fBad').value=r.bad||(r.good?'':r.insight||'');
   $('#evBox').innerHTML='';
   (r.ev||[]).forEach(e=>{ addEv(e.sid); const row=$(`#evBox [data-sid="${e.sid}"]`); if(row) row.querySelector('.ev-t').value=e.text||''; });
-  renderEvEmpty(); renderEvPins();
+  renderEvEmpty(); renderEvPins(); renderEvCount();
   $('#topicBox').innerHTML=''; (r.topics||[]).forEach(t=>$('#topicBox').appendChild(topicBlock(t))); renumberTopics(); renderTopicNotice();
   $('#editNote').textContent=`※ ${r.date} の日報を編集中です。保存すると上書きされます。`;
   goTab('today'); window.scrollTo({top:0});
@@ -1324,8 +1348,10 @@ function validate(){
   if(!d.tasks.length){ const t=$$('.tk')[0]; t.classList.add('err'); bad ||= t; }
   if(!d.good&&!d.bad){ $('#fGood').classList.add('err'); $('#fBad').classList.add('err'); bad ||= $('#fGood'); }
   const evs=$$('#evBox .evrow');
-  if(!evs.length){ toast('スキルマップの達成項目を最低1件、記録してください'); goTab('today'); $('#btnPick').focus(); $('#btnPick').scrollIntoView({behavior:'smooth',block:'center'}); return null; }
+  if(!evs.length){ toast('スキルマップの達成項目を最低1件、記録してください'); goTab('today'); toggleEvSection(true);
+    $('#evSection').scrollIntoView({behavior:'smooth',block:'center'}); return null; }
   evs.forEach(r=>{ const t=r.querySelector('.ev-t'); if(!t.value.trim()){ t.classList.add('err'); bad ||= t; } });
+  if(bad&&bad.closest('#evSection')) toggleEvSection(true);
   if(bad){ toast('未入力の必須項目があります（赤枠を確認）'); bad.focus(); bad.scrollIntoView({behavior:'smooth',block:'center'}); return null; }
   return d;
 }
@@ -1434,7 +1460,7 @@ function restoreDraft(){
   (d.ev||[]).forEach(e=>{ if(!SMAP[e.sid]) return; addEv(e.sid);
     const r=$(`#evBox [data-sid="${e.sid}"]`); if(r) r.querySelector('.ev-t').value=e.text||''; });
   $('#topicBox').innerHTML=''; (d.topics||[]).forEach(t=>$('#topicBox').appendChild(topicBlock(t)));
-  renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins();
+  renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins(); renderEvCount();
   $('#editNote').innerHTML='📝 前回の入力途中の内容を復元しました。（保存はまだされていません）';
   return true;
 }
@@ -1465,9 +1491,9 @@ ${d.tasks.map(t=>'・'+t).join('\n')}
 ◎ ${d.good||'（特になし）'}
 △ ${d.bad||'（特になし）'}
 
-■ 3. 今日できたこと（スキルマップ実績）
+${tp?`■ 3. 深掘りと次のアクション\n${tp}\n\n`:''}■ 4. 今日できたこと（スキルマップ実績）
 ${ev}
-${tp?`\n■ 4. 深掘りと次のアクション\n${tp}\n`:''}━━━━━━━━━━━━━━━━━━━━━━`;
+━━━━━━━━━━━━━━━━━━━━━━`;
 }
 function showOut(t){ const b=$('#outBox'); b.textContent=t; b.style.display='block'; b.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 function copy(t){
@@ -1506,7 +1532,7 @@ $('#btnSample').onclick=()=>{
     h:'説明の組み立てを、来場者が何で迷うかを確かめないまま価格・スペック中心で用意していた。相手の判断基準を先に確認していなかったことが要因。',
     w:'・今週木曜までに自由記述を「使い方・価格・時期」の3分類で整理し、頻出の不安点を抽出する。\n・来週火曜までに冒頭2分のトークを利用シーン起点に再構成し、次回展示で当日申込率が動くか試す。',
     j:'説明資料を作る前に、相手が何で迷っているかを確かめる。確かめられないときは仮説を明示してから作る。'}));
-  renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins();
+  renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins(); renderEvCount();
   toast('見本データを流し込みました');
 };
 

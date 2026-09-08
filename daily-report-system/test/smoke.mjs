@@ -20,6 +20,9 @@ await p.fill('#fGood','新規取引先の与信申請を楽楽販売で入力し
 const cand=await p.locator('#evSuggest .sugrow').last().locator('.sug').allTextContents();
 ok('候補に与信関連', cand.some(c=>c.includes('与信')));
 // 貼付枠でJSON取り込み
+ok('実績セクションは既定で畳まれている', await p.locator('#evSection.closed').count()===1);
+await p.click('#evHead'); await p.waitForTimeout(300);
+ok('ヘッダーで開く', await p.locator('#evSection.closed').count()===0);
 await p.fill('#evPaste','[{"id":"S063","evidence":"与信申請を差し戻しゼロで通した。"}]');
 await p.click('#btnIdCall'); await p.waitForTimeout(400);
 ok('JSON取り込み', await p.locator('#evBox .evrow').count()===1);
