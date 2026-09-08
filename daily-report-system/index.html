@@ -927,11 +927,16 @@ function topicBlock(t={}){
 }
 function renumberTopics(){ $$('#topicBox .topic .tlabel').forEach((e,i)=>e.textContent='分析 '+(i+1)); renumberTasks(); }
 // モ・ゲ・ジョは必須ではないが、1件も無いときは声かけを出す
+// 深掘りは必ず1つ、開いた状態で置いておく（下書き・履歴の読み込み後も）
+function ensureTopic(){
+  if(!$$('#topicBox .topic').length){ $('#topicBox').appendChild(topicBlock()); renumberTopics(); }
+  const first=$('#topicBox .topic'); if(first) first.classList.remove('closed');
+}
 function renderTopicNotice(){
   const n=$$('#topicBox .topic').filter(t=>
     [...t.querySelectorAll('input,textarea')].some(e=>e.value.trim())).length;
   $('#topicNotice').innerHTML = n ? '' :
-    `<div class="alert w" style="margin:8px 0 0">💡 <div><b>◎△どちらか1つを、上の欄で深掘りしてください。</b>提出はブロックしませんが、ここが日報の中心です。<br>
+    `<div class="alert w" style="margin:8px 0 0">💡 <div><b>◎△どちらか1つを、上の欄で深掘りしてください。</b>空のままでも保存はできますが、ここが日報でいちばん大事なところです。<br>
       業務内容の行にある <b>🔬</b> を押すと、その業務をそのままテーマにした深掘りを追加できます。</div></div>`;
 }
 $('#topicBox').addEventListener('input',()=>{renderTopicNotice();renumberTasks();});
@@ -1347,8 +1352,7 @@ function clearForm(keepDate){
   $('#fName').value=DB.settings.name||'';
   $('#taskBox').innerHTML=''; $('#taskBox').appendChild(taskRow()); renumberTasks();
   $('#fGood').value=''; $('#fBad').value=''; $('#evBox').innerHTML=''; renderEvEmpty(); renderEvPins(); renderEvCount();
-  // 深掘りは最低1つ書いてほしいので、最初から1ブロック開いた状態で置く
-  $('#topicBox').innerHTML=''; $('#topicBox').appendChild(topicBlock()); renumberTopics();
+  $('#topicBox').innerHTML=''; ensureTopic();
   renderTopicNotice(); $('#outBox').style.display='none';
   $('#evSection').classList.add('closed');
   $$('.err').forEach(e=>e.classList.remove('err'));
@@ -1363,7 +1367,8 @@ function loadReport(id){
   $('#evBox').innerHTML='';
   (r.ev||[]).forEach(e=>{ addEv(e.sid); const row=$(`#evBox [data-sid="${e.sid}"]`); if(row) row.querySelector('.ev-t').value=e.text||''; });
   renderEvEmpty(); renderEvPins(); renderEvCount();
-  $('#topicBox').innerHTML=''; (r.topics||[]).forEach(t=>$('#topicBox').appendChild(topicBlock(t))); renumberTopics(); renderTopicNotice();
+  $('#topicBox').innerHTML=''; (r.topics||[]).forEach(t=>$('#topicBox').appendChild(topicBlock(t)));
+  ensureTopic(); renumberTopics(); renderTopicNotice();
   $('#editNote').textContent=`※ ${r.date} の日報を編集中です。保存すると上書きされます。`;
   goTab('today'); window.scrollTo({top:0});
   toast(r.date+' の日報を読み込みました');
@@ -1487,7 +1492,7 @@ function restoreDraft(){
   (d.ev||[]).forEach(e=>{ if(!SMAP[e.sid]) return; addEv(e.sid);
     const r=$(`#evBox [data-sid="${e.sid}"]`); if(r) r.querySelector('.ev-t').value=e.text||''; });
   $('#topicBox').innerHTML=''; (d.topics||[]).forEach(t=>$('#topicBox').appendChild(topicBlock(t)));
-  renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins(); renderEvCount();
+  ensureTopic(); renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins(); renderEvCount();
   $('#editNote').innerHTML='📝 前回の入力途中の内容を復元しました。（保存はまだされていません）';
   return true;
 }
@@ -1552,6 +1557,7 @@ $('#btnSample').onclick=()=>{
              '展示会レポートで、来場87件／当日申込9件という事実と、「説明の切り口がズレていた」という自分の解釈を分けて記載した。',
              '「決め切れない要因は価格ではなく利用イメージの不足」という仮説を立て、次回展示の冒頭トークで検証する設計にした。'];
   pick.forEach((s,i)=>{ addEv(s.id); const r=$(`#evBox [data-sid="${s.id}"]`); if(r) r.querySelector('.ev-t').value=txt[i]||''; });
+  $('#topicBox').innerHTML='';
   $('#topicBox').appendChild(topicBlock({title:'展示会での案内・接客フロー改善', pick:'bad',
     p:'展示会を認知の場ではなく「購入導線を固定する場」に位置づけ、来場者からの成約率を引き上げること。',
     s:'来場87件に対し当日申込は9件と約1割。持ち帰り検討組へのフォロー導線がなく離脱後の追跡ができていない。',
@@ -1559,7 +1565,7 @@ $('#btnSample').onclick=()=>{
     h:'説明の組み立てを、来場者が何で迷うかを確かめないまま価格・スペック中心で用意していた。相手の判断基準を先に確認していなかったことが要因。',
     w:'・今週木曜までに自由記述を「使い方・価格・時期」の3分類で整理し、頻出の不安点を抽出する。\n・来週火曜までに冒頭2分のトークを利用シーン起点に再構成し、次回展示で当日申込率が動くか試す。',
     j:'説明資料を作る前に、相手が何で迷っているかを確かめる。確かめられないときは仮説を明示してから作る。'}));
-  renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins(); renderEvCount();
+  ensureTopic(); renumberTopics(); renderTopicNotice(); renderEvEmpty(); renderEvPins(); renderEvCount();
   toast('見本データを流し込みました');
 };
 
