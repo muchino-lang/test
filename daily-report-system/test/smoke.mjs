@@ -20,6 +20,8 @@ await p.fill('#fGood','新規取引先の与信申請を楽楽販売で入力し
 const cand=await p.locator('#evSuggest .sugrow').last().locator('.sug').allTextContents();
 ok('候補に与信関連', cand.some(c=>c.includes('与信')));
 // 貼付枠でJSON取り込み
+ok('深掘りが既定で1つ開いている', await p.locator('#topicBox .topic').count()===1 && await p.locator('#topicBox .topic .body').first().isVisible());
+ok('使い方ガイドがある', await p.locator('.guide li').count()===3);
 ok('実績セクションは既定で畳まれている', await p.locator('#evSection.closed').count()===1);
 await p.click('#evHead'); await p.waitForTimeout(300);
 ok('ヘッダーで開く', await p.locator('#evSection.closed').count()===0);
