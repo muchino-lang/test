@@ -116,6 +116,9 @@ table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ptbl .nm { font-weight: 600; word-break: break-word; }
 .ptbl .addr { color: var(--txtM); white-space: nowrap; }
 .ptbl .ver { font-weight: 700; color: var(--pri); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ptbl td.pr { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ptbl td.pr .pr-in { display: block; font-size: 10px; font-weight: 600; color: #888; }
+.ptbl thead th { line-height: 1.35; }
 .ptbl .tm { color: #888; white-space: nowrap; font-size: 10.5px; }
 .ptbl .acts { white-space: nowrap; text-align: right; }
 .ptbl .acts .mini-btn { padding: 3px 8px; }
@@ -1553,11 +1556,18 @@ function renderPresets() {
 
   const row = (p, showAddr) => {
     const times = fmtTime(p.savedAt) + (p.updatedAt !== p.savedAt ? "　/　更新 " + fmtTime(p.updatedAt) : "");
-    const spec = specSummaryOf(p.fields || {});
+    const f = p.fields || {};
+    const spec = specSummaryOf(f);
+    // The price is what tells two versions of one addressee apart, so it gets a column.
+    const ex = qToNum(f.price);
+    const priceCell = ex && p.showPrice !== false
+      ? '<td class="pr">¥' + qFmt(ex) + '<span class="pr-in">税込 ¥' + qFmt(Math.round(ex * 1.1)) + "</span></td>"
+      : '<td class="pr" style="color:#bbb">－</td>';
     return "<tr>" +
       (showAddr ? '<td class="addr">' + esc(p.addressee || "（宛名なし）") + "</td>" : "") +
       '<td class="ver">v' + (p.version || 1) + "</td>" +
       "<td>" + presetBadges(p) + "</td>" +
+      priceCell +
       '<td><span class="nm"' + (p.name ? ' title="' + esc(p.name) + '"' : "") + ">" +
         esc(spec || "（内容なし）") + "</span></td>" +
       '<td class="tm">' + esc(times) + "</td>" +
@@ -1580,7 +1590,7 @@ function renderPresets() {
     keys.forEach((key) => {
       const items = groups.get(key);
       const head = key ? key + (items[0].honorific ? "　" + items[0].honorific : "") : "（宛名なし）";
-      body += '<tr class="grp"><td colspan="5">' + esc(head) +
+      body += '<tr class="grp"><td colspan="6">' + esc(head) +
         '<span class="count">' + items.length + "件</span></td></tr>";
       items.forEach((p) => { body += row(p, false); });
     });
@@ -1590,7 +1600,7 @@ function renderPresets() {
 
   box.innerHTML = '<div class="ptbl-wrap"><table class="ptbl"><thead><tr>' +
     (grouped ? "" : "<th>宛名</th>") +
-    "<th>版</th><th>種別</th><th>内容</th><th>登録日時</th><th></th>" +
+    "<th>版</th><th>種別</th><th>価格<br>（税抜）</th><th>内容</th><th>登録日時</th><th></th>" +
     "</tr></thead><tbody>" + body + "</tbody></table></div>";
 }
 
