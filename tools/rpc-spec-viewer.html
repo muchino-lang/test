@@ -212,7 +212,7 @@ footer b{color:var(--ink-2)}
     <h1><small>R∞PC 価格・スペック 早見盤</small>2026年8月1日 改定版</h1>
     <div class="meta">
       保証 <b>2年（LIGHT）</b> / <b>4年（中間・参考値）</b> / <b>無期限（R∞PC）</b><br>
-      出典：R∞PC価格表 ver.4「【改定版】2026年8月1日～」
+      出典：R∞PC価格表 ver.4「【改定版】2026年8月1日～」／原価・粗利は常に税別
     </div>
   </div>
 </header>
@@ -232,10 +232,10 @@ footer b{color:var(--ink-2)}
       <button type="button" data-m="endGp" aria-pressed="false">粗利</button>
       <button type="button" data-m="cost" aria-pressed="false">原価</button>
     </div></div>
-    <div class="seg" id="taxseg">
+    <div class="field"><label for="taxseg">価格</label><div class="seg" id="taxseg">
       <button type="button" data-tax="ex" aria-pressed="true">税別</button>
       <button type="button" data-tax="in" aria-pressed="false">税込</button>
-    </div>
+    </div></div>
   </div>
 </div>
 
@@ -362,6 +362,8 @@ function buildMatrix() {
   });
   const vals = rows.map(value).filter(v => v != null);
   const lo = Math.min(...vals), hi = Math.max(...vals);
+  const METLAB = { end: "エンド価格", wh: "卸価格", endGp: "粗利（エンド）", cost: "原価" };
+  $("#mxhint").textContent = `${METLAB[state.metric]}・${state.metric === "end" || state.metric === "wh" ? (state.tax === "in" ? "税込" : "税別") : "税別"}／${["2年", "4年", "無期限"][state.war]}保証`;
   $("#scmin").textContent = showMoney(lo);
   $("#scmax").textContent = showMoney(hi);
   const heat = v => `color-mix(in srgb, var(--heat) ${(8 + 54 * (hi === lo ? .5 : (v - lo) / (hi - lo))).toFixed(1)}%, var(--panel))`;
@@ -488,10 +490,10 @@ function card(m) {
     <dl class="specs">${core.map(s => `<dt>${s[0]}</dt><dd${lead.has(s[0]) ? ' class="lead"' : ""}>${s[1]}</dd>`).join("")}</dl>
     ${opts.length ? `<div class="opts">${opts.map(o => `<span class="opt"><b>${o.name}</b> ${o.val}</span>`).join("")}</div>` : ""}
     <div class="pw"><table>
-      <thead><tr><th>保証</th>${ps.map(p => `<th class="${p.cls}">${p.label}<br><span class="sup">${p.sub}</span></th>`).join("")}</tr></thead>
+      <thead><tr><th>保証 <span class="sup">${state.tax === "in" ? "税込" : "税別"}表示</span></th>${ps.map(p => `<th class="${p.cls}">${p.label}<br><span class="sup">${p.sub}</span></th>`).join("")}</tr></thead>
       <tbody>
         ${rows.map((r, i) => `<tr class="${r.key === "end" ? "end" : r.key === "wh" ? "wh" : "sub"}${r.key === "cost" ? " cost" : ""}${r.key.includes("Gp") ? " gp" : ""}${(r.key === "cost" || r.key === "rate") ? " rule-top" : ""}">
-          <th scope="row">${r.label}${r.internal && r.money ? ' <span>税別</span>' : ""}</th>
+          <th scope="row">${r.label}${r.money ? ` <span>${r.internal ? "税別" : (state.tax === "in" ? "税込" : "税別")}</span>` : ""}</th>
           ${ps.map(p => `<td class="${r.key === "end" ? p.cls : ""}">${cellText(m, r, p)}</td>`).join("")}</tr>`).join("")}
       </tbody>
     </table></div>
@@ -541,7 +543,8 @@ function pad(s, w) { return s + " ".repeat(Math.max(0, w - width(s))); }
 function tableData(m) {
   const ps = visCols(m), rows = visRows(), q = quoteOf(m);
   const head = ["保証", ...ps.map(p => p.label + (p.key === "w4" ? "（参考）" : `（${p.sub}）`))];
-  const body = rows.map(r => [r.label, ...ps.map(p => cellText(m, r, p))]);
+  const taxLab = state.tax === "in" ? "税込" : "税別";
+  const body = rows.map(r => [r.label + (r.money ? `（${r.internal ? "税別" : taxLab}）` : ""), ...ps.map(p => cellText(m, r, p))]);
   const title = `${m.code}（${m.cat}）`;
   const sub = [m.cpu, m.ram, m.st, m.os].filter(Boolean).join(" ／ ");
   const taxNote = `※金額は${state.tax === "in" ? "税込" : "税別"}です。${state.rows.has("cost") || state.rows.has("endGp") || state.rows.has("whGp") ? "原価・粗利は税別。" : ""}`;
