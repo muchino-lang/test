@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>営業資料ファインダー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#F2F3F1;
+    --surface:#FFFFFF;
+    --surface-2:#E9EBE8;
+    --line:#D7DBD6;
+    --line-strong:#BCC3BD;
+    --ink:#1A1E1C;
+    --muted:#5F6862;
+    --accent:#10635A;
+    --accent-ink:#0B4A43;
+    --accent-soft:#DCEBE7;
+    --on-accent:#FFFFFF;
+    --ok:#2C6E49;
+    --warn:#8F5310;
+    --danger:#9B2C2C;
+    --shadow:0 1px 2px rgba(20,32,28,.06), 0 8px 24px rgba(20,32,28,.07);
+    --radius:10px;
+    --font-display:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    --font-body:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121614;
+      --surface:#1A201D;
+      --surface-2:#232A27;
+      --line:#333C38;
+      --line-strong:#48534D;
+      --ink:#E6EBE7;
+      --muted:#9AA6A0;
+      --accent:#58C7B2;
+      --accent-ink:#A7E3D6;
+      --accent-soft:#1E3A35;
+      --on-accent:#0C1512;
+      --ok:#6FCF97;
+      --warn:#E0A458;
+      --danger:#E98B8B;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121614;
+    --surface:#1A201D;
+    --surface-2:#232A27;
+    --line:#333C38;
+    --line-strong:#48534D;
+    --ink:#E6EBE7;
+    --muted:#9AA6A0;
+    --accent:#58C7B2;
+    --accent-ink:#A7E3D6;
+    --accent-soft:#1E3A35;
+    --on-accent:#0C1512;
+    --ok:#6FCF97;
+    --warn:#E0A458;
+    --danger:#E98B8B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:96px;
+  }
+  button,input,select,textarea{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+  .wrap{max-width:1060px;margin:0 auto;padding-inline:18px}
+
+  /* ---------- header ---------- */
+  header.bar{
+    position:sticky;
+    top:env(safe-area-inset-top, 0px);
+    z-index:40;
+    background:color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .bar-inner{display:flex;flex-direction:column;gap:12px;padding-block:14px 12px}
+  .brandrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+  .brand h1{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:19px;
+    letter-spacing:.02em;
+    margin:0;
+    white-space:nowrap;
+  }
+  .brand .tag{
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-family:var(--font-mono);font-weight:500;
+  }
+  .counts{font-size:12.5px;color:var(--muted);font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .counts b{color:var(--ink);font-weight:500}
+
+  .searchrow{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+  .field{
+    position:relative;flex:1 1 320px;min-width:0;
+    display:flex;align-items:center;
+    background:var(--surface);
+    border:1.5px solid var(--line-strong);
+    border-radius:var(--radius);
+    transition:border-color .12s ease, box-shadow .12s ease;
+  }
+  .field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .field svg{flex:none;margin-left:12px;color:var(--muted)}
+  #q{
+    flex:1;min-width:0;border:0;background:transparent;outline:none;
+    padding:11px 10px;font-size:16px;font-weight:500;
+  }
+  #q::placeholder{color:var(--muted);font-weight:400}
+  .slash{
+    flex:none;margin-right:8px;padding:2px 7px;border-radius:5px;
+    background:var(--surface-2);color:var(--muted);
+    font-family:var(--font-mono);font-size:11px;line-height:1.6;
+  }
+  .clear-btn{
+    flex:none;border:0;background:transparent;color:var(--muted);
+    cursor:pointer;padding:6px 10px;font-size:13px;
+  }
+  .clear-btn:hover{color:var(--ink)}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:6px;justify-content:center;
+    border:1.5px solid var(--line-strong);background:var(--surface);
+    border-radius:var(--radius);padding:9px 14px;
+    font-size:13.5px;font-weight:500;cursor:pointer;
+    white-space:nowrap;transition:background .12s ease,border-color .12s ease,color .12s ease;
+  }
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .btn.primary:hover{opacity:.88;color:var(--on-accent);border-color:var(--accent)}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+  .btn.ghost:hover{background:var(--surface-2);color:var(--ink)}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .chip{
+    border:1px solid var(--line-strong);background:transparent;color:var(--muted);
+    border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer;
+    transition:all .12s ease;
+  }
+  .chip:hover{color:var(--ink);border-color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .chip .n{font-family:var(--font-mono);font-size:11px;opacity:.7;margin-left:4px}
+
+  /* ---------- notice ---------- */
+  .notice{
+    margin-top:16px;padding:12px 14px;border-radius:var(--radius);
+    background:var(--surface);border:1px solid var(--line);
+    border-left:3px solid var(--warn);
+    font-size:13.5px;color:var(--muted);
+  }
+  .notice b{color:var(--ink);font-weight:700}
+
+  /* ---------- list ---------- */
+  main{padding-top:18px}
+  .group{margin-bottom:26px}
+  .group-head{
+    display:flex;align-items:center;gap:10px;
+    padding:0 2px 8px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:2px;
+  }
+  .group-head h2{
+    font-family:var(--font-display);font-weight:700;font-size:14px;
+    letter-spacing:.06em;margin:0;
+  }
+  .group-head .n{
+    font-family:var(--font-mono);font-size:11.5px;color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+
+  .row{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    align-items:center;
+    gap:12px;
+    padding:11px 12px 11px 6px;
+    border-bottom:1px solid var(--line);
+    background:var(--surface);
+  }
+  .row:first-of-type{border-top-left-radius:var(--radius);border-top-right-radius:var(--radius)}
+  .row:last-of-type{border-bottom:0;border-bottom-left-radius:var(--radius);border-bottom-right-radius:var(--radius)}
+  .group .rows{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:10px;box-shadow:var(--shadow)}
+  .row:hover{background:var(--surface-2)}
+  .row.is-selected{background:var(--accent-soft)}
+
+  .pick{display:flex;align-items:center;justify-content:center;width:34px;flex:none}
+  .pick input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+
+  .info{min-width:0}
+  .title{
+    font-weight:500;font-size:15px;line-height:1.5;
+    overflow-wrap:anywhere;
+  }
+  .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px}
+  .badge{
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;
+    padding:1px 6px;border-radius:4px;
+    background:var(--surface-2);color:var(--muted);
+    border:1px solid var(--line);
+  }
+  .badge.fmt-pdf{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%, var(--line))}
+  .badge.fmt-ppt{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 35%, var(--line))}
+  .badge.price{
+    color:var(--accent-ink);background:var(--accent-soft);
+    border-color:color-mix(in srgb,var(--accent) 30%, var(--line));
+    font-variant-numeric:tabular-nums;font-weight:500;
+  }
+  :root[data-theme="dark"] .badge.price{color:var(--accent-ink)}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+  .acts{display:flex;gap:6px;align-items:center;flex:none}
+  .iconbtn{
+    border:1px solid var(--line-strong);background:var(--surface);
+    border-radius:7px;padding:5px 9px;font-size:12.5px;cursor:pointer;
+    color:var(--muted);white-space:nowrap;
+    transition:all .12s ease;
+  }
+  .iconbtn:hover{color:var(--accent);border-color:var(--accent)}
+  .iconbtn.copied{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .iconbtn.mini{padding:5px 7px}
+
+  .empty{
+    text-align:center;padding:52px 20px;color:var(--muted);
+    border:1px dashed var(--line-strong);border-radius:var(--radius);
+  }
+  .empty strong{display:block;font-family:var(--font-display);font-size:16px;color:var(--ink);margin-bottom:6px}
+
+  .skeleton{height:56px;border-bottom:1px solid var(--line);background:
+    linear-gradient(90deg,var(--surface) 0%,var(--surface-2) 50%,var(--surface) 100%);
+    background-size:200% 100%;animation:sk 1.4s ease-in-out infinite}
+  @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  @media (prefers-reduced-motion: reduce){.skeleton{animation:none}}
+
+  /* ---------- selection bar ---------- */
+  .selbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:var(--surface);
+    border-top:1px solid var(--line-strong);
+    box-shadow:0 -6px 24px rgba(20,32,28,.10);
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .selbar-inner{
+    max-width:1060px;margin:0 auto;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .selbar .count{
+    font-family:var(--font-mono);font-size:13px;font-variant-numeric:tabular-nums;
+    color:var(--ink);margin-right:auto;
+  }
+  .selbar .count b{color:var(--accent);font-size:16px}
+
+  /* ---------- dialog ---------- */
+  dialog{
+    border:1px solid var(--line-strong);border-radius:14px;
+    background:var(--surface);color:var(--ink);
+    padding:0;width:min(560px, calc(100vw - 32px));
+    box-shadow:0 24px 60px rgba(10,20,16,.28);
+  }
+  dialog::backdrop{background:rgba(12,20,17,.5)}
+  .dlg-head{
+    padding:18px 20px 12px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .dlg-head h3{margin:0;font-family:var(--font-display);font-size:16px;font-weight:700}
+  .dlg-body{padding:16px 20px;display:flex;flex-direction:column;gap:13px;max-height:66vh;overflow-y:auto}
+  .dlg-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap}
+  .f{display:flex;flex-direction:column;gap:5px}
+  .f label{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:500}
+  .f input,.f select,.f textarea{
+    border:1.5px solid var(--line-strong);border-radius:8px;
+    background:var(--bg);padding:9px 11px;font-size:14px;width:100%;
+  }
+  .f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .f .hint{font-size:11.5px;color:var(--muted)}
+  .f-row{display:flex;gap:11px;flex-wrap:wrap}
+  .f-row .f{flex:1 1 150px}
+  #f-url{font-family:var(--font-mono);font-size:13px}
+  .del-btn{margin-right:auto;border-color:transparent;background:transparent;color:var(--danger)}
+  .del-btn:hover{border-color:var(--danger);color:var(--danger)}
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed;left:50%;transform:translateX(-50%);
+    bottom:calc(96px + env(safe-area-inset-bottom, 0px));
+    z-index:80;
+    background:var(--ink);color:var(--bg);
+    padding:9px 18px;border-radius:999px;font-size:13.5px;font-weight:500;
+    box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;transition:opacity .18s ease, transform .18s ease;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  @media (prefers-reduced-motion: reduce){#toast{transition:none}}
+
+
+  .sitefoot{margin:34px auto 12px;padding-top:16px;border-top:1px solid var(--line)}
+  .footrow{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .foothint{font-size:12.5px;color:var(--muted);max-width:56ch}
+  .footacts{display:flex;gap:6px;flex-wrap:wrap}
+  .footacts .btn{font-size:12.5px;padding:6px 11px}
+
+  @media (max-width:620px){
+    .row{grid-template-columns:auto 1fr;row-gap:9px}
+    .acts{grid-column:2;justify-content:flex-start;flex-wrap:wrap}
+    .counts{width:100%}
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap bar-inner">
+    <div class="brandrow">
+      <div class="brand">
+        <h1>営業資料ファインダー</h1>
+        <span class="tag">Sales Assets</span>
+      </div>
+      <div class="counts" id="counts">読み込み中…</div>
+    </div>
+
+    <div class="searchrow">
+      <div class="field">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.2-3.2"></path></svg>
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="資料名・機種・価格で検索（例：84000／卸／実施要項／BYOD）">
+        <span class="slash" aria-hidden="true">/</span>
+        <button class="clear-btn" id="clear" type="button" hidden>クリア</button>
+      </div>
+      <button class="btn" id="add" type="button">＋ 資料を追加</button>
+    </div>
+
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="notice" id="notice" hidden></div>
+</div>
+
+<main class="wrap" id="list">
+  <div class="group">
+    <div class="group-head"><h2>読み込み中</h2></div>
+    <div class="rows"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+  </div>
+</main>
+
+<div class="selbar" id="selbar" hidden>
+  <div class="selbar-inner">
+    <div class="count"><b id="sel-n">0</b> 件を選択中</div>
+    <button class="btn" id="sel-copy-url" type="button">URLだけコピー</button>
+    <button class="btn primary" id="sel-copy-both" type="button">資料名＋URLをコピー</button>
+    <button class="btn ghost" id="sel-clear" type="button">選択を解除</button>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlg">
+  <form method="dialog" id="dlg-form">
+    <div class="dlg-head">
+      <h3 id="dlg-title">資料を追加</h3>
+      <button class="btn ghost" type="button" id="dlg-x" aria-label="閉じる">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f">
+        <label for="f-title">資料名</label>
+        <input id="f-title" required placeholder="例：U9311 エンド84000 仕様書">
+        <span class="hint">お客様に見せる正式ファイル名ではなく、自分が探しやすい呼び方でOKです。</span>
+      </div>
+      <div class="f">
+        <label for="f-url">URL</label>
+        <input id="f-url" required type="url" placeholder="https://app.box.com/s/...">
+      </div>
+      <div class="f-row">
+        <div class="f">
+          <label for="f-cat">カテゴリ</label>
+          <input id="f-cat" list="cats" placeholder="例：機種仕様（27年度）">
+          <datalist id="cats"></datalist>
+        </div>
+        <div class="f">
+          <label for="f-fmt">形式</label>
+          <select id="f-fmt">
+            <option value="PDF">PDF</option>
+            <option value="PPT">PPT</option>
+            <option value="XLS">XLS</option>
+            <option value="">その他</option>
+          </select>
+        </div>
+      </div>
+      <div class="f">
+        <label for="f-note">補足メモ</label>
+        <input id="f-note" placeholder="例：周辺機器手数料なし／固定コミッション">
+      </div>
+      <div class="f">
+        <label for="f-tags">検索キーワード</label>
+        <input id="f-tags" placeholder="スペース区切り：U9311 エンド 84000 税別">
+        <span class="hint">資料名に入っていない言葉でも、ここに入れておけば検索で引っかかります。</span>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn del-btn" type="button" id="dlg-del" hidden>削除</button>
+      <button class="btn" type="button" id="dlg-cancel">キャンセル</button>
+      <button class="btn primary" type="submit" id="dlg-save">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<footer class="wrap sitefoot">
+  <div class="footrow">
+    <span class="foothint">追加・編集したものはこのブラウザに保存されます。他の端末や同僚に渡すときは「書き出し」でファイル化してください。</span>
+    <span class="footacts">
+      <button class="btn ghost" type="button" id="io-export">書き出し</button>
+      <button class="btn ghost" type="button" id="io-import">読み込み</button>
+      <button class="btn ghost" type="button" id="io-reset">初期状態に戻す</button>
+      <input type="file" id="io-file" accept="application/json,.json" hidden>
+    </span>
+  </div>
+</footer>
+<script>
+
+(function(){
+  "use strict";
+
+  var DATA = [
+  {
+    "id": "m01",
+    "title": "当社ノートンPPOEM チラシ",
+    "url": "https://app.box.com/s/xu7591etd1y6y5o5cl9rqw6vh4v92ycc",
+    "category": "チラシ・パンフレット",
+    "format": "PDF",
+    "note": "",
+    "tags": "ノートン norton PPOEM チラシ 当社 セキュリティ 案内",
+    "model": "",
+    "priceLabel": "",
+    "order": 10
+  },
+  {
+    "id": "m02",
+    "title": "U9311 仕様書（価格記載なし）",
+    "url": "https://app.box.com/s/sc3kux0ugdzf94970ixz4d5nctrx3ud9",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 価格なし 価格記載なし 仕様 27年度 税別 提供機種",
+    "model": "U9311",
+    "priceLabel": "価格なし",
+    "order": 20
+  },
+  {
+    "id": "m03",
+    "title": "U9311 仕様書 エンド79,000円",
+    "url": "https://app.box.com/s/3bsvv1gijti567887qhh29abnfj1hjsh",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 エンド 79000 79,000 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "エンド 79,000",
+    "order": 21
+  },
+  {
+    "id": "m04",
+    "title": "U9311 仕様書 エンド81,636円",
+    "url": "https://app.box.com/s/pen1nkkh20s7qzwy3vixaxlba5vjdfup",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 エンド 81636 81,636 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "エンド 81,636",
+    "order": 22
+  },
+  {
+    "id": "m05",
+    "title": "U9311 仕様書 エンド84,000円",
+    "url": "https://app.box.com/s/qg745e35njaxj018aqifs9ixz62sw3ri",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 エンド 84000 84,000 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "エンド 84,000",
+    "order": 23
+  },
+  {
+    "id": "m06",
+    "title": "U9311 仕様書 エンド84,545円",
+    "url": "https://app.box.com/s/rz7lhs573z7nfrg4ohepfykfbb37i282",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 エンド 84545 84,545 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "エンド 84,545",
+    "order": 24
+  },
+  {
+    "id": "m07",
+    "title": "U9311 仕様書 エンド89,000円",
+    "url": "https://app.box.com/s/5pwhuiyr8m23kz8610tg937dgiw65irb",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 エンド 89000 89,000 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "エンド 89,000",
+    "order": 25
+  },
+  {
+    "id": "m08",
+    "title": "U9311 仕様書 エンド90,727円",
+    "url": "https://app.box.com/s/gmvhl33cozjvvasymzocc618wxippsfh",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 エンド 90727 90,727 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "エンド 90,727",
+    "order": 26
+  },
+  {
+    "id": "m09",
+    "title": "U9311 仕様書 卸75,000円",
+    "url": "https://app.box.com/s/i8yn2lrmtq8vwmr504wzstyulb0nch7m",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 卸 おろし 75000 75,000 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "卸 75,000",
+    "order": 27
+  },
+  {
+    "id": "m10",
+    "title": "U9311 仕様書 卸76,000円",
+    "url": "https://app.box.com/s/tp8vakou426zir0d8gn399vgcfgler1o",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 卸 おろし 76000 76,000 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "卸 76,000",
+    "order": 28
+  },
+  {
+    "id": "m11",
+    "title": "U9311 仕様書 卸79,000円",
+    "url": "https://app.box.com/s/1u3lrdqn5p824dxeezfwm1uv1l5m73gh",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 卸 おろし 79000 79,000 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "卸 79,000",
+    "order": 29
+  },
+  {
+    "id": "m12",
+    "title": "U9311 仕様書 卸82,727円",
+    "url": "https://app.box.com/s/ldqhqvn148f0lxib3mgw0nm3prnrcg7u",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9311 卸 おろし 82727 82,727 仕様 27年度 税別",
+    "model": "U9311",
+    "priceLabel": "卸 82,727",
+    "order": 30
+  },
+  {
+    "id": "m13",
+    "title": "U9312 仕様書 卸79,000円",
+    "url": "https://app.box.com/s/8wnjer2rv3lq9vzu502b231abuq5kp9s",
+    "category": "機種仕様（27年度）",
+    "format": "PDF",
+    "note": "27年度提供機種／税別",
+    "tags": "U9312 卸 おろし 79000 79,000 仕様 27年度 税別",
+    "model": "U9312",
+    "priceLabel": "卸 79,000",
+    "order": 31
+  },
+  {
+    "id": "m14",
+    "title": "27年度 実施要項｜既存・学校様用",
+    "url": "https://app.box.com/s/3k7bd8cr2vpkj65lvukd1fkl0n5q62da",
+    "category": "実施要項（27年度）",
+    "format": "PDF",
+    "note": "既存／学校様向け",
+    "tags": "実施要項 既存 学校 学校様 27年度",
+    "model": "",
+    "priceLabel": "",
+    "order": 40
+  },
+  {
+    "id": "m15",
+    "title": "27年度 実施要項｜既存・学園事業会社用（周辺機器手数料あり・固定コミッション）",
+    "url": "https://app.box.com/s/p4yppw2srnzbyrulz4spahft3d1q6jz8",
+    "category": "実施要項（27年度）",
+    "format": "PDF",
+    "note": "周辺機器手数料あり／固定コミッション",
+    "tags": "実施要項 既存 学園事業会社 周辺機器手数料あり 有り 固定コミッション 27年度",
+    "model": "",
+    "priceLabel": "",
+    "order": 41
+  },
+  {
+    "id": "m16",
+    "title": "27年度 実施要項｜既存・学園事業会社用（周辺機器手数料なし・固定コミッション）",
+    "url": "https://app.box.com/s/tybfqlvvx9t6azjitzo5z9swoj68r2o3",
+    "category": "実施要項（27年度）",
+    "format": "PDF",
+    "note": "周辺機器手数料なし／固定コミッション",
+    "tags": "実施要項 既存 学園事業会社 周辺機器手数料なし 無し 固定コミッション 27年度",
+    "model": "",
+    "priceLabel": "",
+    "order": 42
+  },
+  {
+    "id": "m17",
+    "title": "27年度 実施要項｜既存・学園事業会社用（周辺機器手数料なし・変動コミッション）",
+    "url": "https://app.box.com/s/v0on57czey9x7qd4ozluna3lu0n3e82w",
+    "category": "実施要項（27年度）",
+    "format": "PDF",
+    "note": "周辺機器手数料なし／変動コミッション",
+    "tags": "実施要項 既存 学園事業会社 周辺機器手数料なし 無し 変動コミッション 27年度",
+    "model": "",
+    "priceLabel": "",
+    "order": 43
+  },
+  {
+    "id": "m18",
+    "title": "27年度 実施要項｜新規・学園事業会社用（周辺機器手数料なし・変動コミッション）",
+    "url": "https://app.box.com/s/hzz0buxy6v7oyxby2u3q85h3t2w2pwd3",
+    "category": "実施要項（27年度）",
+    "format": "PDF",
+    "note": "周辺機器手数料なし／変動コミッション",
+    "tags": "実施要項 新規 学園事業会社 周辺機器手数料なし 無し 変動コミッション 27年度",
+    "model": "",
+    "priceLabel": "",
+    "order": 44
+  },
+  {
+    "id": "m19",
+    "title": "27年度 実施要項｜新規・学校様用",
+    "url": "https://app.box.com/s/qi5mwn8dy63nsly53a81056wglovs5jd",
+    "category": "実施要項（27年度）",
+    "format": "PDF",
+    "note": "新規／学校様向け",
+    "tags": "実施要項 新規 学校 学校様 27年度",
+    "model": "",
+    "priceLabel": "",
+    "order": 45
+  },
+  {
+    "id": "m20",
+    "title": "手数料設定シート（変動コミッション用）",
+    "url": "https://app.box.com/s/lw8xjzy96lyrkwr79nxnxqzjfk05me2s",
+    "category": "手数料設定",
+    "format": "PDF",
+    "note": "変動コミッションの実施要項とセットで使用",
+    "tags": "手数料設定シート 変動コミッション 手数料 シート",
+    "model": "",
+    "priceLabel": "",
+    "order": 50
+  },
+  {
+    "id": "m21",
+    "title": "事例資料（PDF）",
+    "url": "https://app.box.com/s/d96g29p1mz26h2b93qqcgari5znbvbhx",
+    "category": "事例資料",
+    "format": "PDF",
+    "note": "",
+    "tags": "事例 事例資料 導入事例 PDF",
+    "model": "",
+    "priceLabel": "",
+    "order": 60
+  },
+  {
+    "id": "m22",
+    "title": "事例資料（PPT）",
+    "url": "https://app.box.com/s/x685k9d9k43e56hyn2e5dmva624zs04s",
+    "category": "事例資料",
+    "format": "PPT",
+    "note": "編集可能版",
+    "tags": "事例 事例資料 導入事例 PPT パワポ 編集",
+    "model": "",
+    "priceLabel": "",
+    "order": 61
+  },
+  {
+    "id": "m23",
+    "title": "学校向け BYOD提案資料（PDF）",
+    "url": "https://app.box.com/s/fi91ihnhudfas0wsdies9qdnap39e4y2",
+    "category": "BYOD提案資料",
+    "format": "PDF",
+    "note": "",
+    "tags": "BYOD 提案資料 学校 学校向け PDF",
+    "model": "",
+    "priceLabel": "",
+    "order": 70
+  },
+  {
+    "id": "m24",
+    "title": "学校向け BYOD提案資料（PPT）",
+    "url": "https://app.box.com/s/lbce2pr2neqy6g4rvt54llmixz4ljgey",
+    "category": "BYOD提案資料",
+    "format": "PPT",
+    "note": "編集可能版",
+    "tags": "BYOD 提案資料 学校 学校向け PPT パワポ 編集",
+    "model": "",
+    "priceLabel": "",
+    "order": 71
+  },
+  {
+    "id": "m25",
+    "title": "事業会社向け BYOD提案資料（PDF）",
+    "url": "https://app.box.com/s/r7od61c3ojm3sqmpzzfob5lzj2ko604w",
+    "category": "BYOD提案資料",
+    "format": "PDF",
+    "note": "",
+    "tags": "BYOD 提案資料 事業会社 学園事業会社 PDF",
+    "model": "",
+    "priceLabel": "",
+    "order": 72
+  },
+  {
+    "id": "m26",
+    "title": "事業会社向け BYOD提案資料（PPT）",
+    "url": "https://app.box.com/s/n3lx9t3tw13b8hrvzu8on1p41hqvboft",
+    "category": "BYOD提案資料",
+    "format": "PPT",
+    "note": "編集可能版",
+    "tags": "BYOD 提案資料 事業会社 学園事業会社 PPT パワポ 編集",
+    "model": "",
+    "priceLabel": "",
+    "order": 73
+  },
+  {
+    "id": "m27",
+    "title": "新入生チラシ 24〜26年度入学生向け（テンプレサンプル）",
+    "url": "https://app.box.com/s/2p1xlfynwsz1ordd8ldbcqs4je114qg1",
+    "category": "新入生チラシ",
+    "format": "PDF",
+    "note": "既存テンプレのサンプル",
+    "tags": "新入生 チラシ 24年度 25年度 26年度 入学生 テンプレ サンプル",
+    "model": "",
+    "priceLabel": "",
+    "order": 80
+  },
+  {
+    "id": "m28",
+    "title": "新入生チラシ 27年度入学生向け（新テンプレ案）",
+    "url": "https://app.box.com/s/sbxs3g6lylzstg0nsfjnsgn5yx0ktv56",
+    "category": "新入生チラシ",
+    "format": "PDF",
+    "note": "新テンプレ案",
+    "tags": "新入生 チラシ 27年度 入学生 新テンプレ 案",
+    "model": "",
+    "priceLabel": "",
+    "order": 81
+  }
+];
+
+  var STORAGE_KEY = "shiryo-finder:v1";
+
+  var CAT_ORDER = [
+    "チラシ・パンフレット",
+    "機種仕様（27年度）",
+    "実施要項（27年度）",
+    "手数料設定",
+    "事例資料",
+    "BYOD提案資料",
+    "新入生チラシ"
+  ];
+
+  var items = [];
+  var loaded = false;
+  var selected = new Set();
+  var activeCat = null;
+  var editingId = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var qEl = $("q"), listEl = $("list"), chipsEl = $("chips"), countsEl = $("counts");
+  var selbar = $("selbar"), toastEl = $("toast"), dlg = $("dlg"), noticeEl = $("notice");
+
+  /* ---------- storage (this browser only) ---------- */
+  function load(){
+    var raw = null;
+    try { raw = window.localStorage.getItem(STORAGE_KEY); } catch (e) { raw = null; }
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.items) && parsed.items.length) return parsed.items;
+      } catch (e) { /* fall through to the built-in list */ }
+    }
+    return DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+  }
+  function save(){
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, items: strip(items) }));
+      return true;
+    } catch (e) {
+      toast("このブラウザに保存できませんでした（プライベートモードの可能性があります）");
+      return false;
+    }
+  }
+  function strip(list){
+    return list.map(function(it){
+      return {
+        id: it.id, title: it.title, url: it.url, category: it.category,
+        format: it.format, note: it.note, tags: it.tags,
+        model: it.model, priceLabel: it.priceLabel, order: it.order
+      };
+    });
+  }
+
+  /* ---------- text normalisation (kana / width tolerant) ---------- */
+  function norm(s){
+    if (s == null) return "";
+    return String(s)
+      .replace(/[！-～]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+      .replace(/[ァ-ヶ]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0x60); })
+      .replace(/[　\s,、，]/g, "")
+      .toLowerCase();
+  }
+  function haystack(it){
+    return norm([it.title, it.category, it.note, it.tags, it.format, it.url].join(" "));
+  }
+  function index(){
+    items.forEach(function(it){ it._hay = haystack(it); });
+  }
+
+  /* ---------- clipboard ---------- */
+  function copyText(text){
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function(){ return legacyCopy(text); });
+    }
+    return legacyCopy(text);
+  }
+  function legacyCopy(text){
+    return new Promise(function(resolve, reject){
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      ok ? resolve() : reject(new Error("copy failed"));
+    });
+  }
+  var toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 1800);
+  }
+  function doCopy(text, msg, btn){
+    copyText(text).then(function(){
+      toast(msg);
+      if (btn) {
+        var prev = btn.textContent;
+        btn.textContent = "コピー済";
+        btn.classList.add("copied");
+        setTimeout(function(){ btn.textContent = prev; btn.classList.remove("copied"); }, 1300);
+      }
+    }).catch(function(){
+      toast("コピーできませんでした。URLを長押し／右クリックでコピーしてください。");
+    });
+  }
+
+  /* ---------- sorting / filtering ---------- */
+  function catRank(c){
+    var i = CAT_ORDER.indexOf(c);
+    return i === -1 ? CAT_ORDER.length : i;
+  }
+  function sorted(){
+    return items.slice().sort(function(a, b){
+      var d = catRank(a.category) - catRank(b.category);
+      if (d) return d;
+      if (a.category !== b.category) return a.category < b.category ? -1 : 1;
+      var ao = typeof a.order === "number" ? a.order : 9e9;
+      var bo = typeof b.order === "number" ? b.order : 9e9;
+      if (ao !== bo) return ao - bo;
+      return a.id < b.id ? -1 : 1;
+    });
+  }
+  function matches(it, terms){
+    if (activeCat && it.category !== activeCat) return false;
+    if (!terms.length) return true;
+    var h = it._hay;
+    for (var i = 0; i < terms.length; i++) { if (h.indexOf(terms[i]) === -1) return false; }
+    return true;
+  }
+  function terms(){
+    if (!qEl.value.trim()) return [];
+    return qEl.value.trim().split(/[\s　]+/).map(norm).filter(Boolean);
+  }
+
+  /* ---------- rendering ---------- */
+  function badge(text, cls){
+    var s = document.createElement("span");
+    s.className = "badge" + (cls ? " " + cls : "");
+    s.textContent = text;
+    return s;
+  }
+
+  function line(it){
+    return it.title + "\n" + it.url;
+  }
+
+  function rowEl(it){
+    var row = document.createElement("div");
+    row.className = "row" + (selected.has(it.id) ? " is-selected" : "");
+    row.dataset.id = it.id;
+
+    var pick = document.createElement("div");
+    pick.className = "pick";
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = selected.has(it.id);
+    cb.id = "pick-" + it.id;
+    cb.setAttribute("aria-label", it.title + " を選択");
+    cb.addEventListener("change", function(){
+      if (cb.checked) selected.add(it.id); else selected.delete(it.id);
+      row.classList.toggle("is-selected", cb.checked);
+      renderSelbar();
+    });
+    pick.appendChild(cb);
+
+    var info = document.createElement("div");
+    info.className = "info";
+    var t = document.createElement("div");
+    t.className = "title";
+    t.textContent = it.title;
+    info.appendChild(t);
+
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    if (it.format) meta.appendChild(badge(it.format, it.format === "PDF" ? "fmt-pdf" : (it.format === "PPT" ? "fmt-ppt" : "")));
+    if (it.model) meta.appendChild(badge(it.model));
+    if (it.priceLabel) meta.appendChild(badge(it.priceLabel, "price"));
+    if (it.note) {
+      var n = document.createElement("span");
+      n.className = "note";
+      n.textContent = it.note;
+      meta.appendChild(n);
+    }
+    if (meta.childNodes.length) info.appendChild(meta);
+
+    var acts = document.createElement("div");
+    acts.className = "acts";
+
+    var bUrl = document.createElement("button");
+    bUrl.type = "button";
+    bUrl.className = "iconbtn";
+    bUrl.textContent = "URLコピー";
+    bUrl.addEventListener("click", function(){ doCopy(it.url, "URLをコピーしました", bUrl); });
+
+    var bBoth = document.createElement("button");
+    bBoth.type = "button";
+    bBoth.className = "iconbtn";
+    bBoth.textContent = "名前＋URL";
+    bBoth.addEventListener("click", function(){ doCopy(line(it), "資料名とURLをコピーしました", bBoth); });
+
+    var bOpen = document.createElement("a");
+    bOpen.className = "iconbtn";
+    bOpen.href = it.url;
+    bOpen.target = "_blank";
+    bOpen.rel = "noopener noreferrer";
+    bOpen.textContent = "開く";
+
+    var bEdit = document.createElement("button");
+    bEdit.type = "button";
+    bEdit.className = "iconbtn mini";
+    bEdit.title = "編集";
+    bEdit.setAttribute("aria-label", it.title + " を編集");
+    bEdit.textContent = "✎";
+    bEdit.addEventListener("click", function(){ openDialog(it); });
+
+    acts.appendChild(bUrl);
+    acts.appendChild(bBoth);
+    acts.appendChild(bOpen);
+    acts.appendChild(bEdit);
+
+    row.appendChild(pick);
+    row.appendChild(info);
+    row.appendChild(acts);
+    return row;
+  }
+
+  function render(){
+    var ts = terms();
+    var shown = sorted().filter(function(it){ return matches(it, ts); });
+
+    listEl.textContent = "";
+
+    countsEl.innerHTML = "";
+    countsEl.appendChild(document.createTextNode("表示 "));
+    var b1 = document.createElement("b"); b1.textContent = String(shown.length); countsEl.appendChild(b1);
+    countsEl.appendChild(document.createTextNode(" / 全 " + items.length + " 件"));
+
+    if (!items.length) {
+      var e0 = document.createElement("div");
+      e0.className = "empty";
+      var s0 = document.createElement("strong");
+      s0.textContent = "まだ資料が登録されていません";
+      e0.appendChild(s0);
+      e0.appendChild(document.createTextNode("右上の「＋ 資料を追加」から登録してください。"));
+      listEl.appendChild(e0);
+      return;
+    }
+
+    if (!shown.length) {
+      var e = document.createElement("div");
+      e.className = "empty";
+      var st = document.createElement("strong");
+      st.textContent = "「" + qEl.value.trim() + "」に一致する資料はありません";
+      e.appendChild(st);
+      e.appendChild(document.createTextNode("機種名（U9311）、価格（84000）、卸／エンド、カテゴリ名などでもう一度お試しください。"));
+      listEl.appendChild(e);
+      return;
+    }
+
+    var curCat = null, groupRows = null;
+    shown.forEach(function(it){
+      if (it.category !== curCat) {
+        curCat = it.category;
+        var g = document.createElement("section");
+        g.className = "group";
+        var gh = document.createElement("div");
+        gh.className = "group-head";
+        var h2 = document.createElement("h2");
+        h2.textContent = curCat || "未分類";
+        var n = document.createElement("span");
+        n.className = "n";
+        n.textContent = shown.filter(function(x){ return x.category === curCat; }).length + " 件";
+        gh.appendChild(h2); gh.appendChild(n);
+        groupRows = document.createElement("div");
+        groupRows.className = "rows";
+        g.appendChild(gh); g.appendChild(groupRows);
+        listEl.appendChild(g);
+      }
+      groupRows.appendChild(rowEl(it));
+    });
+  }
+
+  function renderChips(){
+    var counts = {};
+    items.forEach(function(it){ counts[it.category] = (counts[it.category] || 0) + 1; });
+    var cats = Object.keys(counts).sort(function(a, b){ return catRank(a) - catRank(b); });
+
+    chipsEl.textContent = "";
+    var all = document.createElement("button");
+    all.type = "button";
+    all.className = "chip";
+    all.setAttribute("aria-pressed", activeCat === null ? "true" : "false");
+    all.textContent = "すべて";
+    var an = document.createElement("span"); an.className = "n"; an.textContent = items.length;
+    all.appendChild(an);
+    all.addEventListener("click", function(){ activeCat = null; renderChips(); render(); });
+    chipsEl.appendChild(all);
+
+    cats.forEach(function(c){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.setAttribute("aria-pressed", activeCat === c ? "true" : "false");
+      b.textContent = c || "未分類";
+      var nn = document.createElement("span"); nn.className = "n"; nn.textContent = counts[c];
+      b.appendChild(nn);
+      b.addEventListener("click", function(){
+        activeCat = (activeCat === c) ? null : c;
+        renderChips(); render();
+      });
+      chipsEl.appendChild(b);
+    });
+
+    var dl = $("cats");
+    dl.textContent = "";
+    CAT_ORDER.concat(cats).filter(function(v, i, a){ return v && a.indexOf(v) === i; }).forEach(function(c){
+      var o = document.createElement("option");
+      o.value = c;
+      dl.appendChild(o);
+    });
+  }
+
+  function renderSelbar(){
+    var n = selected.size;
+    selbar.hidden = n === 0;
+    $("sel-n").textContent = String(n);
+  }
+
+  function selectedItems(){
+    return sorted().filter(function(it){ return selected.has(it.id); });
+  }
+
+  function refresh(){
+    index();
+    renderChips();
+    render();
+    renderSelbar();
+  }
+
+  /* ---------- dialog ---------- */
+  function openDialog(it){
+    editingId = it ? it.id : null;
+    $("dlg-title").textContent = it ? "資料を編集" : "資料を追加";
+    $("f-title").value = it ? it.title : "";
+    $("f-url").value = it ? it.url : "";
+    $("f-cat").value = it ? (it.category || "") : (activeCat || "");
+    $("f-fmt").value = it ? (it.format || "") : "PDF";
+    $("f-note").value = it ? (it.note || "") : "";
+    $("f-tags").value = it ? (it.tags || "") : "";
+    $("dlg-del").hidden = !it;
+    if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+    setTimeout(function(){ $("f-title").focus(); }, 30);
+  }
+  function closeDialog(){
+    if (typeof dlg.close === "function") dlg.close(); else dlg.removeAttribute("open");
+  }
+
+  $("add").addEventListener("click", function(){ openDialog(null); });
+  $("dlg-cancel").addEventListener("click", closeDialog);
+  $("dlg-x").addEventListener("click", closeDialog);
+
+  $("dlg-form").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var title = $("f-title").value.trim();
+    var url = $("f-url").value.trim();
+    if (!title || !url) return;
+
+    var body = {
+      title: title,
+      url: url,
+      category: $("f-cat").value.trim() || "未分類",
+      format: $("f-fmt").value,
+      note: $("f-note").value.trim(),
+      tags: $("f-tags").value.trim(),
+      model: "",
+      priceLabel: "",
+      order: Date.now()
+    };
+
+    if (editingId) {
+      var cur = items.filter(function(x){ return x.id === editingId; })[0];
+      if (cur) {
+        body.id = cur.id;
+        body.order = typeof cur.order === "number" ? cur.order : body.order;
+        body.model = cur.model || "";
+        body.priceLabel = cur.priceLabel || "";
+        items[items.indexOf(cur)] = body;
+      }
+    } else {
+      body.id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      items.push(body);
+    }
+
+    var wasEdit = !!editingId;
+    closeDialog();
+    if (save()) toast(wasEdit ? "更新しました" : "追加しました");
+    refresh();
+  });
+
+  $("dlg-del").addEventListener("click", function(){
+    if (!editingId) return;
+    var cur = items.filter(function(x){ return x.id === editingId; })[0];
+    if (!cur) return;
+    if (!window.confirm("「" + cur.title + "」を一覧から削除します。よろしいですか？")) return;
+    items.splice(items.indexOf(cur), 1);
+    selected.delete(cur.id);
+    closeDialog();
+    if (save()) toast("削除しました");
+    refresh();
+  });
+
+  /* ---------- search + shortcuts ---------- */
+  qEl.addEventListener("input", function(){
+    $("clear").hidden = !qEl.value;
+    render();
+  });
+  $("clear").addEventListener("click", function(){
+    qEl.value = ""; $("clear").hidden = true; render(); qEl.focus();
+  });
+  document.addEventListener("keydown", function(ev){
+    var tag = (ev.target && ev.target.tagName || "").toLowerCase();
+    var typing = tag === "input" || tag === "textarea" || tag === "select";
+    if (ev.key === "/" && !typing) { ev.preventDefault(); qEl.focus(); qEl.select(); }
+    if (ev.key === "Escape" && ev.target === qEl && qEl.value) {
+      qEl.value = ""; $("clear").hidden = true; render();
+    }
+  });
+  qEl.addEventListener("keydown", function(ev){
+    if (ev.key !== "Enter") return;
+    var ts = terms();
+    var hit = sorted().filter(function(it){ return matches(it, ts); })[0];
+    if (hit) doCopy(ev.shiftKey ? line(hit) : hit.url,
+      ev.shiftKey ? "先頭の資料を「名前＋URL」でコピーしました" : "先頭の資料のURLをコピーしました");
+  });
+
+  /* ---------- bulk copy ---------- */
+  $("sel-copy-url").addEventListener("click", function(){
+    var sel = selectedItems();
+    if (!sel.length) return;
+    doCopy(sel.map(function(it){ return it.url; }).join("\n"), sel.length + " 件のURLをコピーしました");
+  });
+  $("sel-copy-both").addEventListener("click", function(){
+    var sel = selectedItems();
+    if (!sel.length) return;
+    doCopy(sel.map(line).join("\n\n"), sel.length + " 件の資料名とURLをコピーしました");
+  });
+  $("sel-clear").addEventListener("click", function(){
+    selected.clear();
+    renderSelbar();
+    render();
+  });
+
+  /* ---------- export / import / reset ---------- */
+  $("io-export").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items) }, null, 2)],
+                        { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "営業資料リスト.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+    toast("資料リストを書き出しました");
+  });
+  $("io-import").addEventListener("click", function(){ $("io-file").click(); });
+  $("io-file").addEventListener("change", function(){
+    var file = this.files && this.files[0];
+    this.value = "";
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var parsed;
+      try { parsed = JSON.parse(String(reader.result)); }
+      catch (e) { toast("読み込めませんでした。書き出したJSONファイルを選んでください。"); return; }
+      if (!parsed || !Array.isArray(parsed.items) || !parsed.items.length) {
+        toast("資料が入っていないファイルです。");
+        return;
+      }
+      if (!window.confirm("いまの一覧を、読み込んだ " + parsed.items.length + " 件で置き換えます。よろしいですか？")) return;
+      items = parsed.items.map(function(d, i){
+        return {
+          id: d.id || ("i" + i + Date.now().toString(36)),
+          title: String(d.title || "(名称未設定)"),
+          url: String(d.url || ""),
+          category: String(d.category || "未分類"),
+          format: d.format ? String(d.format) : "",
+          note: d.note ? String(d.note) : "",
+          tags: d.tags ? String(d.tags) : "",
+          model: d.model ? String(d.model) : "",
+          priceLabel: d.priceLabel ? String(d.priceLabel) : "",
+          order: typeof d.order === "number" ? d.order : (i + 1) * 10
+        };
+      });
+      selected.clear();
+      save();
+      refresh();
+      toast(items.length + " 件を読み込みました");
+    };
+    reader.readAsText(file);
+  });
+  $("io-reset").addEventListener("click", function(){
+    if (!window.confirm("追加・編集した内容をすべて破棄して、最初に配布された28件の状態に戻します。よろしいですか？")) return;
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+    items = DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+    selected.clear();
+    refresh();
+    toast("初期状態に戻しました");
+  });
+
+  /* ---------- boot ---------- */
+  items = load();
+  loaded = true;
+  noticeEl.hidden = true;
+  refresh();
+})();
+
+</script>
+</body>
+</html>
