@@ -189,6 +189,57 @@
   }
   .badge.fmt-ppt::after{content:" 社内編集用";letter-spacing:0}
 
+
+  /* ---------- セット ---------- */
+  .sets{
+    display:flex;gap:10px;align-items:flex-start;
+    margin-top:14px;padding:11px 14px;
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);
+  }
+  .sets-lbl{
+    flex:none;margin-top:4px;
+    font-family:var(--font-display);font-weight:700;font-size:12px;
+    letter-spacing:.1em;color:var(--muted);white-space:nowrap;
+  }
+  .sets-chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center;flex:1;min-width:0}
+  .setchip{
+    display:inline-flex;align-items:stretch;
+    border:1.5px solid var(--line-strong);border-radius:999px;
+    overflow:hidden;background:var(--surface);
+  }
+  .setchip:hover{border-color:var(--accent)}
+  .setchip.active{border-color:var(--accent);background:var(--accent-soft)}
+  .setchip > button{
+    border:0;background:transparent;cursor:pointer;
+    font-size:13px;font-weight:500;padding:5px 12px;color:var(--ink);
+  }
+  .setchip > button.pick-set:hover{color:var(--accent)}
+  .setchip .n{
+    font-family:var(--font-mono);font-size:11px;color:var(--muted);
+    margin-left:5px;font-variant-numeric:tabular-nums;
+  }
+  .setchip .edit-set{
+    padding:5px 9px;color:var(--muted);
+    border-left:1px solid var(--line) !important;
+  }
+  .setchip .edit-set:hover{color:var(--accent);background:var(--surface-2)}
+  .sets-empty{font-size:12.5px;color:var(--muted);padding:5px 0}
+  .setlist{
+    margin:0;padding:0;list-style:none;
+    border:1px solid var(--line);border-radius:8px;
+    max-height:190px;overflow-y:auto;background:var(--bg);
+  }
+  .setlist li{
+    padding:7px 11px;font-size:13px;border-bottom:1px solid var(--line);
+    display:flex;gap:8px;align-items:baseline;
+  }
+  .setlist li:last-child{border-bottom:0}
+  .setlist .seq{
+    font-family:var(--font-mono);font-size:11px;color:var(--muted);flex:none;
+    font-variant-numeric:tabular-nums;
+  }
+
   /* ---------- notice ---------- */
   .notice{
     margin-top:16px;padding:12px 14px;border-radius:var(--radius);
@@ -391,6 +442,13 @@
   <div class="notice" id="notice" hidden></div>
 </div>
 
+<div class="wrap">
+  <div class="sets">
+    <span class="sets-lbl">セット</span>
+    <div class="sets-chips" id="sets-chips"></div>
+  </div>
+</div>
+
 <div class="wrap"><div class="ppt-hint" id="ppt-hint" hidden></div></div>
 
 <main class="wrap" id="list">
@@ -405,11 +463,37 @@
     <div class="count"><b id="sel-n">0</b> 件を選択中</div>
     <button class="btn" id="sel-copy-url" type="button">URLだけコピー</button>
     <button class="btn primary" id="sel-copy-both" type="button">資料名＋URLをコピー</button>
+    <button class="btn" id="sel-save-set" type="button">セットとして保存</button>
     <button class="btn ghost" id="sel-clear" type="button">選択を解除</button>
   </div>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="setdlg">
+  <form method="dialog" id="setdlg-form">
+    <div class="dlg-head">
+      <h3 id="setdlg-title">セットとして保存</h3>
+      <button class="btn ghost" type="button" id="setdlg-x" aria-label="閉じる">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f">
+        <label for="s-name">セット名</label>
+        <input id="s-name" required placeholder="例：新規・学校様 初回提案">
+        <span class="hint">商談のパターン名にしておくと、次から一発で呼び出せます。</span>
+      </div>
+      <div class="f">
+        <label id="s-count-label">この セットに入る資料</label>
+        <ul class="setlist" id="s-list" aria-labelledby="s-count-label"></ul>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn del-btn" type="button" id="setdlg-del" hidden>削除</button>
+      <button class="btn" type="button" id="setdlg-cancel">キャンセル</button>
+      <button class="btn primary" type="submit" id="setdlg-save">保存</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="dlg">
   <form method="dialog" id="dlg-form">
@@ -463,7 +547,7 @@
 
 <footer class="wrap sitefoot">
   <div class="footrow">
-    <span class="foothint">追加・編集したものはこのブラウザに保存されます。他の端末や同僚に渡すときは「書き出し」でファイル化してください。</span>
+    <span class="foothint">追加した資料とセットは、このブラウザに保存されます。他の端末や同僚に渡すときは「書き出し」でファイル化してください。</span>
     <span class="footacts">
       <button class="btn ghost" type="button" id="io-export">書き出し</button>
       <button class="btn ghost" type="button" id="io-import">読み込み</button>
@@ -835,6 +919,9 @@
   var editingId = null;
   var showPpt = false;
   try { showPpt = window.localStorage.getItem("shiryo-finder:showPpt") === "1"; } catch (e) { showPpt = false; }
+  var sets = [];
+  var activeSet = null;
+  var editingSetId = null;
 
   var $ = function(id){ return document.getElementById(id); };
   var qEl = $("q"), listEl = $("list"), chipsEl = $("chips"), countsEl = $("counts");
@@ -847,14 +934,31 @@
     if (raw) {
       try {
         var parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.items) && parsed.items.length) return parsed.items;
+        if (parsed && Array.isArray(parsed.items) && parsed.items.length) {
+          sets = normaliseSets(parsed.sets);
+          return parsed.items;
+        }
       } catch (e) { /* fall through to the built-in list */ }
     }
+    sets = [];
     return DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+  }
+  function normaliseSets(raw){
+    if (!Array.isArray(raw)) return [];
+    return raw.map(function(v, i){
+      return {
+        id: v && v.id ? String(v.id) : ("s" + i + Date.now().toString(36)),
+        name: String((v && v.name) || "(名称未設定)"),
+        itemIds: (v && Array.isArray(v.itemIds)) ? v.itemIds.map(String) : [],
+        order: (v && typeof v.order === "number") ? v.order : (i + 1) * 10
+      };
+    });
   }
   function save(){
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, items: strip(items) }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        version: 1, items: strip(items), sets: sets
+      }));
       return true;
     } catch (e) {
       toast("このブラウザに保存できませんでした（プライベートモードの可能性があります）");
@@ -1194,6 +1298,157 @@
     });
   }
 
+  /* ---------- セット ---------- */
+  function setItems(st){
+    var byId = {};
+    items.forEach(function(it){ byId[it.id] = it; });
+    return (st.itemIds || []).map(function(id){ return byId[id]; }).filter(Boolean);
+  }
+
+  function applySet(st){
+    var picked = setItems(st);
+    if (!picked.length) { toast("このセットの資料は一覧に見つかりませんでした"); return; }
+    selected = new Set(picked.map(function(it){ return it.id; }));
+    activeSet = st.id;
+    activeCat = null;
+    qEl.value = "";
+    $("clear").hidden = true;
+    if (!showPpt && picked.some(function(it){ return it.format === "PPT"; })) {
+      showPpt = true;
+      try { window.localStorage.setItem("shiryo-finder:showPpt", "1"); } catch (e) { /* ignore */ }
+    }
+    renderSets();
+    renderChips();
+    render();
+    renderSelbar();
+    toast("「" + st.name + "」の " + picked.length + " 件を選択しました");
+  }
+
+  function renderSets(){
+    var host = $("sets-chips");
+    if (!host) return;
+    host.textContent = "";
+
+    if (!sets.length) {
+      var e = document.createElement("span");
+      e.className = "sets-empty";
+      e.textContent = "よく一緒に送る資料をまとめておけます。下の一覧でチェックを付けて「セットとして保存」を押してください。";
+      host.appendChild(e);
+      return;
+    }
+
+    sets.slice().sort(function(a, b){
+      var ao = typeof a.order === "number" ? a.order : 9e9;
+      var bo = typeof b.order === "number" ? b.order : 9e9;
+      if (ao !== bo) return ao - bo;
+      return a.id < b.id ? -1 : 1;
+    }).forEach(function(st){
+      var wrap = document.createElement("span");
+      wrap.className = "setchip" + (activeSet === st.id ? " active" : "");
+
+      var pick = document.createElement("button");
+      pick.type = "button";
+      pick.className = "pick-set";
+      pick.textContent = st.name;
+      var n = document.createElement("span");
+      n.className = "n";
+      n.textContent = setItems(st).length;
+      pick.appendChild(n);
+      pick.addEventListener("click", function(){ applySet(st); });
+
+      var edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "edit-set";
+      edit.textContent = "✎";
+      edit.title = "セットを編集";
+      edit.setAttribute("aria-label", st.name + " を編集");
+      edit.addEventListener("click", function(){ openSetDialog(st); });
+
+      wrap.appendChild(pick);
+      wrap.appendChild(edit);
+      host.appendChild(wrap);
+    });
+  }
+
+  function openSetDialog(st){
+    editingSetId = st ? st.id : null;
+    var picked = st ? setItems(st) : selectedItems();
+    $("setdlg-title").textContent = st ? "セットを編集" : "セットとして保存";
+    $("s-name").value = st ? st.name : "";
+    $("s-count-label").textContent = "このセットに入る資料（" + picked.length + " 件）";
+    $("s-name").dataset.ids = (st ? (st.itemIds || []) : picked.map(function(it){ return it.id; })).join(",");
+
+    var ul = $("s-list");
+    ul.textContent = "";
+    picked.forEach(function(it, i){
+      var li = document.createElement("li");
+      var sq = document.createElement("span");
+      sq.className = "seq";
+      sq.textContent = String(i + 1).padStart(2, "0");
+      var tx = document.createElement("span");
+      tx.textContent = it.title;
+      li.appendChild(sq);
+      li.appendChild(tx);
+      ul.appendChild(li);
+    });
+    if (!picked.length) {
+      var li0 = document.createElement("li");
+      li0.textContent = "資料が入っていません。一覧でチェックを付け直してください。";
+      ul.appendChild(li0);
+    }
+
+    $("setdlg-del").hidden = !st;
+    var d = $("setdlg");
+    if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
+    setTimeout(function(){ $("s-name").focus(); }, 30);
+  }
+  function closeSetDialog(){
+    var d = $("setdlg");
+    if (typeof d.close === "function") d.close(); else d.removeAttribute("open");
+  }
+
+  $("sel-save-set").addEventListener("click", function(){
+    if (!selected.size) return;
+    openSetDialog(null);
+  });
+  $("setdlg-cancel").addEventListener("click", closeSetDialog);
+  $("setdlg-x").addEventListener("click", closeSetDialog);
+
+  $("setdlg-form").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var name = $("s-name").value.trim();
+    var ids = ($("s-name").dataset.ids || "").split(",").filter(Boolean);
+    if (!name || !ids.length) return;
+
+    if (editingSetId) {
+      var cur = sets.filter(function(x){ return x.id === editingSetId; })[0];
+      if (cur) { cur.name = name; cur.itemIds = ids; }
+    } else {
+      sets.push({
+        id: "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: name,
+        itemIds: ids,
+        order: Date.now()
+      });
+    }
+    var wasEdit = !!editingSetId;
+    closeSetDialog();
+    if (save()) toast(wasEdit ? "セットを更新しました" : "「" + name + "」を保存しました");
+    renderSets();
+  });
+
+  $("setdlg-del").addEventListener("click", function(){
+    if (!editingSetId) return;
+    var cur = sets.filter(function(x){ return x.id === editingSetId; })[0];
+    if (!cur) return;
+    if (!window.confirm("セット「" + cur.name + "」を削除します。資料そのものは消えません。よろしいですか？")) return;
+    sets.splice(sets.indexOf(cur), 1);
+    if (activeSet === cur.id) activeSet = null;
+    closeSetDialog();
+    if (save()) toast("セットを削除しました");
+    renderSets();
+  });
+
   function renderSelbar(){
     var n = selected.size;
     selbar.hidden = n === 0;
@@ -1207,6 +1462,7 @@
   function refresh(){
     index();
     renderChips();
+    renderSets();
     render();
     renderSelbar();
   }
@@ -1320,13 +1576,15 @@
   });
   $("sel-clear").addEventListener("click", function(){
     selected.clear();
+    activeSet = null;
     renderSelbar();
+    renderSets();
     render();
   });
 
   /* ---------- export / import / reset ---------- */
   $("io-export").addEventListener("click", function(){
-    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items) }, null, 2)],
+    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items), sets: sets }, null, 2)],
                         { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -1366,7 +1624,9 @@
           order: typeof d.order === "number" ? d.order : (i + 1) * 10
         };
       });
+      sets = normaliseSets(parsed.sets);
       selected.clear();
+      activeSet = null;
       save();
       refresh();
       toast(items.length + " 件を読み込みました");
@@ -1377,7 +1637,9 @@
     if (!window.confirm("追加・編集した内容をすべて破棄して、最初に配布された28件の状態に戻します。よろしいですか？")) return;
     try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
     items = DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+    sets = [];
     selected.clear();
+    activeSet = null;
     refresh();
     toast("初期状態に戻しました");
   });
