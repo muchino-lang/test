@@ -154,6 +154,36 @@
   .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
   .chip .n{font-family:var(--font-mono);font-size:11px;opacity:.7;margin-left:4px}
 
+
+  /* ---------- 共有ルール ---------- */
+  .rule{
+    display:flex;gap:12px;align-items:flex-start;
+    margin-top:16px;padding:11px 14px;
+    background:var(--accent-soft);
+    border:1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    border-radius:var(--radius);
+  }
+  .rule .lbl{
+    flex:none;margin-top:2px;
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;
+    color:var(--on-accent);background:var(--accent);
+    padding:2px 7px;border-radius:4px;white-space:nowrap;
+  }
+  .rule p{margin:0;font-size:13.5px;line-height:1.65;color:var(--ink)}
+  .rule b{font-weight:700}
+  .rule .sub{color:var(--muted);font-size:12.5px}
+
+  .chip.toggle{margin-left:auto;border-style:dashed}
+  .chip.toggle[aria-pressed="true"]{border-style:solid}
+  .ppt-hint{
+    margin:-6px 0 18px;font-size:12.5px;color:var(--muted);
+  }
+  .ppt-hint button{
+    border:0;background:transparent;padding:0;cursor:pointer;
+    color:var(--accent);font:inherit;text-decoration:underline;text-underline-offset:2px;
+  }
+  .badge.fmt-ppt::after{content:" 社内編集用";letter-spacing:0}
+
   /* ---------- notice ---------- */
   .notice{
     margin-top:16px;padding:12px 14px;border-radius:var(--radius);
@@ -337,8 +367,18 @@
 </header>
 
 <div class="wrap">
+  <div class="rule">
+    <span class="lbl">共有ルール</span>
+    <p><b>お客様への共有は原則PDFです。</b>PPTは社内で数字や文言を差し替えるための編集用なので、そのままお客様に送らないでください。<br>
+    <span class="sub">PPT版は既定で非表示にしています。編集したいときだけ右の「PPT版も表示」を押してください。</span></p>
+  </div>
+</div>
+
+<div class="wrap">
   <div class="notice" id="notice" hidden></div>
 </div>
+
+<div class="wrap"><div class="ppt-hint" id="ppt-hint" hidden></div></div>
 
 <main class="wrap" id="list">
   <div class="group">
@@ -428,6 +468,8 @@
   var selected = new Set();
   var activeCat = null;
   var editingId = null;
+  var showPpt = false;
+  try { showPpt = window.localStorage.getItem("shiryo-finder:showPpt") === "1"; } catch (e) { showPpt = false; }
 
   var $ = function(id){ return document.getElementById(id); };
   var qEl = $("q"), listEl = $("list"), chipsEl = $("chips"), countsEl = $("counts");
@@ -505,6 +547,23 @@
       return a.id < b.id ? -1 : 1;
     });
   }
+  function visibleFormat(it){
+    return showPpt || it.format !== "PPT";
+  }
+  function baseItems(){
+    return items.filter(visibleFormat);
+  }
+  function setShowPpt(on){
+    showPpt = !!on;
+    try { window.localStorage.setItem("shiryo-finder:showPpt", showPpt ? "1" : "0"); } catch (e) { /* ignore */ }
+    if (!showPpt) {
+      items.forEach(function(it){ if (it.format === "PPT") selected.delete(it.id); });
+      renderSelbar();
+    }
+    renderChips();
+    render();
+  }
+
   function matches(it, terms){
     if (activeCat && it.category !== activeCat) return false;
     if (!terms.length) return true;
@@ -613,7 +672,9 @@
 
   function render(){
     var ts = terms();
-    var shown = sorted().filter(function(it){ return matches(it, ts); });
+    var hits = sorted().filter(function(it){ return matches(it, ts); });
+    var shown = hits.filter(visibleFormat);
+    renderPptHint(hits.length - shown.length);
 
     listEl.textContent = "";
 
@@ -625,7 +686,7 @@
     countsEl.innerHTML = "";
     countsEl.appendChild(document.createTextNode("表示 "));
     var b1 = document.createElement("b"); b1.textContent = String(shown.length); countsEl.appendChild(b1);
-    countsEl.appendChild(document.createTextNode(" / 全 " + items.length + " 件"));
+    countsEl.appendChild(document.createTextNode(" / 全 " + baseItems().length + " 件"));
 
     if (!items.length) {
       var e0 = document.createElement("div");
@@ -669,9 +730,24 @@
     });
   }
 
+  function renderPptHint(n){
+    var hint = $("ppt-hint");
+    if (!hint) return;
+    if (showPpt || !n) { hint.hidden = true; hint.textContent = ""; return; }
+    hint.hidden = false;
+    hint.textContent = "";
+    hint.appendChild(document.createTextNode("同じ条件で PPT（社内編集用）が " + n + " 件あります。"));
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = "表示する";
+    b.addEventListener("click", function(){ setShowPpt(true); });
+    hint.appendChild(b);
+  }
+
   function renderChips(){
+    var base = baseItems();
     var counts = {};
-    items.forEach(function(it){ counts[it.category] = (counts[it.category] || 0) + 1; });
+    base.forEach(function(it){ counts[it.category] = (counts[it.category] || 0) + 1; });
     var cats = Object.keys(counts).sort(function(a, b){ return catRank(a) - catRank(b); });
 
     chipsEl.textContent = "";
@@ -680,7 +756,7 @@
     all.className = "chip";
     all.setAttribute("aria-pressed", activeCat === null ? "true" : "false");
     all.textContent = "すべて";
-    var an = document.createElement("span"); an.className = "n"; an.textContent = items.length;
+    var an = document.createElement("span"); an.className = "n"; an.textContent = base.length;
     all.appendChild(an);
     all.addEventListener("click", function(){ activeCat = null; renderChips(); render(); });
     chipsEl.appendChild(all);
@@ -699,6 +775,20 @@
       });
       chipsEl.appendChild(b);
     });
+
+    var pptCount = items.filter(function(it){ return it.format === "PPT"; }).length;
+    if (pptCount) {
+      var tg = document.createElement("button");
+      tg.type = "button";
+      tg.className = "chip toggle";
+      tg.id = "ppt-toggle";
+      tg.setAttribute("aria-pressed", showPpt ? "true" : "false");
+      tg.textContent = showPpt ? "PPT版を隠す" : "PPT版も表示";
+      var tn = document.createElement("span"); tn.className = "n"; tn.textContent = pptCount;
+      tg.appendChild(tn);
+      tg.addEventListener("click", function(){ setShowPpt(!showPpt); });
+      chipsEl.appendChild(tg);
+    }
 
     var dl = $("cats");
     dl.textContent = "";
