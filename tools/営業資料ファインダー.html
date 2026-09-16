@@ -306,6 +306,17 @@
   }
   :root[data-theme="dark"] .badge.price{color:var(--accent-ink)}
   .note{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .sendname{
+    display:flex;gap:6px;align-items:baseline;margin-top:3px;
+    font-size:12.5px;color:var(--muted);line-height:1.5;
+  }
+  .sendname .tagl{
+    flex:none;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;
+    color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%, var(--line));
+    border-radius:3px;padding:0 4px;
+  }
+  .sendname .val{color:var(--ink);overflow-wrap:anywhere}
+  .setlist .send{color:var(--muted);font-size:12px}
 
   .acts{display:flex;gap:6px;align-items:center;flex:none}
   .iconbtn{
@@ -434,7 +445,8 @@
   <div class="rule">
     <span class="lbl">共有ルール</span>
     <p><b>お客様への共有は原則PDFです。</b>PPTは社内で数字や文言を差し替えるための編集用なので、そのままお客様に送らないでください。<br>
-    <span class="sub">PPT版は既定で非表示にしています。編集したいときだけ右の「PPT版も表示」を押してください。</span></p>
+    <span class="sub">PPT版は既定で非表示にしています。編集したいときだけ右の「PPT版も表示」を押してください。<br>
+    「送信用コピー」で貼り付く資料名は、社内の管理名ではなく<b>送信名</b>です。手数料条件などの社内情報は入りません。</span></p>
   </div>
 </div>
 
@@ -462,7 +474,7 @@
   <div class="selbar-inner">
     <div class="count"><b id="sel-n">0</b> 件を選択中</div>
     <button class="btn" id="sel-copy-url" type="button">URLだけコピー</button>
-    <button class="btn primary" id="sel-copy-both" type="button">資料名＋URLをコピー</button>
+    <button class="btn primary" id="sel-copy-both" type="button">送信用テキストをコピー</button>
     <button class="btn" id="sel-save-set" type="button">セットとして保存</button>
     <button class="btn ghost" id="sel-clear" type="button">選択を解除</button>
   </div>
@@ -503,9 +515,14 @@
     </div>
     <div class="dlg-body">
       <div class="f">
-        <label for="f-title">資料名</label>
+        <label for="f-title">資料名（社内で探すための名前）</label>
         <input id="f-title" required placeholder="例：U9311 エンド84000 仕様書">
         <span class="hint">お客様に見せる正式ファイル名ではなく、自分が探しやすい呼び方でOKです。</span>
+      </div>
+      <div class="f">
+        <label for="f-client">送信名（お客様に見える名前）</label>
+        <input id="f-client" placeholder="例：27年度 実施要項（学園事業会社様用）">
+        <span class="hint">コピーしたときにお客様へ貼り付く名前です。手数料条件や社内の区分は書かないでください。空欄のときは上の資料名がそのまま使われます。</span>
       </div>
       <div class="f">
         <label for="f-url">URL</label>
@@ -565,6 +582,7 @@
   {
     "id": "m01",
     "title": "当社ノートンPPOEM チラシ",
+    "clientTitle": "ノートンPPOEM ご案内",
     "url": "https://app.box.com/s/xu7591etd1y6y5o5cl9rqw6vh4v92ycc",
     "category": "チラシ・パンフレット",
     "format": "PDF",
@@ -577,6 +595,7 @@
   {
     "id": "m02",
     "title": "U9311 仕様書（価格記載なし）",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/sc3kux0ugdzf94970ixz4d5nctrx3ud9",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -589,6 +608,7 @@
   {
     "id": "m03",
     "title": "U9311 仕様書 エンド79,000円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/3bsvv1gijti567887qhh29abnfj1hjsh",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -601,6 +621,7 @@
   {
     "id": "m04",
     "title": "U9311 仕様書 エンド81,636円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/pen1nkkh20s7qzwy3vixaxlba5vjdfup",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -613,6 +634,7 @@
   {
     "id": "m05",
     "title": "U9311 仕様書 エンド84,000円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/qg745e35njaxj018aqifs9ixz62sw3ri",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -625,6 +647,7 @@
   {
     "id": "m06",
     "title": "U9311 仕様書 エンド84,545円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/rz7lhs573z7nfrg4ohepfykfbb37i282",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -637,6 +660,7 @@
   {
     "id": "m07",
     "title": "U9311 仕様書 エンド89,000円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/5pwhuiyr8m23kz8610tg937dgiw65irb",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -649,6 +673,7 @@
   {
     "id": "m08",
     "title": "U9311 仕様書 エンド90,727円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/gmvhl33cozjvvasymzocc618wxippsfh",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -661,6 +686,7 @@
   {
     "id": "m09",
     "title": "U9311 仕様書 卸75,000円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/i8yn2lrmtq8vwmr504wzstyulb0nch7m",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -673,6 +699,7 @@
   {
     "id": "m10",
     "title": "U9311 仕様書 卸76,000円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/tp8vakou426zir0d8gn399vgcfgler1o",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -685,6 +712,7 @@
   {
     "id": "m11",
     "title": "U9311 仕様書 卸79,000円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/1u3lrdqn5p824dxeezfwm1uv1l5m73gh",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -697,6 +725,7 @@
   {
     "id": "m12",
     "title": "U9311 仕様書 卸82,727円",
+    "clientTitle": "U9311 製品仕様",
     "url": "https://app.box.com/s/ldqhqvn148f0lxib3mgw0nm3prnrcg7u",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -709,6 +738,7 @@
   {
     "id": "m13",
     "title": "U9312 仕様書 卸79,000円",
+    "clientTitle": "U9312 製品仕様",
     "url": "https://app.box.com/s/8wnjer2rv3lq9vzu502b231abuq5kp9s",
     "category": "機種仕様（27年度）",
     "format": "PDF",
@@ -721,6 +751,7 @@
   {
     "id": "m14",
     "title": "27年度 実施要項｜既存・学校様用",
+    "clientTitle": "27年度 実施要項（学校様用）",
     "url": "https://app.box.com/s/3k7bd8cr2vpkj65lvukd1fkl0n5q62da",
     "category": "実施要項（27年度）",
     "format": "PDF",
@@ -732,7 +763,8 @@
   },
   {
     "id": "m15",
-    "title": "27年度 実施要項｜既存・学園事業会社用（周辺機器手数料あり・固定コミッション）",
+    "title": "27年度 実施要項｜既存・学園事業会社様用（周辺機器手数料あり・固定コミッション）",
+    "clientTitle": "27年度 実施要項（学園事業会社様用）",
     "url": "https://app.box.com/s/p4yppw2srnzbyrulz4spahft3d1q6jz8",
     "category": "実施要項（27年度）",
     "format": "PDF",
@@ -744,7 +776,8 @@
   },
   {
     "id": "m16",
-    "title": "27年度 実施要項｜既存・学園事業会社用（周辺機器手数料なし・固定コミッション）",
+    "title": "27年度 実施要項｜既存・学園事業会社様用（周辺機器手数料なし・固定コミッション）",
+    "clientTitle": "27年度 実施要項（学園事業会社様用）",
     "url": "https://app.box.com/s/tybfqlvvx9t6azjitzo5z9swoj68r2o3",
     "category": "実施要項（27年度）",
     "format": "PDF",
@@ -756,7 +789,8 @@
   },
   {
     "id": "m17",
-    "title": "27年度 実施要項｜既存・学園事業会社用（周辺機器手数料なし・変動コミッション）",
+    "title": "27年度 実施要項｜既存・学園事業会社様用（周辺機器手数料なし・変動コミッション）",
+    "clientTitle": "27年度 実施要項（学園事業会社様用）",
     "url": "https://app.box.com/s/v0on57czey9x7qd4ozluna3lu0n3e82w",
     "category": "実施要項（27年度）",
     "format": "PDF",
@@ -768,7 +802,8 @@
   },
   {
     "id": "m18",
-    "title": "27年度 実施要項｜新規・学園事業会社用（周辺機器手数料なし・変動コミッション）",
+    "title": "27年度 実施要項｜新規・学園事業会社様用（周辺機器手数料なし・変動コミッション）",
+    "clientTitle": "27年度 実施要項（学園事業会社様用）",
     "url": "https://app.box.com/s/hzz0buxy6v7oyxby2u3q85h3t2w2pwd3",
     "category": "実施要項（27年度）",
     "format": "PDF",
@@ -781,6 +816,7 @@
   {
     "id": "m19",
     "title": "27年度 実施要項｜新規・学校様用",
+    "clientTitle": "27年度 実施要項（学校様用）",
     "url": "https://app.box.com/s/qi5mwn8dy63nsly53a81056wglovs5jd",
     "category": "実施要項（27年度）",
     "format": "PDF",
@@ -793,6 +829,7 @@
   {
     "id": "m20",
     "title": "手数料設定シート（変動コミッション用）",
+    "clientTitle": "手数料設定シート",
     "url": "https://app.box.com/s/lw8xjzy96lyrkwr79nxnxqzjfk05me2s",
     "category": "手数料設定",
     "format": "PDF",
@@ -805,6 +842,7 @@
   {
     "id": "m21",
     "title": "事例資料（PDF）",
+    "clientTitle": "導入事例のご紹介",
     "url": "https://app.box.com/s/d96g29p1mz26h2b93qqcgari5znbvbhx",
     "category": "事例資料",
     "format": "PDF",
@@ -817,6 +855,7 @@
   {
     "id": "m22",
     "title": "事例資料（PPT）",
+    "clientTitle": "導入事例のご紹介",
     "url": "https://app.box.com/s/x685k9d9k43e56hyn2e5dmva624zs04s",
     "category": "事例資料",
     "format": "PPT",
@@ -828,55 +867,60 @@
   },
   {
     "id": "m23",
-    "title": "学校向け BYOD提案資料（PDF）",
+    "title": "学校様向け BYOD提案資料（PDF）",
+    "clientTitle": "BYOD導入のご提案（学校様向け）",
     "url": "https://app.box.com/s/fi91ihnhudfas0wsdies9qdnap39e4y2",
     "category": "BYOD提案資料",
     "format": "PDF",
     "note": "",
-    "tags": "BYOD 提案資料 学校 学校向け PDF",
+    "tags": "BYOD 提案資料 学校 学校様 学校向け PDF",
     "model": "",
     "priceLabel": "",
     "order": 70
   },
   {
     "id": "m24",
-    "title": "学校向け BYOD提案資料（PPT）",
+    "title": "学校様向け BYOD提案資料（PPT）",
+    "clientTitle": "BYOD導入のご提案（学校様向け）",
     "url": "https://app.box.com/s/lbce2pr2neqy6g4rvt54llmixz4ljgey",
     "category": "BYOD提案資料",
     "format": "PPT",
     "note": "社内での編集用。お客様共有はPDFで",
-    "tags": "BYOD 提案資料 学校 学校向け PPT パワポ 編集",
+    "tags": "BYOD 提案資料 学校 学校様 学校向け PPT パワポ 編集",
     "model": "",
     "priceLabel": "",
     "order": 71
   },
   {
     "id": "m25",
-    "title": "事業会社向け BYOD提案資料（PDF）",
+    "title": "事業会社様向け BYOD提案資料（PDF）",
+    "clientTitle": "BYOD導入のご提案（事業会社様向け）",
     "url": "https://app.box.com/s/r7od61c3ojm3sqmpzzfob5lzj2ko604w",
     "category": "BYOD提案資料",
     "format": "PDF",
     "note": "",
-    "tags": "BYOD 提案資料 事業会社 学園事業会社 PDF",
+    "tags": "BYOD 提案資料 事業会社 事業会社様 学園事業会社 PDF",
     "model": "",
     "priceLabel": "",
     "order": 72
   },
   {
     "id": "m26",
-    "title": "事業会社向け BYOD提案資料（PPT）",
+    "title": "事業会社様向け BYOD提案資料（PPT）",
+    "clientTitle": "BYOD導入のご提案（事業会社様向け）",
     "url": "https://app.box.com/s/n3lx9t3tw13b8hrvzu8on1p41hqvboft",
     "category": "BYOD提案資料",
     "format": "PPT",
     "note": "社内での編集用。お客様共有はPDFで",
-    "tags": "BYOD 提案資料 事業会社 学園事業会社 PPT パワポ 編集",
+    "tags": "BYOD 提案資料 事業会社 事業会社様 学園事業会社 PPT パワポ 編集",
     "model": "",
     "priceLabel": "",
     "order": 73
   },
   {
     "id": "m27",
-    "title": "新入生チラシ 24〜26年度入学生向け（テンプレサンプル）",
+    "title": "新入生チラシ 24〜26年度入学生様向け（テンプレサンプル）",
+    "clientTitle": "新入生向けご案内チラシ",
     "url": "https://app.box.com/s/2p1xlfynwsz1ordd8ldbcqs4je114qg1",
     "category": "新入生チラシ",
     "format": "PDF",
@@ -888,7 +932,8 @@
   },
   {
     "id": "m28",
-    "title": "新入生チラシ 27年度入学生向け（新テンプレ案）",
+    "title": "新入生チラシ 27年度入学生様向け（新テンプレ案）",
+    "clientTitle": "新入生向けご案内チラシ（27年度入学生様向け）",
     "url": "https://app.box.com/s/sbxs3g6lylzstg0nsfjnsgn5yx0ktv56",
     "category": "新入生チラシ",
     "format": "PDF",
@@ -968,7 +1013,7 @@
   function strip(list){
     return list.map(function(it){
       return {
-        id: it.id, title: it.title, url: it.url, category: it.category,
+        id: it.id, title: it.title, clientTitle: it.clientTitle || "", url: it.url, category: it.category,
         format: it.format, note: it.note, tags: it.tags,
         model: it.model, priceLabel: it.priceLabel, order: it.order
       };
@@ -984,8 +1029,11 @@
       .replace(/[　\s,、，]/g, "")
       .toLowerCase();
   }
+  function clientName(it){
+    return (it.clientTitle && it.clientTitle.trim()) ? it.clientTitle.trim() : it.title;
+  }
   function haystack(it){
-    return norm([it.title, it.category, it.note, it.tags, it.format, it.url].join(" "));
+    return norm([it.title, it.clientTitle, it.category, it.note, it.tags, it.format, it.url].join(" "));
   }
   function index(){
     items.forEach(function(it){ it._hay = haystack(it); });
@@ -1088,7 +1136,7 @@
   }
 
   function line(it){
-    return it.title + "\n" + it.url;
+    return clientName(it) + "\n" + it.url;
   }
 
   function rowEl(it){
@@ -1130,6 +1178,20 @@
     }
     if (meta.childNodes.length) info.appendChild(meta);
 
+    if (clientName(it) !== it.title) {
+      var sn = document.createElement("div");
+      sn.className = "sendname";
+      var tg = document.createElement("span");
+      tg.className = "tagl";
+      tg.textContent = "送信名";
+      var vl = document.createElement("span");
+      vl.className = "val";
+      vl.textContent = clientName(it);
+      sn.appendChild(tg);
+      sn.appendChild(vl);
+      info.appendChild(sn);
+    }
+
     var acts = document.createElement("div");
     acts.className = "acts";
 
@@ -1142,8 +1204,9 @@
     var bBoth = document.createElement("button");
     bBoth.type = "button";
     bBoth.className = "iconbtn";
-    bBoth.textContent = "名前＋URL";
-    bBoth.addEventListener("click", function(){ doCopy(line(it), "資料名とURLをコピーしました", bBoth); });
+    bBoth.textContent = "送信用コピー";
+    bBoth.title = "貼り付く内容：" + line(it).replace("\n", " / ");
+    bBoth.addEventListener("click", function(){ doCopy(line(it), "送信名とURLをコピーしました", bBoth); });
 
     var bOpen = document.createElement("a");
     bOpen.className = "iconbtn";
@@ -1389,6 +1452,12 @@
       tx.textContent = it.title;
       li.appendChild(sq);
       li.appendChild(tx);
+      if (clientName(it) !== it.title) {
+        var sd = document.createElement("span");
+        sd.className = "send";
+        sd.textContent = "→ " + clientName(it);
+        li.appendChild(sd);
+      }
       ul.appendChild(li);
     });
     if (!picked.length) {
@@ -1472,6 +1541,7 @@
     editingId = it ? it.id : null;
     $("dlg-title").textContent = it ? "資料を編集" : "資料を追加";
     $("f-title").value = it ? it.title : "";
+    $("f-client").value = it ? (it.clientTitle || "") : "";
     $("f-url").value = it ? it.url : "";
     $("f-cat").value = it ? (it.category || "") : (activeCat || "");
     $("f-fmt").value = it ? (it.format || "") : "PDF";
@@ -1497,6 +1567,7 @@
 
     var body = {
       title: title,
+      clientTitle: $("f-client").value.trim(),
       url: url,
       category: $("f-cat").value.trim() || "未分類",
       format: $("f-fmt").value,
@@ -1560,7 +1631,7 @@
     var ts = terms();
     var hit = sorted().filter(function(it){ return matches(it, ts); })[0];
     if (hit) doCopy(ev.shiftKey ? line(hit) : hit.url,
-      ev.shiftKey ? "先頭の資料を「名前＋URL」でコピーしました" : "先頭の資料のURLをコピーしました");
+      ev.shiftKey ? "先頭の資料を送信用テキストでコピーしました" : "先頭の資料のURLをコピーしました");
   });
 
   /* ---------- bulk copy ---------- */
@@ -1572,7 +1643,7 @@
   $("sel-copy-both").addEventListener("click", function(){
     var sel = selectedItems();
     if (!sel.length) return;
-    doCopy(sel.map(line).join("\n\n"), sel.length + " 件の資料名とURLをコピーしました");
+    doCopy(sel.map(line).join("\n\n"), sel.length + " 件の送信名とURLをコピーしました");
   });
   $("sel-clear").addEventListener("click", function(){
     selected.clear();
@@ -1614,6 +1685,7 @@
         return {
           id: d.id || ("i" + i + Date.now().toString(36)),
           title: String(d.title || "(名称未設定)"),
+          clientTitle: d.clientTitle ? String(d.clientTitle) : "",
           url: String(d.url || ""),
           category: String(d.category || "未分類"),
           format: d.format ? String(d.format) : "",
