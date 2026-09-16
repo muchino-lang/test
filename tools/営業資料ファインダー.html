@@ -179,6 +179,7 @@
   .rule .sub{color:var(--muted);font-size:12.5px}
 
   .chip.toggle{margin-left:auto;border-style:dashed}
+  .rule .chip.toggle{align-self:flex-start;margin-top:1px;flex:none}
   .chip.toggle[aria-pressed="true"]{border-style:solid}
   .ppt-hint{
     margin:-6px 0 18px;font-size:12.5px;color:var(--muted);
@@ -446,7 +447,8 @@
     <span class="lbl">共有ルール</span>
     <p><b>お客様への共有は原則PDFです。</b>PPTは社内で数字や文言を差し替えるための編集用なので、そのままお客様に送らないでください。<br>
     <span class="sub">PPT版は既定で非表示にしています。編集したいときだけ右の「PPT版も表示」を押してください。<br>
-    「送信用コピー」で貼り付く資料名は、社内の管理名ではなく<b>送信名</b>です。手数料条件などの社内情報は入りません。</span></p>
+    コピーすると、本文は<b>送信名</b>（お客様に見せる名前）になり、どれを選んだか確認するための社内情報は<b>末尾にまとめて</b>入ります。貼り付けたら区切り線から下をまとめて削除してください。</span></p>
+    <button class="chip toggle" type="button" id="memo-toggle" aria-pressed="true">確認用メモを付ける</button>
   </div>
 </div>
 
@@ -1139,6 +1141,43 @@
     return clientName(it) + "\n" + it.url;
   }
 
+  /* ---------- 確認用メモ（貼り付け後に削除する前提） ---------- */
+  var CONFIRM_SEP = "\u2015\u2015\u2015 ここから下は送信前に削除 \u2015\u2015\u2015";
+  var withMemo = true;
+  try {
+    var mv = window.localStorage.getItem("shiryo-finder:memo");
+    withMemo = (mv === null) ? true : (mv === "1");
+  } catch (e) { withMemo = true; }
+
+  function memoOf(it){
+    return (clientName(it) !== it.title) ? it.title : "";
+  }
+  function block(list){
+    var main = list.map(line).join("\n\n");
+    if (!withMemo) return main;
+    var memos = [];
+    list.forEach(function(it, i){
+      var m = memoOf(it);
+      if (m) memos.push(list.length > 1 ? (i + 1) + ". " + m : m);
+    });
+    if (!memos.length) return main;
+    return main + "\n\n" + CONFIRM_SEP + "\n" + memos.join("\n");
+  }
+  function setWithMemo(on){
+    withMemo = !!on;
+    try { window.localStorage.setItem("shiryo-finder:memo", withMemo ? "1" : "0"); } catch (e) { /* ignore */ }
+    var t = $("memo-toggle");
+    if (t) t.setAttribute("aria-pressed", withMemo ? "true" : "false");
+    render();
+  }
+  (function(){
+    var t = $("memo-toggle");
+    if (!t) return;
+    t.setAttribute("aria-pressed", withMemo ? "true" : "false");
+    t.addEventListener("click", function(){ setWithMemo(!withMemo); });
+  })();
+
+
   function rowEl(it){
     var row = document.createElement("div");
     row.className = "row" + (selected.has(it.id) ? " is-selected" : "");
@@ -1186,7 +1225,7 @@
       tg.textContent = "送信名";
       var vl = document.createElement("span");
       vl.className = "val";
-      vl.textContent = clientName(it);
+      vl.textContent = clientName(it) + ((withMemo && memoOf(it)) ? "（＋末尾に確認用メモ）" : "");
       sn.appendChild(tg);
       sn.appendChild(vl);
       info.appendChild(sn);
@@ -1205,8 +1244,11 @@
     bBoth.type = "button";
     bBoth.className = "iconbtn";
     bBoth.textContent = "送信用コピー";
-    bBoth.title = "貼り付く内容：" + line(it).replace("\n", " / ");
-    bBoth.addEventListener("click", function(){ doCopy(line(it), "送信名とURLをコピーしました", bBoth); });
+    bBoth.addEventListener("click", function(){
+      doCopy(block([it]), (memoOf(it) && withMemo)
+        ? "コピーしました。貼り付けたら区切り線から下を削除してください"
+        : "送信名とURLをコピーしました", bBoth);
+    });
 
     var bOpen = document.createElement("a");
     bOpen.className = "iconbtn";
@@ -1630,7 +1672,7 @@
     if (ev.key !== "Enter") return;
     var ts = terms();
     var hit = sorted().filter(function(it){ return matches(it, ts); })[0];
-    if (hit) doCopy(ev.shiftKey ? line(hit) : hit.url,
+    if (hit) doCopy(ev.shiftKey ? block([hit]) : hit.url,
       ev.shiftKey ? "先頭の資料を送信用テキストでコピーしました" : "先頭の資料のURLをコピーしました");
   });
 
@@ -1643,7 +1685,10 @@
   $("sel-copy-both").addEventListener("click", function(){
     var sel = selectedItems();
     if (!sel.length) return;
-    doCopy(sel.map(line).join("\n\n"), sel.length + " 件の送信名とURLをコピーしました");
+    var txt = block(sel);
+    doCopy(txt, txt.indexOf(CONFIRM_SEP) === -1
+      ? sel.length + " 件をコピーしました"
+      : sel.length + " 件をコピーしました。区切り線から下は送信前に削除してください");
   });
   $("sel-clear").addEventListener("click", function(){
     selected.clear();
