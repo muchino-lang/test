@@ -1020,6 +1020,9 @@
         let workOrderMeta = {};
         let ganttGroupBy = 'workOrder'; // 'workOrder' | 'lot'
         let ganttZoom = 'week';
+        // 指示書行は配下ロットの範囲を包んだ1本の棒なので、個々のロットの
+        // 日付変更が棒の端に出ないことがある。展開して実物を見せるための状態。
+        let expandedWorkOrders = new Set();
 
         // Initialize App on DOM Loaded
         document.addEventListener('DOMContentLoaded', () => {
@@ -1044,6 +1047,7 @@
                     case 'delete': promptDelete(id); break;
                     case 'sheet': openWorkOrderSheet(id); break;
                     case 'wo-schedule': openWorkOrderEditor(id); break;
+                    case 'wo-toggle': toggleWorkOrderRow(id); break;
                 }
             });
 
@@ -2167,6 +2171,10 @@
                 showToast(`新規ロット「${newLotId}」を登録しました`, "success");
             }
 
+            // Reveal the edited lot inside its 指示書 row, otherwise the rolled-up
+            // bar may not move at all and the edit looks like it did nothing.
+            if (newLotData.workOrderNo) expandedWorkOrders.add(newLotData.workOrderNo);
+
             saveToLocalStorage();
             renderDashboard();
             closeModal('lotModal');
@@ -2829,21 +2837,57 @@
                     .sort((a, b) => a.end - b.end);
             }
 
-            return buildWorkOrders()
+            const rows = [];
+
+            buildWorkOrders()
                 .filter(wo => wo.start && wo.end)
-                .map(wo => ({
-                    key: wo.no,
-                    type: 'workOrder',
-                    title: wo.no,
-                    subtitle: Array.from(wo.projects).join(' / ') || `${wo.lots.length} ロット`,
-                    start: wo.start,
-                    end: wo.end,
-                    status: wo.status,
-                    overdue: wo.overdue,
-                    qty: wo.estimateQty,
-                    shipDate: wo.meta?.shipDate ? parseDate(wo.meta.shipDate) : null,
-                    dueDate: wo.meta?.dueDate ? parseDate(wo.meta.dueDate) : null
-                }));
+                .forEach(wo => {
+                    const scheduled = wo.lots
+                        .map(lot => ({ lot, span: lotSpan(lot) }))
+                        .filter(entry => entry.span)
+                        .sort((a, b) => a.span.end - b.span.end);
+                    const expanded = expandedWorkOrders.has(wo.no);
+
+                    rows.push({
+                        key: wo.no,
+                        type: 'workOrder',
+                        title: wo.no,
+                        subtitle: Array.from(wo.projects).join(' / ') || `${wo.lots.length} ロット`,
+                        start: wo.start,
+                        end: wo.end,
+                        status: wo.status,
+                        overdue: wo.overdue,
+                        qty: wo.estimateQty,
+                        childCount: scheduled.length,
+                        expanded,
+                        shipDate: wo.meta?.shipDate ? parseDate(wo.meta.shipDate) : null,
+                        dueDate: wo.meta?.dueDate ? parseDate(wo.meta.dueDate) : null
+                    });
+
+                    if (!expanded) return;
+
+                    scheduled.forEach(({ lot, span }) => {
+                        rows.push({
+                            key: lot.id,
+                            type: 'lotChild',
+                            title: lot.id,
+                            subtitle: lot.modelName || '',
+                            start: span.start,
+                            end: span.end,
+                            status: lot.status,
+                            overdue: span.end < todayDate() && lot.status !== '生産完了',
+                            qty: lot.rpcEstimateQty
+                        });
+                    });
+                });
+
+            return rows;
+        }
+
+        function toggleWorkOrderRow(no) {
+            if (expandedWorkOrders.has(no)) expandedWorkOrders.delete(no);
+            else expandedWorkOrders.add(no);
+            renderGantt();
         }
 
         function renderGantt() {
@@ -2915,18 +2959,38 @@
             const todayMarker = `<div id="gantt-today" class="absolute top-0 bottom-0 w-0.5 bg-red-500/70 z-10 pointer-events-none" style="left:${offsetOf(today)}px"></div>`;
 
             // --- Rows ---
-            labelsEl.innerHTML = rows.map(row => `
-                <div class="h-10 flex flex-col justify-center px-3 border-b border-slate-200 ${row.type === 'workOrder' ? 'cursor-pointer hover:bg-indigo-50' : ''}"
-                     ${row.type === 'workOrder' ? `data-action="wo-schedule" data-id="${escapeHTML(row.key)}" title="日程を更新 / ログを書く"` : `data-action="edit" data-id="${escapeHTML(row.key)}" title="ロットを編集"`}>
-                    <span class="text-[11px] font-bold text-slate-800 truncate flex items-center gap-1">
-                        ${row.overdue ? '<i class="fa-solid fa-triangle-exclamation text-red-500 text-[10px]"></i>' : ''}
-                        ${escapeHTML(row.title)}
-                    </span>
-                    <span class="text-[10px] text-slate-400 truncate">${escapeHTML(row.subtitle)}</span>
-                </div>
-            `).join('');
+            labelsEl.innerHTML = rows.map(row => {
+                const isChild = row.type === 'lotChild';
+                const isWorkOrder = row.type === 'workOrder';
+
+                const chevron = isWorkOrder && row.childCount > 0
+                    ? `<button type="button" data-action="wo-toggle" data-id="${escapeHTML(row.key)}"
+                               class="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition"
+                               title="${row.expanded ? 'ロットを隠す' : `配下 ${row.childCount} ロットを表示`}"
+                               aria-label="${row.expanded ? '折りたたむ' : '展開する'}">
+                           <i class="fa-solid ${row.expanded ? 'fa-chevron-down' : 'fa-chevron-right'} text-[9px]"></i>
+                       </button>`
+                    : '<span class="shrink-0 w-4"></span>';
+
+                return `
+                    <div class="h-10 flex flex-col justify-center border-b border-slate-200 cursor-pointer ${isChild ? 'pl-7 pr-3 bg-slate-50/60 hover:bg-indigo-50' : 'px-3 hover:bg-indigo-50'}"
+                         ${isWorkOrder
+                            ? `data-action="wo-schedule" data-id="${escapeHTML(row.key)}" title="日程を更新 / ログを書く"`
+                            : `data-action="edit" data-id="${escapeHTML(row.key)}" title="ロットを編集"`}>
+                        <span class="text-[11px] truncate flex items-center gap-1 ${isChild ? 'font-medium text-slate-600' : 'font-bold text-slate-800'}">
+                            ${isWorkOrder ? chevron : ''}
+                            ${row.overdue ? '<i class="fa-solid fa-triangle-exclamation text-red-500 text-[10px]"></i>' : ''}
+                            <span class="truncate">${escapeHTML(row.title)}</span>
+                        </span>
+                        <span class="text-[10px] text-slate-400 truncate ${isWorkOrder ? 'pl-5' : ''}">
+                            ${escapeHTML(row.subtitle)}${isWorkOrder && row.childCount > 0 ? ` ・${row.childCount}ロット` : ''}
+                        </span>
+                    </div>
+                `;
+            }).join('');
 
             rowsEl.innerHTML = rows.map(row => {
+                const isChild = row.type === 'lotChild';
                 const left = offsetOf(row.start);
                 const width = Math.max((daysBetween(row.start, row.end) + 1) * pxPerDay, 6);
                 const barColor = STATUS_BAR_CLASS[row.status] || STATUS_BAR_CLASS['未着手'];
@@ -2938,11 +3002,12 @@
                     : '';
 
                 return `
-                    <div class="h-10 border-b border-slate-200 relative">
-                        <div class="absolute top-2 h-6 rounded ${barColor} ${row.overdue ? 'ring-2 ring-red-500' : ''} shadow-sm flex items-center px-1.5 overflow-hidden"
+                    <div class="h-10 border-b border-slate-200 relative ${isChild ? 'bg-slate-50/60' : ''}">
+                        <div class="absolute ${isChild ? 'top-3.5 h-3 opacity-80' : 'top-2 h-6'} rounded ${barColor} ${row.overdue ? 'ring-2 ring-red-500' : ''} shadow-sm flex items-center px-1.5 overflow-hidden"
                              style="left:${left}px; width:${width}px" title="${escapeHTML(row.title)} / ${escapeHTML(label)}">
-                            <span class="text-[10px] font-semibold text-white whitespace-nowrap">${escapeHTML(row.title)}</span>
+                            ${isChild ? '' : `<span class="text-[10px] font-semibold text-white whitespace-nowrap">${escapeHTML(row.title)}</span>`}
                         </div>
+                        ${isChild ? `<span class="absolute top-3 text-[9px] text-slate-500 whitespace-nowrap" style="left:${left + width + 6}px">${formatDateJP(row.end)}</span>` : ''}
                         ${shipMarker}
                     </div>
                 `;
