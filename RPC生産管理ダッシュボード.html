@@ -2208,7 +2208,7 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `RPC_Lots_Backup_${todayISO()}.json`);
+            downloadAnchor.setAttribute("download", `RPC生産管理_バックアップ_${todayISO()}.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
@@ -2260,7 +2260,7 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.setAttribute('href', url);
-            link.setAttribute('download', `RPC_Lot_Data_${todayISO()}.csv`);
+            link.setAttribute('download', `RPC生産管理_ロット一覧_${todayISO()}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
