@@ -12,6 +12,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
@@ -25,7 +27,10 @@ from openpyxl.utils import get_column_letter
 ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = ROOT / "docs"
 DIST_DIR = ROOT / "dist"
-SKIP = {"index.html"}
+RULES_JS = DOCS_DIR / "data" / "rules.js"
+RULES_COLUMNS = ["カテゴリ", "ドキュメント", "セクション", "対象", "項目", "内容"]
+RULES_KEYS = ["category", "doc", "section", "target", "item", "content"]
+SKIP = {"index.html", "rules.html"}
 
 
 class DocParser(HTMLParser):
@@ -198,6 +203,65 @@ def build_xlsx(doc_parser: DocParser, out: Path) -> None:
     workbook.save(out)
 
 
+def load_rules() -> list[dict]:
+    """docs/data/rules.js の window.RULES を読み込む。"""
+    text = RULES_JS.read_text(encoding="utf-8")
+    match = re.search(r"window\.RULES\s*=\s*(\[.*\])\s*;", text, re.S)
+    if not match:
+        raise ValueError(f"{RULES_JS} から window.RULES を読み取れませんでした。")
+    return json.loads(match.group(1))
+
+
+def build_rules_docx(rules: list[dict], out: Path) -> None:
+    document = Document()
+    style = document.styles["Normal"]
+    style.font.name = "Yu Gothic"
+    style.font.size = Pt(9)
+
+    document.add_heading("ルール一覧", level=1)
+    table = document.add_table(rows=1, cols=len(RULES_COLUMNS))
+    table.style = "Table Grid"
+    for cell, label in zip(table.rows[0].cells, RULES_COLUMNS):
+        cell.text = label
+        for para in cell.paragraphs:
+            for run in para.runs:
+                run.bold = True
+
+    for rule in rules:
+        cells = table.add_row().cells
+        for cell, key in zip(cells, RULES_KEYS):
+            cell.text = rule.get(key, "")
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    document.save(out)
+
+
+def build_rules_xlsx(rules: list[dict], out: Path) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "ルール一覧"
+    sheet.append(RULES_COLUMNS)
+
+    header_fill = PatternFill("solid", fgColor="EEF4FD")
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+
+    for rule in rules:
+        sheet.append([rule.get(key, "") for key in RULES_KEYS])
+
+    for column, width in zip("ABCDEF", (20, 30, 34, 26, 24, 70)):
+        sheet.column_dimensions[column].width = width
+    for line in sheet.iter_rows(min_row=1):
+        for cell in line:
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = f"A1:{get_column_letter(len(RULES_COLUMNS))}{sheet.max_row}"
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    workbook.save(out)
+
+
 def main(argv: list[str]) -> int:
     targets = [Path(a) for a in argv[1:]] or sorted(
         p for p in DOCS_DIR.glob("*.html") if p.name not in SKIP
@@ -212,6 +276,12 @@ def main(argv: list[str]) -> int:
         build_docx(parsed, DIST_DIR / f"{base}.docx")
         build_xlsx(parsed, DIST_DIR / f"{base}.xlsx")
         print(f"{path.name} -> dist/{base}.docx, dist/{base}.xlsx")
+
+    if not argv[1:] and RULES_JS.exists():
+        rules = load_rules()
+        build_rules_docx(rules, DIST_DIR / "ルール一覧.docx")
+        build_rules_xlsx(rules, DIST_DIR / "ルール一覧.xlsx")
+        print(f"rules.js ({len(rules)}件) -> dist/ルール一覧.docx, dist/ルール一覧.xlsx")
     return 0
 
 

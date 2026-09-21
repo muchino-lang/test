@@ -250,3 +250,212 @@ strong { font-weight: 700; }
 @media print {
   .doc__toolbar { display: none; }
 }
+
+/* ==========================================================
+   ルール一覧（検索ページ）
+   ========================================================== */
+
+.doc--wide { max-width: 1100px; }
+
+.doc__btn--quiet {
+  padding: .35em .8em;
+  font-size: .8em;
+}
+
+/* ---- 絞り込み ---- */
+.filters {
+  margin: 0 0 1.6em;
+  padding: 1.1em 1.2em;
+  border: 1px solid var(--doc-border);
+  border-radius: 12px;
+  background: var(--doc-accent-soft);
+}
+
+.filters__label {
+  display: block;
+  margin-bottom: .45em;
+  color: var(--doc-muted);
+  font-size: .82em;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.filters__input {
+  width: 100%;
+  padding: .65em .9em;
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  background: var(--doc-surface);
+  color: var(--doc-text);
+  font: inherit;
+  font-size: .95em;
+}
+
+.filters__input:focus-visible {
+  outline: 2px solid var(--doc-accent);
+  outline-offset: 1px;
+}
+
+.filters__group { margin-top: 1em; }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  appearance: none;
+  padding: .35em .85em;
+  border: 1px solid var(--doc-border);
+  border-radius: 999px;
+  background: var(--doc-surface);
+  color: var(--doc-muted);
+  font: inherit;
+  font-size: .82em;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+
+.chip:hover { border-color: var(--doc-accent); color: var(--doc-accent); }
+
+.chip--on {
+  background: var(--doc-accent);
+  border-color: var(--doc-accent);
+  color: #fff;
+}
+
+.chip:focus-visible { outline: 2px solid var(--doc-accent); outline-offset: 2px; }
+
+.filters__status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 1.1em;
+  padding-top: .9em;
+  border-top: 1px solid var(--doc-border);
+  color: var(--doc-muted);
+  font-size: .85em;
+}
+
+/* ---- 一覧テーブル ---- */
+.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: .92em;
+}
+
+.rules-table .col-category { width: 11%; }
+.rules-table .col-doc { width: 21%; }
+.rules-table .col-target { width: 12%; }
+.rules-table .col-item { width: 13%; }
+.rules-table .col-content { width: 43%; }
+
+.rules-table th,
+.rules-table td {
+  border: 1px solid var(--doc-border);
+  padding: .65em .8em;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.rules-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--doc-accent-soft);
+  font-size: .9em;
+  white-space: nowrap;
+}
+
+.rules-table tbody tr:hover { background: var(--doc-accent-soft); }
+
+.rules-table a { color: var(--doc-accent); text-decoration: none; }
+.rules-table a:hover { text-decoration: underline; }
+
+.rules-table__section {
+  display: block;
+  margin-top: .2em;
+  color: var(--doc-muted);
+  font-size: .82em;
+}
+
+.rules-table__empty {
+  padding: 2em 1em;
+  text-align: center;
+  color: var(--doc-muted);
+}
+
+.tag {
+  display: inline-block;
+  padding: .12em .6em;
+  border-radius: 999px;
+  background: var(--doc-accent);
+  color: #fff;
+  font-size: .82em;
+  white-space: nowrap;
+}
+
+mark {
+  padding: 0 .1em;
+  border-radius: 3px;
+  background: #ffe9a8;
+  color: inherit;
+}
+
+/* カテゴリタグの中では、下地の色を活かした控えめなハイライトにする */
+.tag mark {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  box-shadow: inset 0 -.55em 0 rgba(255, 255, 255, .28);
+}
+
+@media (prefers-color-scheme: dark) {
+  mark { background: #6b5518; color: #ffe9a8; }
+  .tag { background: #2f6fd0; }
+  .tag mark { background: transparent; color: #fff; }
+}
+
+/* ---- 狭い画面ではカード表示 ---- */
+@media (max-width: 760px) {
+  .rules-table { table-layout: auto; }
+  .rules-table colgroup { display: none; }
+  .rules-table thead { display: none; }
+  .rules-table, .rules-table tbody, .rules-table tr, .rules-table td { display: block; width: 100%; }
+
+  .rules-table tr {
+    margin-bottom: 12px;
+    border: 1px solid var(--doc-border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .rules-table td {
+    border: 0;
+    border-bottom: 1px solid var(--doc-border);
+    padding: .6em .85em;
+  }
+
+  .rules-table tr td:last-child { border-bottom: 0; }
+
+  .rules-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: .15em;
+    color: var(--doc-muted);
+    font-size: .74em;
+    font-weight: 700;
+  }
+}
+
+@media print {
+  .filters { display: none; }
+  .rules-table thead th { position: static; }
+  .rules-table { font-size: 10pt; }
+  .rules-table tr { break-inside: avoid; }
+}
