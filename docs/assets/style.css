@@ -1,0 +1,252 @@
+/* ==========================================================
+   社内ドキュメント 共通スタイル
+   - レスポンシブ / ダークモード / 印刷対応
+   ========================================================== */
+
+:root {
+  --doc-bg: #f6f7f9;
+  --doc-surface: #ffffff;
+  --doc-text: #1f2430;
+  --doc-muted: #5b6472;
+  --doc-border: #e3e6ec;
+  --doc-accent: #2f80ed;
+  --doc-accent-soft: #f0f6ff;
+  --doc-warn: #f5a623;
+  --doc-warn-soft: #fffaf0;
+  --doc-warn-text: #8a5a00;
+  --doc-shadow: 0 1px 4px rgba(0, 0, 0, .06), 0 8px 24px rgba(0, 0, 0, .05);
+  --doc-radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --doc-bg: #14171d;
+    --doc-surface: #1b1f27;
+    --doc-text: #e4e8ef;
+    --doc-muted: #9aa4b4;
+    --doc-border: #2b313c;
+    --doc-accent: #6ab0ff;
+    --doc-accent-soft: #14202f;
+    --doc-warn: #f5c462;
+    --doc-warn-soft: #2a2010;
+    --doc-warn-text: #f5c462;
+    --doc-shadow: 0 1px 4px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 24px 16px 80px;
+  background: var(--doc-bg);
+  color: var(--doc-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP",
+               "Yu Gothic UI", "Meiryo", sans-serif;
+  font-size: 15px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc {
+  max-width: 780px;
+  margin: 0 auto;
+  background: var(--doc-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: var(--doc-radius);
+  box-shadow: var(--doc-shadow);
+  padding: 28px 22px 36px;
+}
+
+.doc__back {
+  display: inline-block;
+  margin-bottom: 18px;
+  color: var(--doc-muted);
+  font-size: .9em;
+  text-decoration: none;
+}
+.doc__back:hover { color: var(--doc-accent); text-decoration: underline; }
+
+h1 {
+  margin: 0 0 .2em;
+  font-size: 1.6em;
+  line-height: 1.4;
+  letter-spacing: .01em;
+}
+
+.doc__meta {
+  margin: 0 0 1.8em;
+  padding-bottom: 1.2em;
+  border-bottom: 1px solid var(--doc-border);
+  color: var(--doc-muted);
+  font-size: .85em;
+}
+
+h2 {
+  margin: 2.2em 0 .6em;
+  padding-left: .6em;
+  border-left: 4px solid var(--doc-accent);
+  font-size: 1.15em;
+  line-height: 1.5;
+}
+
+h2:first-of-type { margin-top: 1em; }
+
+p { margin: 0 0 1em; }
+
+ul, ol { margin: 0 0 1.2em; padding-left: 1.4em; }
+li { margin-bottom: .5em; }
+
+strong { font-weight: 700; }
+
+.lead {
+  color: var(--doc-muted);
+  font-size: 1.02em;
+}
+
+/* ---- 定義テーブル ---- */
+.rules {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.4em;
+  font-size: .96em;
+}
+
+.rules th,
+.rules td {
+  border: 1px solid var(--doc-border);
+  padding: .7em .9em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rules th {
+  width: 32%;
+  background: var(--doc-accent-soft);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---- 注記カード ---- */
+.note {
+  margin: 1.4em 0;
+  padding: .9em 1.1em;
+  border-radius: 10px;
+  border-left: 5px solid var(--doc-accent);
+  background: var(--doc-accent-soft);
+  font-size: .95em;
+}
+
+.note--warn {
+  border-left-color: var(--doc-warn);
+  background: var(--doc-warn-soft);
+  color: var(--doc-warn-text);
+}
+
+.note p:last-child { margin-bottom: 0; }
+
+/* ---- ステップ見出しのバッジ ---- */
+.step {
+  display: inline-block;
+  margin-right: .5em;
+  padding: .1em .6em;
+  border-radius: 999px;
+  background: var(--doc-accent);
+  color: #fff;
+  font-size: .75em;
+  vertical-align: middle;
+}
+
+/* ---- 目次（index） ---- */
+.index-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.index-list li { margin-bottom: 12px; }
+
+.index-list a {
+  display: block;
+  padding: 1em 1.1em;
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  background: var(--doc-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .2s ease, transform .2s ease;
+}
+
+.index-list a:hover {
+  border-color: var(--doc-accent);
+  transform: translateY(-1px);
+}
+
+.index-list .index-list__title { display: block; font-weight: 700; }
+.index-list .index-list__desc {
+  display: block;
+  margin-top: .25em;
+  color: var(--doc-muted);
+  font-size: .88em;
+}
+
+/* ---- レスポンシブ ---- */
+@media (min-width: 750px) {
+  body { font-size: 16px; padding: 40px 24px 100px; }
+  .doc { padding: 40px 44px 52px; }
+  h1 { font-size: 1.9em; }
+  h2 { font-size: 1.25em; }
+}
+
+/* 狭い画面ではテーブルを縦積みに */
+@media (max-width: 480px) {
+  .rules, .rules tbody, .rules tr, .rules th, .rules td { display: block; width: 100%; }
+  .rules tr { margin-bottom: .8em; border: 1px solid var(--doc-border); border-radius: 8px; overflow: hidden; }
+  .rules th, .rules td { border: 0; white-space: normal; }
+  .rules td { padding-top: 0; }
+}
+
+/* ---- 印刷 ---- */
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  .doc { box-shadow: none; border: 0; max-width: none; padding: 0; }
+  .doc__back { display: none; }
+  h2 { break-after: avoid; }
+  .rules, .note { break-inside: avoid; }
+}
+
+/* ---- 出力ツールバー ---- */
+.doc__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -0.6em 0 2em;
+}
+
+.doc__btn {
+  appearance: none;
+  padding: .5em 1em;
+  border: 1px solid var(--doc-border);
+  border-radius: 999px;
+  background: var(--doc-surface);
+  color: var(--doc-text);
+  font: inherit;
+  font-size: .85em;
+  cursor: pointer;
+  transition: border-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.doc__btn:hover {
+  border-color: var(--doc-accent);
+  color: var(--doc-accent);
+  transform: translateY(-1px);
+}
+
+.doc__btn:focus-visible {
+  outline: 2px solid var(--doc-accent);
+  outline-offset: 2px;
+}
+
+@media print {
+  .doc__toolbar { display: none; }
+}
