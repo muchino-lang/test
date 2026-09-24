@@ -241,6 +241,43 @@
     font-variant-numeric:tabular-nums;
   }
 
+
+  /* ---------- 契約書の選び方 ---------- */
+  .guide{
+    margin-top:14px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--surface);overflow:hidden;
+  }
+  .guide > summary{
+    cursor:pointer;list-style:none;padding:11px 14px;
+    font-family:var(--font-display);font-weight:700;font-size:13px;
+    letter-spacing:.04em;color:var(--ink);
+    display:flex;align-items:center;gap:8px;
+  }
+  .guide > summary::-webkit-details-marker{display:none}
+  .guide > summary::before{
+    content:"＋";color:var(--accent);font-family:var(--font-mono);font-size:13px;
+  }
+  .guide[open] > summary::before{content:"－"}
+  .guide > summary:hover{background:var(--surface-2)}
+  .guide > summary .hint2{
+    font-family:var(--font-body);font-weight:400;font-size:12px;color:var(--muted);
+    letter-spacing:0;
+  }
+  .guide-body{padding:2px 14px 14px;border-top:1px solid var(--line)}
+  .guide dl{margin:0;display:grid;gap:12px}
+  .guide dt{
+    font-weight:700;font-size:13.5px;margin-top:12px;
+    color:var(--accent-ink);
+  }
+  :root[data-theme="dark"] .guide dt{color:var(--accent-ink)}
+  .guide dd{margin:3px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
+  .guide dd ul{margin:0;padding-left:1.2em}
+  .guide dd .must{
+    display:inline-block;margin-top:4px;padding:2px 8px;border-radius:4px;
+    background:color-mix(in srgb, var(--danger) 12%, transparent);
+    color:var(--danger);font-size:12.5px;font-weight:500;
+  }
+
   /* ---------- notice ---------- */
   .notice{
     margin-top:16px;padding:12px 14px;border-radius:var(--radius);
@@ -461,6 +498,51 @@
     <span class="sets-lbl">セット</span>
     <div class="sets-chips" id="sets-chips"></div>
   </div>
+</div>
+
+<div class="wrap">
+  <details class="guide">
+    <summary>契約書の選び方 <span class="hint2">どの契約書を締結するかの判断条件（社内用）</span></summary>
+    <div class="guide-body">
+      <dl>
+        <dt>売買取引基本契約書（取引基本契約書）</dt>
+        <dd>
+          <ul>
+            <li>リングローから商品を販売する</li>
+            <li>相手方が古物営業許可を持っている</li>
+            <li>R∞PC以外の商品を販売する</li>
+          </ul>
+          <span class="must">締結時、先方から古物営業許可証の写真を送付してもらう（必須）</span>
+        </dd>
+
+        <dt>販売代理店契約書</dt>
+        <dd>
+          <ul>
+            <li>リングローから商品を販売する</li>
+            <li>相手方が古物営業許可を持っている</li>
+            <li>R∞PCを販売する（別途「売買取引基本契約書」も締結が必要）</li>
+          </ul>
+        </dd>
+
+        <dt>取次店契約書</dt>
+        <dd>
+          <ul>
+            <li>リングローから取次店を介して商品を販売する</li>
+            <li>取次店に手数料を支払う</li>
+            <li>相手方が古物営業許可を持っていない</li>
+          </ul>
+        </dd>
+
+        <dt>秘密保持契約書（NDA）</dt>
+        <dd>
+          <ul>
+            <li>相手方と機密情報をやり取りする</li>
+            <li>他の契約を締結する場合は、NDAもセットで締結する</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
+  </details>
 </div>
 
 <div class="wrap"><div class="ppt-hint" id="ppt-hint" hidden></div></div>
@@ -842,6 +924,123 @@
     "order": 50
   },
   {
+    "id": "c01",
+    "title": "【双務】取引基本契約書_後払い",
+    "clientTitle": "取引基本契約書",
+    "url": "https://app.box.com/s/54p0wlrel3rquj5urpiipbc2p6ftl2x0",
+    "category": "契約書類",
+    "format": "",
+    "note": "双務／後払い　古物営業許可あり・R∞PC以外を販売",
+    "tags": "取引基本契約書 売買取引基本契約書 双務 後払い 古物営業許可 R∞PC以外 ROOPC 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 10
+  },
+  {
+    "id": "c04",
+    "title": "取引基本契約書_前払い",
+    "clientTitle": "取引基本契約書",
+    "url": "https://app.box.com/s/gsxccg6nzj1wanr8dee9ba8v04witb0k",
+    "category": "契約書類",
+    "format": "",
+    "note": "前払い　古物営業許可あり・R∞PC以外を販売",
+    "tags": "取引基本契約書 売買取引基本契約書 前払い 古物営業許可 R∞PC以外 ROOPC 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 11
+  },
+  {
+    "id": "c05",
+    "title": "取引基本契約書_後払い",
+    "clientTitle": "取引基本契約書",
+    "url": "https://app.box.com/s/2ic2z8yjc0mfbuf3elwz5cue18uy6bry",
+    "category": "契約書類",
+    "format": "",
+    "note": "後払い　古物営業許可あり・R∞PC以外を販売",
+    "tags": "取引基本契約書 売買取引基本契約書 後払い 古物営業許可 R∞PC以外 ROOPC 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 12
+  },
+  {
+    "id": "c08",
+    "title": "販売代理店契約書_前払い",
+    "clientTitle": "販売代理店契約書",
+    "url": "https://app.box.com/s/i05wmfxvd7udpzk8cbwfi0a6x6lajjqb",
+    "category": "契約書類",
+    "format": "",
+    "note": "前払い　古物営業許可あり・R∞PCを販売（取引基本契約書も別途必要）",
+    "tags": "販売代理店契約書 代理店 前払い 古物営業許可 R∞PC ROOPC 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 20
+  },
+  {
+    "id": "c09",
+    "title": "販売代理店契約書_後払い",
+    "clientTitle": "販売代理店契約書",
+    "url": "https://app.box.com/s/33wmgcietl7d5ivc018ozq1a917lvsjh",
+    "category": "契約書類",
+    "format": "",
+    "note": "後払い　古物営業許可あり・R∞PCを販売（取引基本契約書も別途必要）",
+    "tags": "販売代理店契約書 代理店 後払い 古物営業許可 R∞PC ROOPC 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 21
+  },
+  {
+    "id": "c02",
+    "title": "【大学用】取次店契約書",
+    "clientTitle": "取次店契約書",
+    "url": "https://app.box.com/s/j3pthtebjv1l7ppo3kden160nd946ftw",
+    "category": "契約書類",
+    "format": "",
+    "note": "大学様用　古物営業許可なし・取次店経由／手数料あり",
+    "tags": "取次店契約書 取次 大学 大学用 手数料 古物営業許可なし 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 30
+  },
+  {
+    "id": "c03",
+    "title": "【大学用】取次店契約書_金額都度決定",
+    "clientTitle": "取次店契約書（金額都度決定）",
+    "url": "https://app.box.com/s/v3fb7qlpx7uoj9i4lvfl525xng3h9z1g",
+    "category": "契約書類",
+    "format": "",
+    "note": "大学様用／金額都度決定　古物営業許可なし・取次店経由／手数料あり",
+    "tags": "取次店契約書 取次 大学 大学用 金額都度決定 都度 手数料 古物営業許可なし 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 31
+  },
+  {
+    "id": "c06",
+    "title": "秘密保持契約書",
+    "clientTitle": "秘密保持契約書",
+    "url": "https://app.box.com/s/ycrkb8vh02x4n7f02ekxasmq8rg83qu4",
+    "category": "契約書類",
+    "format": "",
+    "note": "機密情報のやり取り時。他契約を結ぶ場合もセットで締結",
+    "tags": "秘密保持契約書 NDA 機密 秘密保持 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 40
+  },
+  {
+    "id": "c07",
+    "title": "秘密保持契約書（個人情報提供）",
+    "clientTitle": "秘密保持契約書（個人情報提供）",
+    "url": "https://app.box.com/s/ryl6kfxin4qzbgs5mb4gu1zxtjle9s2l",
+    "category": "契約書類",
+    "format": "",
+    "note": "個人情報を提供する場合",
+    "tags": "秘密保持契約書 NDA 個人情報 個人情報提供 機密 秘密保持 契約",
+    "model": "",
+    "priceLabel": "",
+    "order": 41
+  },
+  {
     "id": "m21",
     "title": "事例資料（PDF）",
     "clientTitle": "導入事例のご紹介",
@@ -954,6 +1153,7 @@
     "機種仕様（27年度）",
     "実施要項（27年度）",
     "手数料設定",
+    "契約書類",
     "事例資料",
     "BYOD提案資料",
     "新入生チラシ"

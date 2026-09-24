@@ -236,6 +236,43 @@
     font-variant-numeric:tabular-nums;
   }
 
+
+  /* ---------- 契約書の選び方 ---------- */
+  .guide{
+    margin-top:14px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--surface);overflow:hidden;
+  }
+  .guide > summary{
+    cursor:pointer;list-style:none;padding:11px 14px;
+    font-family:var(--font-display);font-weight:700;font-size:13px;
+    letter-spacing:.04em;color:var(--ink);
+    display:flex;align-items:center;gap:8px;
+  }
+  .guide > summary::-webkit-details-marker{display:none}
+  .guide > summary::before{
+    content:"＋";color:var(--accent);font-family:var(--font-mono);font-size:13px;
+  }
+  .guide[open] > summary::before{content:"－"}
+  .guide > summary:hover{background:var(--surface-2)}
+  .guide > summary .hint2{
+    font-family:var(--font-body);font-weight:400;font-size:12px;color:var(--muted);
+    letter-spacing:0;
+  }
+  .guide-body{padding:2px 14px 14px;border-top:1px solid var(--line)}
+  .guide dl{margin:0;display:grid;gap:12px}
+  .guide dt{
+    font-weight:700;font-size:13.5px;margin-top:12px;
+    color:var(--accent-ink);
+  }
+  :root[data-theme="dark"] .guide dt{color:var(--accent-ink)}
+  .guide dd{margin:3px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
+  .guide dd ul{margin:0;padding-left:1.2em}
+  .guide dd .must{
+    display:inline-block;margin-top:4px;padding:2px 8px;border-radius:4px;
+    background:color-mix(in srgb, var(--danger) 12%, transparent);
+    color:var(--danger);font-size:12.5px;font-weight:500;
+  }
+
   /* ---------- notice ---------- */
   .notice{
     margin-top:16px;padding:12px 14px;border-radius:var(--radius);
@@ -450,6 +487,51 @@
   </div>
 </div>
 
+<div class="wrap">
+  <details class="guide">
+    <summary>契約書の選び方 <span class="hint2">どの契約書を締結するかの判断条件（社内用）</span></summary>
+    <div class="guide-body">
+      <dl>
+        <dt>売買取引基本契約書（取引基本契約書）</dt>
+        <dd>
+          <ul>
+            <li>リングローから商品を販売する</li>
+            <li>相手方が古物営業許可を持っている</li>
+            <li>R∞PC以外の商品を販売する</li>
+          </ul>
+          <span class="must">締結時、先方から古物営業許可証の写真を送付してもらう（必須）</span>
+        </dd>
+
+        <dt>販売代理店契約書</dt>
+        <dd>
+          <ul>
+            <li>リングローから商品を販売する</li>
+            <li>相手方が古物営業許可を持っている</li>
+            <li>R∞PCを販売する（別途「売買取引基本契約書」も締結が必要）</li>
+          </ul>
+        </dd>
+
+        <dt>取次店契約書</dt>
+        <dd>
+          <ul>
+            <li>リングローから取次店を介して商品を販売する</li>
+            <li>取次店に手数料を支払う</li>
+            <li>相手方が古物営業許可を持っていない</li>
+          </ul>
+        </dd>
+
+        <dt>秘密保持契約書（NDA）</dt>
+        <dd>
+          <ul>
+            <li>相手方と機密情報をやり取りする</li>
+            <li>他の契約を締結する場合は、NDAもセットで締結する</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
+  </details>
+</div>
+
 <div class="wrap"><div class="ppt-hint" id="ppt-hint" hidden></div></div>
 
 <main class="wrap" id="list">
@@ -560,6 +642,7 @@
     "機種仕様（27年度）",
     "実施要項（27年度）",
     "手数料設定",
+    "契約書類",
     "事例資料",
     "BYOD提案資料",
     "新入生チラシ"
