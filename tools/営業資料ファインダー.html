@@ -1243,6 +1243,8 @@
   var sets = [];
   var activeSet = null;
   var editingSetId = null;
+  var removed = [];
+  var mergedCount = 0;
 
   var $ = function(id){ return document.getElementById(id); };
   var qEl = $("q"), listEl = $("list"), chipsEl = $("chips"), countsEl = $("counts");
@@ -1258,13 +1260,43 @@
         if (parsed && Array.isArray(parsed.items) && parsed.items.length) {
           sets = normaliseSets(parsed.sets);
           blurbs = normaliseBlurbs(parsed.blurbs);
-          return parsed.items;
+          removed = Array.isArray(parsed.removed) ? parsed.removed.map(String) : [];
+          mergeShippedBlurbs();
+          return mergeShipped(parsed.items);
         }
       } catch (e) { /* fall through to the built-in list */ }
     }
     sets = [];
+    removed = [];
     blurbs = DEFAULT_BLURBS.map(function(d){ return JSON.parse(JSON.stringify(d)); });
     return DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+  }
+
+  /* このHTMLに同梱された資料のうち、保存済みデータに無いものを足す。
+     利用者が自分で消したもの（removed）は足し直さない。 */
+  function isShipped(id){
+    return DATA.some(function(d){ return d.id === id; });
+  }
+  function mergeShipped(list){
+    var have = {};
+    list.forEach(function(it){ if (it && it.id) have[String(it.id)] = true; });
+    var added = [];
+    DATA.forEach(function(d){
+      if (!have[d.id] && removed.indexOf(d.id) === -1) {
+        added.push(JSON.parse(JSON.stringify(d)));
+      }
+    });
+    mergedCount = added.length;
+    return list.concat(added);
+  }
+  function mergeShippedBlurbs(){
+    var have = {};
+    blurbs.forEach(function(b){ have[b.id] = true; });
+    DEFAULT_BLURBS.forEach(function(d){
+      if (!have[d.id] && removed.indexOf(d.id) === -1) {
+        blurbs.push(JSON.parse(JSON.stringify(d)));
+      }
+    });
   }
   function normaliseSets(raw){
     if (!Array.isArray(raw)) return [];
@@ -1292,7 +1324,7 @@
   function save(){
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: 1, items: strip(items), sets: sets, blurbs: blurbs
+        version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed
       }));
       return true;
     } catch (e) {
@@ -2006,6 +2038,7 @@
     if (!cur) return;
     if (!window.confirm("定型文「" + cur.name + "」を削除します。よろしいですか？")) return;
     blurbs.splice(blurbs.indexOf(cur), 1);
+    if (removed.indexOf(cur.id) === -1) removed.push(cur.id);
     closeBlurbDialog();
     if (save()) toast("定型文を削除しました");
     renderBlurbs();
@@ -2100,6 +2133,7 @@
     if (!window.confirm("「" + cur.title + "」を一覧から削除します。よろしいですか？")) return;
     items.splice(items.indexOf(cur), 1);
     selected.delete(cur.id);
+    if (isShipped(cur.id) && removed.indexOf(cur.id) === -1) removed.push(cur.id);
     closeDialog();
     if (save()) toast("削除しました");
     refresh();
@@ -2153,7 +2187,7 @@
 
   /* ---------- export / import / reset ---------- */
   $("io-export").addEventListener("click", function(){
-    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items), sets: sets, blurbs: blurbs }, null, 2)],
+    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed }, null, 2)],
                         { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -2196,6 +2230,7 @@
       });
       sets = normaliseSets(parsed.sets);
       blurbs = normaliseBlurbs(parsed.blurbs);
+      removed = Array.isArray(parsed.removed) ? parsed.removed.map(String) : [];
       selected.clear();
       activeSet = null;
       save();
@@ -2209,6 +2244,7 @@
     try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
     items = DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
     sets = [];
+    removed = [];
     blurbs = DEFAULT_BLURBS.map(function(d){ return JSON.parse(JSON.stringify(d)); });
     selected.clear();
     activeSet = null;
@@ -2221,6 +2257,10 @@
   loaded = true;
   noticeEl.hidden = true;
   refresh();
+  if (mergedCount) {
+    save();
+    setTimeout(function(){ toast("新しい資料 " + mergedCount + " 件を取り込みました"); }, 400);
+  }
 })();
 
 </script>
