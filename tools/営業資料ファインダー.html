@@ -278,6 +278,32 @@
     color:var(--danger);font-size:12.5px;font-weight:500;
   }
 
+
+  /* ---------- 定型文 ---------- */
+  .blurb{
+    border:1px solid var(--line);border-radius:8px;
+    background:var(--bg);padding:11px 13px;margin-top:12px;
+  }
+  .blurb-head{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:7px;
+  }
+  .blurb-head .nm{font-weight:700;font-size:13.5px}
+  .blurb-head .scope{
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;
+    color:var(--accent-ink);background:var(--accent-soft);
+    border:1px solid color-mix(in srgb,var(--accent) 30%, var(--line));
+    border-radius:4px;padding:1px 6px;
+  }
+  .blurb-head .sp{margin-left:auto;display:flex;gap:6px}
+  .blurb-text{
+    margin:0;white-space:pre-wrap;overflow-wrap:anywhere;
+    font-family:var(--font-body);font-size:13px;line-height:1.75;color:var(--muted);
+    border-left:2px solid var(--line-strong);padding-left:11px;
+  }
+  .blurb-empty{font-size:13px;color:var(--muted);margin:10px 0 0}
+  .blurb-add{margin-top:12px}
+  #b-text{min-height:190px;resize:vertical;line-height:1.7;font-size:13.5px}
+
   /* ---------- notice ---------- */
   .notice{
     margin-top:16px;padding:12px 14px;border-radius:var(--radius);
@@ -545,6 +571,13 @@
   </details>
 </div>
 
+<div class="wrap">
+  <details class="guide" id="blurb-panel">
+    <summary>コピーに添える定型文 <span class="hint2">対象カテゴリの資料をコピーすると、本文のあとに自動で入ります</span></summary>
+    <div class="guide-body" id="blurbs-body"></div>
+  </details>
+</div>
+
 <div class="wrap"><div class="ppt-hint" id="ppt-hint" hidden></div></div>
 
 <main class="wrap" id="list">
@@ -565,6 +598,37 @@
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="blurbdlg">
+  <form method="dialog" id="blurbdlg-form">
+    <div class="dlg-head">
+      <h3 id="blurbdlg-title">定型文を追加</h3>
+      <button class="btn ghost" type="button" id="blurbdlg-x" aria-label="閉じる">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f-row">
+        <div class="f">
+          <label for="b-name">定型文の名前</label>
+          <input id="b-name" required placeholder="例：契約締結方法のご案内">
+        </div>
+        <div class="f">
+          <label for="b-cat">対象カテゴリ</label>
+          <select id="b-cat"></select>
+        </div>
+      </div>
+      <div class="f">
+        <label for="b-text">本文</label>
+        <textarea id="b-text" required placeholder="お客様にそのまま送れる文面を入れてください。"></textarea>
+        <span class="hint">対象カテゴリの資料をコピーしたとき、資料名とURLのあとにこの文面が入ります。</span>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn del-btn" type="button" id="blurbdlg-del" hidden>削除</button>
+      <button class="btn" type="button" id="blurbdlg-cancel">キャンセル</button>
+      <button class="btn primary" type="submit" id="blurbdlg-save">保存</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="setdlg">
   <form method="dialog" id="setdlg-form">
@@ -1146,6 +1210,16 @@
   }
 ];
 
+  var DEFAULT_BLURBS = [
+  {
+    "id": "b01",
+    "name": "契約締結方法のご案内",
+    "category": "契約書類",
+    "text": "本契約の締結方法についてご案内いたします。\n\n当社では電子契約サービス「freeeサイン」を利用しております。\n契約内容をご確認いただいた後、当社より貴社のご締結ご担当者様宛に締結依頼メールが自動送信され、メール内のリンクから署名・合意いただく流れとなります。\n手順は以下をご参照ください。\nhttps://support.freee.co.jp/hc/ja/articles/7146571564569\n\n電子締結の場合、収入印紙は不要です。\nなお、紙面での押印締結にも対応しております。\n\n電子契約の場合は、ご締結ご担当者様のお名前とメールアドレスをお知らせください。",
+    "order": 10
+  }
+];
+
   var STORAGE_KEY = "shiryo-finder:v1";
 
   var CAT_ORDER = [
@@ -1183,11 +1257,13 @@
         var parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.items) && parsed.items.length) {
           sets = normaliseSets(parsed.sets);
+          blurbs = normaliseBlurbs(parsed.blurbs);
           return parsed.items;
         }
       } catch (e) { /* fall through to the built-in list */ }
     }
     sets = [];
+    blurbs = DEFAULT_BLURBS.map(function(d){ return JSON.parse(JSON.stringify(d)); });
     return DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
   }
   function normaliseSets(raw){
@@ -1201,10 +1277,22 @@
       };
     });
   }
+  function normaliseBlurbs(raw){
+    if (!Array.isArray(raw)) return [];
+    return raw.map(function(v, i){
+      return {
+        id: v && v.id ? String(v.id) : ("b" + i + Date.now().toString(36)),
+        name: String((v && v.name) || "(名称未設定)"),
+        category: (v && v.category) ? String(v.category) : "",
+        text: String((v && v.text) || ""),
+        order: (v && typeof v.order === "number") ? v.order : (i + 1) * 10
+      };
+    }).filter(function(b){ return b.text; });
+  }
   function save(){
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: 1, items: strip(items), sets: sets
+        version: 1, items: strip(items), sets: sets, blurbs: blurbs
       }));
       return true;
     } catch (e) {
@@ -1352,16 +1440,26 @@
   function memoOf(it){
     return (clientName(it) !== it.title) ? it.title : "";
   }
+  function noteSuffix(it){
+    var parts = [];
+    if (blurbsFor([it]).length) parts.push("定型文");
+    if (withMemo && memoOf(it)) parts.push("末尾に確認用メモ");
+    return parts.length ? "（＋" + parts.join("／") + "）" : "";
+  }
   function block(list){
-    var main = list.map(line).join("\n\n");
-    if (!withMemo) return main;
+    var out = list.map(line).join("\n\n");
+
+    var bl = blurbsFor(list);
+    if (bl.length) out += "\n\n" + bl.map(function(b){ return b.text; }).join("\n\n");
+
+    if (!withMemo) return out;
     var memos = [];
     list.forEach(function(it, i){
       var m = memoOf(it);
       if (m) memos.push(list.length > 1 ? (i + 1) + ". " + m : m);
     });
-    if (!memos.length) return main;
-    return main + "\n\n" + CONFIRM_SEP + "\n" + memos.join("\n");
+    if (!memos.length) return out;
+    return out + "\n\n" + CONFIRM_SEP + "\n" + memos.join("\n");
   }
   function setWithMemo(on){
     withMemo = !!on;
@@ -1417,7 +1515,7 @@
     }
     if (meta.childNodes.length) info.appendChild(meta);
 
-    if (clientName(it) !== it.title) {
+    if (clientName(it) !== it.title || noteSuffix(it)) {
       var sn = document.createElement("div");
       sn.className = "sendname";
       var tg = document.createElement("span");
@@ -1425,7 +1523,7 @@
       tg.textContent = "送信名";
       var vl = document.createElement("span");
       vl.className = "val";
-      vl.textContent = clientName(it) + ((withMemo && memoOf(it)) ? "（＋末尾に確認用メモ）" : "");
+      vl.textContent = clientName(it) + noteSuffix(it);
       sn.appendChild(tg);
       sn.appendChild(vl);
       info.appendChild(sn);
@@ -1760,6 +1858,160 @@
     renderSets();
   });
 
+  /* ---------- 定型文（コピーに添える文面） ---------- */
+  var blurbs = [];
+  var editingBlurbId = null;
+
+  function blurbsFor(list){
+    var cats = {};
+    list.forEach(function(it){ cats[it.category] = true; });
+    return blurbs.slice().sort(function(a, b){
+      var ao = typeof a.order === "number" ? a.order : 9e9;
+      var bo = typeof b.order === "number" ? b.order : 9e9;
+      if (ao !== bo) return ao - bo;
+      return a.id < b.id ? -1 : 1;
+    }).filter(function(b){
+      return !b.category || b.category === "すべて" || cats[b.category];
+    });
+  }
+
+  function renderBlurbs(){
+    var host = $("blurbs-body");
+    if (!host) return;
+    host.textContent = "";
+
+    if (!blurbs.length) {
+      var e = document.createElement("p");
+      e.className = "blurb-empty";
+      e.textContent = "まだ定型文がありません。契約書の締結方法など、資料と必ずセットで送る文面を登録しておけます。";
+      host.appendChild(e);
+    }
+
+    blurbs.slice().sort(function(a, b){
+      var ao = typeof a.order === "number" ? a.order : 9e9;
+      var bo = typeof b.order === "number" ? b.order : 9e9;
+      if (ao !== bo) return ao - bo;
+      return a.id < b.id ? -1 : 1;
+    }).forEach(function(b){
+      var box = document.createElement("div");
+      box.className = "blurb";
+
+      var head = document.createElement("div");
+      head.className = "blurb-head";
+      var nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = b.name;
+      var sc = document.createElement("span");
+      sc.className = "scope";
+      sc.textContent = (!b.category || b.category === "すべて") ? "すべての資料" : b.category;
+      var sp = document.createElement("span");
+      sp.className = "sp";
+
+      var bc = document.createElement("button");
+      bc.type = "button";
+      bc.className = "iconbtn";
+      bc.textContent = "この文面だけコピー";
+      bc.addEventListener("click", function(){ doCopy(b.text, "定型文をコピーしました", bc); });
+
+      var be = document.createElement("button");
+      be.type = "button";
+      be.className = "iconbtn mini";
+      be.textContent = "✎";
+      be.title = "定型文を編集";
+      be.setAttribute("aria-label", b.name + " を編集");
+      be.addEventListener("click", function(){ openBlurbDialog(b); });
+
+      sp.appendChild(bc);
+      sp.appendChild(be);
+      head.appendChild(nm);
+      head.appendChild(sc);
+      head.appendChild(sp);
+
+      var tx = document.createElement("pre");
+      tx.className = "blurb-text";
+      tx.textContent = b.text;
+
+      box.appendChild(head);
+      box.appendChild(tx);
+      host.appendChild(box);
+    });
+
+    var add = document.createElement("button");
+    add.type = "button";
+    add.className = "btn blurb-add";
+    add.textContent = "＋ 定型文を追加";
+    add.addEventListener("click", function(){ openBlurbDialog(null); });
+    host.appendChild(add);
+  }
+
+  function openBlurbDialog(b){
+    editingBlurbId = b ? b.id : null;
+    $("blurbdlg-title").textContent = b ? "定型文を編集" : "定型文を追加";
+    $("b-name").value = b ? b.name : "";
+    $("b-text").value = b ? b.text : "";
+
+    var sel = $("b-cat");
+    sel.textContent = "";
+    var cats = CAT_ORDER.slice();
+    items.forEach(function(it){ if (cats.indexOf(it.category) === -1) cats.push(it.category); });
+    ["すべて"].concat(cats).forEach(function(c){
+      var o = document.createElement("option");
+      o.value = c;
+      o.textContent = c === "すべて" ? "すべての資料" : c;
+      sel.appendChild(o);
+    });
+    sel.value = b ? (b.category || "すべて") : "契約書類";
+    if (!sel.value) sel.value = "すべて";
+
+    $("blurbdlg-del").hidden = !b;
+    var d = $("blurbdlg");
+    if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
+    setTimeout(function(){ $("b-name").focus(); }, 30);
+  }
+  function closeBlurbDialog(){
+    var d = $("blurbdlg");
+    if (typeof d.close === "function") d.close(); else d.removeAttribute("open");
+  }
+
+  $("blurbdlg-cancel").addEventListener("click", closeBlurbDialog);
+  $("blurbdlg-x").addEventListener("click", closeBlurbDialog);
+
+  $("blurbdlg-form").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var name = $("b-name").value.trim();
+    var text = $("b-text").value.replace(/\s+$/, "");
+    if (!name || !text) return;
+
+    var cat = $("b-cat").value;
+    var stored = (cat === "すべて" ? "" : cat);
+    if (editingBlurbId) {
+      var cur = blurbs.filter(function(x){ return x.id === editingBlurbId; })[0];
+      if (cur) { cur.name = name; cur.category = stored; cur.text = text; }
+    } else {
+      blurbs.push({
+        id: "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: name, category: stored, text: text, order: Date.now()
+      });
+    }
+    var wasEdit = !!editingBlurbId;
+    closeBlurbDialog();
+    if (save()) toast(wasEdit ? "定型文を更新しました" : "定型文を保存しました");
+    renderBlurbs();
+    render();
+  });
+
+  $("blurbdlg-del").addEventListener("click", function(){
+    if (!editingBlurbId) return;
+    var cur = blurbs.filter(function(x){ return x.id === editingBlurbId; })[0];
+    if (!cur) return;
+    if (!window.confirm("定型文「" + cur.name + "」を削除します。よろしいですか？")) return;
+    blurbs.splice(blurbs.indexOf(cur), 1);
+    closeBlurbDialog();
+    if (save()) toast("定型文を削除しました");
+    renderBlurbs();
+    render();
+  });
+
   function renderSelbar(){
     var n = selected.size;
     selbar.hidden = n === 0;
@@ -1774,6 +2026,7 @@
     index();
     renderChips();
     renderSets();
+    renderBlurbs();
     render();
     renderSelbar();
   }
@@ -1900,7 +2153,7 @@
 
   /* ---------- export / import / reset ---------- */
   $("io-export").addEventListener("click", function(){
-    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items), sets: sets }, null, 2)],
+    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items), sets: sets, blurbs: blurbs }, null, 2)],
                         { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -1942,6 +2195,7 @@
         };
       });
       sets = normaliseSets(parsed.sets);
+      blurbs = normaliseBlurbs(parsed.blurbs);
       selected.clear();
       activeSet = null;
       save();
@@ -1955,6 +2209,7 @@
     try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
     items = DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
     sets = [];
+    blurbs = DEFAULT_BLURBS.map(function(d){ return JSON.parse(JSON.stringify(d)); });
     selected.clear();
     activeSet = null;
     refresh();
