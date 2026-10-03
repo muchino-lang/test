@@ -669,7 +669,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
   <div class="sec">
     <div class="sec-title">出力</div>
     <div class="grid">
-      <div class="fld"><label for="qFname">ファイル名</label><input id="qFname" placeholder="御見積_（宛名から自動）" /></div>
+      <div class="fld"><label for="qFname">ファイル名</label><input id="qFname" placeholder="御見積書_（宛名・日付から自動）" /></div>
       <div class="fld" style="justify-content:flex-end">
         <label class="tgl" for="qNote">
           <input type="checkbox" id="qNote" />
@@ -1079,21 +1079,32 @@ function addresseeLine() {
   return h ? name + "　" + h : name;
 }
 
-/** Leading price tag, e.g. "エンド85800" — omitted when the sheet states no price. */
-function priceTagOf(price, priceType, showPrice) {
-  const n = String(price || "").replace(/[,\s¥￥円]/g, "");
+/** 2026年09月05日 — file names read as Japanese rather than as a code. */
+function stampJa(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "年" + pad(d.getMonth() + 1) + "月" + pad(d.getDate()) + "日";
+}
+
+/**
+ * Leading price tag, e.g. "エンド価格85,800円（税抜）【暫定価格】". The two kinds of
+ * provisional are named separately: the price marker rides here, the document one
+ * is the 暫定仕様書 / 製品仕様書 word that follows, so the name cannot contradict
+ * what is printed on the sheet.
+ */
+function priceTagOf(price, priceType, showPrice, draftPrice) {
+  const n = qToNum(price);
   if (!n || showPrice === false) return "";
-  return ((priceType || "卸価格") === "エンド価格" ? "エンド" : "卸") + n;
+  return (priceType || "卸価格") + qFmt(n) + "円（税抜）" + (draftPrice ? "【暫定価格】" : "");
 }
 
 /** Same naming rule as docFileName, for a snapshot that is not in the form yet. */
 function docFileNameOf(snap) {
   const f = snap.fields || {};
-  const d = new Date(), pad = (n) => String(n).padStart(2, "0");
-  const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
   const parts = [
-    priceTagOf(f.price, f.priceType, snap.showPrice),
-    (snap.isDraft || snap.isDraftPrice) ? "暫定" : "", stamp, f.addressee, f.maker, f.productName,
+    priceTagOf(f.price, f.priceType, snap.showPrice, !!snap.isDraftPrice),
+    snap.isDraft ? "暫定仕様書" : "製品仕様書",
+    stampJa(new Date()),
+    f.addressee, f.maker, f.productName,
     cpuLabelOf(f.cpuSeries, f.cpuGen), f.memory, f.storage,
   ].filter(Boolean);
   return safeFileName(parts.join("_")) || "製品仕様書";
@@ -1101,12 +1112,11 @@ function docFileNameOf(snap) {
 
 /** File name built from what was actually entered: 日付_宛名_メーカー_品名_CPU_メモリ */
 function docFileName() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
   const parts = [
-    priceTagOf(V("price"), V("priceType"), priceShown()),
-    (isDraft() || isDraftPrice()) ? "暫定" : "", stamp, V("addressee"), V("maker"), V("productName"),
+    priceTagOf(V("price"), V("priceType"), priceShown(), isDraftPrice()),
+    docTypeLabel(),
+    stampJa(new Date()),
+    V("addressee"), V("maker"), V("productName"),
     cpuInfo().label, V("memory"), V("storage"),
   ].filter(Boolean);
   return safeFileName(parts.join("_")) || docTypeLabel();
@@ -2277,10 +2287,8 @@ function zipStore(files) {
 function quoteFileName(client) {
   const typed = V("qFname");
   if (typed && client == null) return safeFileName(typed);
-  const d = new Date(), pad = (n) => String(n).padStart(2, "0");
-  const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
   const who = client != null ? client : V("addressee");
-  return safeFileName(["御見積", who, stamp].filter(Boolean).join("_")) || "御見積";
+  return safeFileName(["御見積書", who, stampJa(new Date())].filter(Boolean).join("_")) || "御見積書";
 }
 
 function qDownload(client) {
