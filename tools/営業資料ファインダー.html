@@ -323,6 +323,42 @@
     font-size:11px;font-family:var(--font-mono);
   }
 
+
+  /* ---------- メモ ---------- */
+  .guide > summary .memo-peek{
+    font-family:var(--font-body);font-weight:400;font-size:12px;color:var(--muted);
+    letter-spacing:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    max-width:46ch;
+  }
+  .memo-wrap{padding-top:12px}
+  #memo-text{
+    width:100%;min-height:150px;resize:vertical;
+    border:1.5px solid var(--line-strong);border-radius:8px;
+    background:var(--bg);padding:11px 13px;
+    font-size:14px;line-height:1.8;
+  }
+  #memo-text:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .memo-foot{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;
+    font-size:12px;color:var(--muted);
+  }
+  .memo-foot .st{font-family:var(--font-mono);font-size:11.5px}
+  .memo-foot .st.saved{color:var(--ok)}
+  .memo-foot .st.dirty{color:var(--warn)}
+  .memo-foot .sp{margin-left:auto;display:flex;gap:6px}
+
+  /* ---------- 外部リンクボタン ---------- */
+  .btn.ext{text-decoration:none}
+  .btn.ext::after{content:"↗";font-size:11px;opacity:.7}
+  .dlg-agent{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 12px;border-radius:8px;
+    background:var(--accent-soft);
+    border:1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    font-size:12.5px;color:var(--ink);
+  }
+  .dlg-agent .sp2{margin-left:auto}
+
   /* ---------- notice ---------- */
   .notice{
     margin-top:16px;padding:12px 14px;border-radius:var(--radius);
@@ -519,6 +555,7 @@
       </div>
       <button class="btn" id="add" type="button">＋ 資料を追加</button>
       <button class="btn" id="imp" type="button">JSONで追加</button>
+      <a class="btn ext" id="agent" href="https://chat.knowleful.jp/share-agt/7460e5df-4cd1-4e43-8d92-14da4782c90e" target="_blank" rel="noopener noreferrer">資料登録AI</a>
     </div>
 
     <div class="chips" id="chips"></div>
@@ -598,6 +635,21 @@
   </details>
 </div>
 
+<div class="wrap">
+  <details class="guide" id="memo-panel">
+    <summary>メモ <span class="memo-peek" id="memo-peek">商談の申し送りや、資料についての覚え書きを残せます</span></summary>
+    <div class="guide-body memo-wrap">
+      <textarea id="memo-text" placeholder="例：U9311の84,000円は○○学園様向け。次回見積は11月まで有効。"></textarea>
+      <div class="memo-foot">
+        <span class="st" id="memo-status"></span>
+        <span class="sp">
+          <button class="btn ghost" type="button" id="memo-copy">メモをコピー</button>
+        </span>
+      </div>
+    </div>
+  </details>
+</div>
+
 <div class="wrap"><div class="ppt-hint" id="ppt-hint" hidden></div></div>
 
 <main class="wrap" id="list">
@@ -626,6 +678,10 @@
       <button class="btn ghost" type="button" id="impdlg-x" aria-label="閉じる">✕</button>
     </div>
     <div class="dlg-body">
+      <div class="dlg-agent">
+        <span>URLと資料の説明を投げると、貼り付け用のJSONが返ってきます。</span>
+        <a class="btn ext sp2" href="https://chat.knowleful.jp/share-agt/7460e5df-4cd1-4e43-8d92-14da4782c90e" target="_blank" rel="noopener noreferrer">資料登録AIを開く</a>
+      </div>
       <div class="f">
         <label for="i-json">AIが出力したJSONを貼り付け</label>
         <textarea id="i-json" placeholder='{"items":[{"title":"...","url":"https://app.box.com/s/..."}]}'></textarea>
@@ -1287,6 +1343,7 @@
   var editingSetId = null;
   var removed = [];
   var mergedCount = 0;
+  var memoUpdatedAt = "";
 
   var $ = function(id){ return document.getElementById(id); };
   var qEl = $("q"), listEl = $("list"), chipsEl = $("chips"), countsEl = $("counts");
@@ -1303,6 +1360,8 @@
           sets = normaliseSets(parsed.sets);
           blurbs = normaliseBlurbs(parsed.blurbs);
           removed = Array.isArray(parsed.removed) ? parsed.removed.map(String) : [];
+          memoText = String(parsed.memo || "");
+          memoUpdatedAt = String(parsed.memoUpdatedAt || "");
           mergeShippedBlurbs();
           return mergeShipped(parsed.items);
         }
@@ -1366,7 +1425,8 @@
   function save(){
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed
+        version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed,
+        memo: memoText, memoUpdatedAt: new Date().toISOString()
       }));
       return true;
     } catch (e) {
@@ -2250,6 +2310,67 @@
     refresh();
   });
 
+  /* ---------- メモ ---------- */
+  var memoText = "";
+  var memoTimer = null;
+  var memoSaving = false;
+
+  function memoStatus(kind, msg){
+    var el = $("memo-status");
+    if (!el) return;
+    el.className = "st" + (kind ? " " + kind : "");
+    el.textContent = msg;
+  }
+  function memoPeek(){
+    var el = $("memo-peek");
+    if (!el) return;
+    var one = memoText.replace(/\s+/g, " ").trim();
+    el.textContent = one ? one : "商談の申し送りや、資料についての覚え書きを残せます";
+  }
+  function memoSetText(v, force){
+    memoText = String(v || "");
+    var ta = $("memo-text");
+    if (ta && (force || document.activeElement !== ta)) ta.value = memoText;
+    memoPeek();
+  }
+  function memoStamp(ts){
+    if (!ts) { memoStatus("", ""); return; }
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) { memoStatus("saved", "保存済み"); return; }
+    var p = function(n){ return (n < 10 ? "0" : "") + n; };
+    memoStatus("saved", "保存済み " + (d.getMonth() + 1) + "/" + d.getDate() + " " +
+      p(d.getHours()) + ":" + p(d.getMinutes()));
+  }
+
+  function memoSave(){
+    memoSaving = false;
+    memoUpdatedAt = new Date().toISOString();
+    if (save()) memoStamp(memoUpdatedAt);
+    else memoStatus("dirty", "このブラウザに保存できませんでした");
+  }
+
+  (function(){
+    var ta = $("memo-text");
+    if (!ta) return;
+    ta.addEventListener("input", function(){
+      memoText = ta.value;
+      memoPeek();
+      memoSaving = true;
+      memoStatus("dirty", "未保存…");
+      clearTimeout(memoTimer);
+      memoTimer = setTimeout(memoSave, 700);
+    });
+    ta.addEventListener("blur", function(){
+      clearTimeout(memoTimer);
+      if (memoSaving) memoSave();
+    });
+    var cp = $("memo-copy");
+    if (cp) cp.addEventListener("click", function(){
+      if (!memoText.trim()) { toast("メモが空です"); return; }
+      doCopy(memoText, "メモをコピーしました", cp);
+    });
+  })();
+
   function renderSelbar(){
     var n = selected.size;
     selbar.hidden = n === 0;
@@ -2392,7 +2513,8 @@
 
   /* ---------- export / import / reset ---------- */
   $("io-export").addEventListener("click", function(){
-    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed }, null, 2)],
+    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed,
+                        memo: memoText, memoUpdatedAt: memoUpdatedAt }, null, 2)],
                         { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -2436,6 +2558,8 @@
       sets = normaliseSets(parsed.sets);
       blurbs = normaliseBlurbs(parsed.blurbs);
       removed = Array.isArray(parsed.removed) ? parsed.removed.map(String) : [];
+      memoSetText(parsed.memo || "", true);
+      memoUpdatedAt = String(parsed.memoUpdatedAt || "");
       selected.clear();
       activeSet = null;
       save();
@@ -2461,6 +2585,8 @@
   items = load();
   loaded = true;
   noticeEl.hidden = true;
+  memoSetText(memoText, true);
+  if (memoUpdatedAt) memoStamp(memoUpdatedAt); else memoStatus("", "まだ何も書かれていません");
   refresh();
   if (mergedCount) {
     save();
