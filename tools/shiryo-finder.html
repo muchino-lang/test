@@ -299,6 +299,25 @@
   .blurb-add{margin-top:12px}
   #b-text{min-height:190px;resize:vertical;line-height:1.7;font-size:13.5px}
 
+
+  /* ---------- JSON取り込み ---------- */
+  #i-json{min-height:170px;resize:vertical;font-family:var(--font-mono);font-size:12px;line-height:1.6}
+  .imp-result{
+    border:1px solid var(--line);border-radius:8px;background:var(--bg);
+    padding:11px 13px;font-size:13px;line-height:1.7;
+  }
+  .imp-result h4{
+    margin:0 0 6px;font-family:var(--font-display);font-size:12.5px;letter-spacing:.06em;
+  }
+  .imp-result ul{margin:0;padding-left:1.2em;color:var(--muted)}
+  .imp-result .ok{color:var(--ok);font-weight:700}
+  .imp-result .ng{color:var(--danger);font-weight:700}
+  .imp-result .newcat{
+    display:inline-block;margin-left:5px;padding:0 6px;border-radius:4px;
+    background:var(--accent-soft);color:var(--accent-ink);
+    font-size:11px;font-family:var(--font-mono);
+  }
+
   /* ---------- notice ---------- */
   .notice{
     margin-top:16px;padding:12px 14px;border-radius:var(--radius);
@@ -486,6 +505,7 @@
         <button class="clear-btn" id="clear" type="button" hidden>クリア</button>
       </div>
       <button class="btn" id="add" type="button">＋ 資料を追加</button>
+      <button class="btn" id="imp" type="button">JSONで追加</button>
     </div>
 
     <div class="chips" id="chips"></div>
@@ -585,6 +605,28 @@
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="impdlg">
+  <form method="dialog" id="impdlg-form">
+    <div class="dlg-head">
+      <h3>JSONで資料を追加</h3>
+      <button class="btn ghost" type="button" id="impdlg-x" aria-label="閉じる">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f">
+        <label for="i-json">AIが出力したJSONを貼り付け</label>
+        <textarea id="i-json" placeholder='{"items":[{"title":"...","url":"https://app.box.com/s/..."}]}'></textarea>
+        <span class="hint">同じURLの資料がすでにある場合は、追加ではなく上書き更新になります。</span>
+      </div>
+      <div class="imp-result" id="i-result" hidden></div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" id="impdlg-cancel">キャンセル</button>
+      <button class="btn" type="button" id="impdlg-check">内容を確認</button>
+      <button class="btn primary" type="submit" id="impdlg-apply" disabled>取り込む</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="blurbdlg">
   <form method="dialog" id="blurbdlg-form">
@@ -1433,6 +1475,179 @@
     db.doc("blurbs/" + id).delete().then(function(){
       toast("定型文を削除しました");
     }).catch(function(){ toast("削除できませんでした"); });
+  });
+
+  /* ---------- JSONの取り込み ---------- */
+  var impPlan = null;
+
+  function impNorm(v){
+    var url = String((v && v.url) || "").trim();
+    var title = String((v && v.title) || "").trim();
+    return {
+      title: title,
+      clientTitle: String((v && v.clientTitle) || "").trim(),
+      url: url,
+      category: String((v && v.category) || "未分類").trim() || "未分類",
+      format: String((v && v.format) || "").trim().toUpperCase(),
+      note: String((v && v.note) || "").trim(),
+      tags: String((v && v.tags) || "").trim(),
+      model: String((v && v.model) || "").trim(),
+      priceLabel: String((v && v.priceLabel) || "").trim()
+    };
+  }
+
+  function planImport(text){
+    var parsed;
+    try { parsed = JSON.parse(text); }
+    catch (e) { return { error: "JSONとして読み取れませんでした。括弧や引用符が欠けていないか確認してください。" }; }
+
+    var raw = Array.isArray(parsed) ? parsed
+            : (parsed && Array.isArray(parsed.items)) ? parsed.items
+            : null;
+    if (!raw) return { error: "items が見つかりません。{\"items\":[ ... ]} の形で貼り付けてください。" };
+    if (!raw.length) return { error: "items が空です。" };
+
+    var byUrl = {};
+    items.forEach(function(it){ if (it.url) byUrl[it.url] = it; });
+    var known = {};
+    items.forEach(function(it){ known[it.category] = true; });
+    CAT_ORDER.forEach(function(c){ known[c] = true; });
+
+    var adds = [], updates = [], errors = [], newCats = [];
+    raw.forEach(function(v, i){
+      var it = impNorm(v);
+      var where = (i + 1) + "件目";
+      if (!it.title) { errors.push(where + "：title（資料名）がありません"); return; }
+      if (!/^https?:\/\//.test(it.url)) { errors.push(where + "「" + it.title + "」：url が正しくありません"); return; }
+      if (!known[it.category] && newCats.indexOf(it.category) === -1) newCats.push(it.category);
+      var cur = byUrl[it.url];
+      if (cur) { it.id = cur.id; it.order = cur.order; updates.push(it); }
+      else { adds.push(it); }
+    });
+
+    if (!adds.length && !updates.length) {
+      return { error: errors.length ? errors.join("\n") : "取り込める資料がありませんでした。" };
+    }
+    return { adds: adds, updates: updates, errors: errors, newCats: newCats };
+  }
+
+  function renderImpResult(plan){
+    var box = $("i-result");
+    box.hidden = false;
+    box.textContent = "";
+
+    if (plan.error) {
+      var h = document.createElement("h4");
+      h.className = "ng";
+      h.textContent = "取り込めません";
+      var pre = document.createElement("div");
+      pre.style.whiteSpace = "pre-wrap";
+      pre.style.color = "var(--muted)";
+      pre.textContent = plan.error;
+      box.appendChild(h); box.appendChild(pre);
+      $("impdlg-apply").disabled = true;
+      impPlan = null;
+      return;
+    }
+
+    var head = document.createElement("h4");
+    head.className = "ok";
+    head.textContent = "追加 " + plan.adds.length + " 件 ／ 更新 " + plan.updates.length + " 件";
+    box.appendChild(head);
+
+    var ul = document.createElement("ul");
+    plan.adds.concat(plan.updates).forEach(function(it){
+      var li = document.createElement("li");
+      li.textContent = it.title + "（" + it.category + "）";
+      if (plan.newCats.indexOf(it.category) !== -1) {
+        var b = document.createElement("span");
+        b.className = "newcat";
+        b.textContent = "カテゴリ新設";
+        li.appendChild(b);
+      }
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+
+    if (plan.errors.length) {
+      var h2 = document.createElement("h4");
+      h2.className = "ng";
+      h2.style.marginTop = "9px";
+      h2.textContent = "読み飛ばした行";
+      var ul2 = document.createElement("ul");
+      plan.errors.forEach(function(e){
+        var li = document.createElement("li");
+        li.textContent = e;
+        ul2.appendChild(li);
+      });
+      box.appendChild(h2); box.appendChild(ul2);
+    }
+
+    $("impdlg-apply").disabled = false;
+    impPlan = plan;
+  }
+
+  function openImpDialog(){
+    impPlan = null;
+    $("i-json").value = "";
+    $("i-result").hidden = true;
+    $("i-result").textContent = "";
+    $("impdlg-apply").disabled = true;
+    var d = $("impdlg");
+    if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
+    setTimeout(function(){ $("i-json").focus(); }, 30);
+  }
+  function closeImpDialog(){
+    var d = $("impdlg");
+    if (typeof d.close === "function") d.close(); else d.removeAttribute("open");
+  }
+
+  $("imp").addEventListener("click", openImpDialog);
+  $("impdlg-cancel").addEventListener("click", closeImpDialog);
+  $("impdlg-x").addEventListener("click", closeImpDialog);
+  $("impdlg-check").addEventListener("click", function(){
+    renderImpResult(planImport($("i-json").value.trim()));
+  });
+  $("i-json").addEventListener("input", function(){
+    $("impdlg-apply").disabled = true;
+    impPlan = null;
+  });
+
+  function newItemId(){
+    return "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  $("impdlg-form").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var plan = impPlan;
+    if (!plan) { renderImpResult(planImport($("i-json").value.trim())); return; }
+    if (!db) { toast("保存先に接続できていないため、登録できません。"); return; }
+
+    var queue = plan.updates.concat(plan.adds).map(function(it){
+      var id = it.id || newItemId();
+      var body = {
+        title: it.title, clientTitle: it.clientTitle, url: it.url,
+        category: it.category, format: it.format, note: it.note,
+        tags: it.tags, model: it.model, priceLabel: it.priceLabel,
+        order: typeof it.order === "number" ? it.order : Date.now()
+      };
+      return { id: id, body: body };
+    });
+    var total = queue.length;
+    closeImpDialog();
+    toast(total + " 件を登録しています…");
+
+    (function step(i){
+      if (i >= queue.length) {
+        toast(total + " 件を取り込みました");
+        return;
+      }
+      db.doc("materials/" + queue[i].id).set(queue[i].body)
+        .then(function(){ step(i + 1); })
+        .catch(function(e){
+          toast("途中で失敗しました（" + (e && e.code ? e.code : "エラー") + "）：" + i + " 件まで登録済み");
+        });
+    })(0);
   });
 
   function renderSelbar(){
