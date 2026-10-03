@@ -2574,12 +2574,62 @@
 
         // Accepted shapes: a bare lot array (legacy backups) or
         // { lots: [...], workOrders: [...] } (指示書メタ付き)
-        function parseImportPayload(raw) {
-            const parsed = JSON.parse(raw);
+        // What gets pasted is whatever an AI chat produced: code fences, a
+        // sentence of preamble, or a trailing <!-- 検算NG --> note. Pull the JSON
+        // out of it and keep the notes so they can be shown rather than dropped.
+        function extractJSON(raw) {
+            let text = String(raw);
+            const notes = [];
 
-            if (Array.isArray(parsed)) return { lots: parsed, workOrders: [] };
+            // HTML comments (the agent reports its own checks this way)
+            text = text.replace(/<!--([\s\S]*?)-->/g, (_, body) => {
+                const note = body.trim();
+                if (note) notes.push(note);
+                return '';
+            });
+
+            // Markdown code fences
+            text = text.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, '');
+
+            // First balanced { } or [ ] in what is left, ignoring braces in strings
+            const startIndex = text.search(/[{\[]/);
+            if (startIndex === -1) throw new Error('no JSON found');
+
+            const open = text[startIndex];
+            const close = open === '{' ? '}' : ']';
+            let depth = 0;
+            let inString = false;
+            let escaped = false;
+            let endIndex = -1;
+
+            for (let i = startIndex; i < text.length; i++) {
+                const ch = text[i];
+                if (escaped) { escaped = false; continue; }
+                if (ch === '\\') { escaped = true; continue; }
+                if (ch === '"') { inString = !inString; continue; }
+                if (inString) continue;
+                if (ch === open) depth++;
+                else if (ch === close) {
+                    depth--;
+                    if (depth === 0) { endIndex = i; break; }
+                }
+            }
+
+            if (endIndex === -1) throw new Error('unbalanced JSON');
+            return { json: text.slice(startIndex, endIndex + 1), notes };
+        }
+
+        function parseImportPayload(raw) {
+            const { json, notes } = extractJSON(raw);
+            const parsed = JSON.parse(json);
+
+            if (Array.isArray(parsed)) return { lots: parsed, workOrders: [], notes };
             if (parsed && typeof parsed === 'object' && Array.isArray(parsed.lots)) {
-                return { lots: parsed.lots, workOrders: Array.isArray(parsed.workOrders) ? parsed.workOrders : [] };
+                return {
+                    lots: parsed.lots,
+                    workOrders: Array.isArray(parsed.workOrders) ? parsed.workOrders : [],
+                    notes
+                };
             }
             throw new Error('unsupported JSON shape');
         }
@@ -2611,7 +2661,7 @@
                 }
                 lotsData = incoming;
                 workOrderMeta = incomingMeta;
-                finishImport(incoming.length, 0, rawLots.length - incoming.length);
+                finishImport(incoming.length, 0, rawLots.length - incoming.length, payload.notes);
                 return true;
             }
 
@@ -2656,11 +2706,11 @@
                 return false;
             }
 
-            finishImport(added, updated, skipped);
+            finishImport(added, updated, skipped, payload.notes);
             return true;
         }
 
-        function finishImport(added, updated, skipped) {
+        function finishImport(added, updated, skipped, notes = []) {
             saveToLocalStorage();
             renderDashboard();
             closeModal('importExportModal');
@@ -2670,6 +2720,10 @@
             if (updated) parts.push(`${updated} 件更新`);
             if (skipped > 0) parts.push(`${skipped} 件スキップ`);
             showToast(`取り込み完了: ${parts.join(' / ')}`, "success");
+
+            // The agent's own checks are worth reading: a 検算NG means the source
+            // report does not add up, and the data just imported inherits that.
+            notes.forEach(note => showToast(note, "error", 12000));
         }
 
         // Import from the paste box
@@ -4022,7 +4076,7 @@
         }
 
         // Custom Toast Notification System
-        function showToast(message, type = "info") {
+        function showToast(message, type = "info", duration = 3000) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
 
@@ -4054,7 +4108,7 @@
                 setTimeout(() => {
                     toast.remove();
                 }, 300);
-            }, 3000);
+            }, duration);
         }
     </script>
 </body>
