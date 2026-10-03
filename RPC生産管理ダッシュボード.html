@@ -78,6 +78,12 @@
             
             <!-- Quick Actions -->
             <div class="flex items-center space-x-2">
+                <a href="https://chat.knowleful.jp/share-agt/79987f66-76c9-4058-a30e-032f85985d07" target="_blank" rel="noopener noreferrer"
+                   class="px-3 py-1.5 text-xs font-medium bg-indigo-900/60 hover:bg-indigo-800 text-indigo-100 rounded-lg border border-indigo-700 flex items-center space-x-1.5 transition"
+                   title="検品報告・指示書PDFをJSONに変換するAIエージェントを開く">
+                    <i class="fa-solid fa-robot"></i>
+                    <span class="hidden sm:inline">AIでJSON化</span>
+                </a>
                 <button onclick="openModal('importExportModal')" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center space-x-1.5 transition">
                     <i class="fa-solid fa-file-import"></i>
                     <span class="hidden sm:inline">入出力・バックアップ</span>
@@ -577,6 +583,33 @@
                         <input type="number" id="form-rpcEstimateQty" min="0" oninput="calculateYieldOnForm()" placeholder="例: 500" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
 
+                    <!-- Inspection grade breakdown -->
+                    <div class="sm:col-span-2 border border-slate-200 rounded-lg p-3 bg-slate-50/60">
+                        <p class="text-xs font-semibold text-slate-700 mb-2">
+                            <i class="fa-solid fa-clipboard-check text-indigo-500 mr-1"></i>検品内訳
+                            <span class="font-normal text-slate-400">（大学OK品がそのままRPC確定台数になります）</span>
+                        </p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div>
+                                <label for="form-inspectedQty" class="block text-[11px] text-slate-500 mb-0.5">検品総数</label>
+                                <input type="number" id="form-inspectedQty" min="0" oninput="updateGradeCheck()" class="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label for="form-gradeOkQty" class="block text-[11px] text-emerald-700 font-semibold mb-0.5">大学OK品</label>
+                                <input type="number" id="form-gradeOkQty" min="0" oninput="syncConfirmedFromGrade()" class="w-full px-2 py-1.5 text-xs border border-emerald-300 bg-emerald-50/50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label for="form-gradeMinorQty" class="block text-[11px] text-amber-700 mb-0.5">軽症状品(C品)</label>
+                                <input type="number" id="form-gradeMinorQty" min="0" oninput="updateGradeCheck()" class="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label for="form-gradeNgQty" class="block text-[11px] text-red-700 mb-0.5">NG品(EC/ジャンク)</label>
+                                <input type="number" id="form-gradeNgQty" min="0" oninput="updateGradeCheck()" class="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <p id="form-gradeCheck" class="text-[11px] mt-1.5 text-slate-500">内訳の合計と検品総数が一致しているか自動で確認します</p>
+                    </div>
+
                     <!-- RPC Confirmed Qty -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">RPC 確定台数 (実績)</label>
@@ -715,7 +748,17 @@
                         </label>
                     </div>
 
-                    <p class="text-xs text-slate-500 mb-2">生成AIに指示書PDFを読ませて作ったJSONを、そのまま貼り付けて取り込めます。</p>
+                    <div class="flex items-center justify-between gap-2 mb-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg">
+                        <p class="text-[11px] text-indigo-900 leading-snug">
+                            <i class="fa-solid fa-robot mr-1"></i>
+                            検品報告のチャット本文や指示書PDFを、AIエージェントに貼るとJSONになります。
+                        </p>
+                        <a href="https://chat.knowleful.jp/share-agt/79987f66-76c9-4058-a30e-032f85985d07" target="_blank" rel="noopener noreferrer"
+                           class="shrink-0 px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition flex items-center gap-1">
+                            エージェントを開く <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-2">出力されたJSONをそのまま貼り付けて取り込めます。既存ロットは<strong>書かれた項目だけ</strong>更新されます。</p>
                     <textarea id="jsonPasteInput" rows="5" placeholder='ここにJSONを貼り付け（[ ... ] または { "workOrders": [...], "lots": [...] }）' class="w-full px-3 py-2 text-[11px] font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
                     <button onclick="importFromPaste()" class="mt-2 w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg flex items-center justify-center gap-2 transition shadow-sm">
                         <i class="fa-solid fa-paste"></i> 貼り付けたJSONを取り込む
@@ -1221,6 +1264,11 @@
                 receivedQty: num(raw.receivedQty),
                 rpcEstimateQty: num(raw.rpcEstimateQty),
                 rpcConfirmedQty: num(raw.rpcConfirmedQty),
+                // 検品の等級内訳。大学OK品がそのまま RPC確定台数 になる。
+                inspectedQty: num(raw.inspectedQty),
+                gradeOkQty: num(raw.gradeOkQty),
+                gradeMinorQty: num(raw.gradeMinorQty),
+                gradeNgQty: num(raw.gradeNgQty),
                 status: STATUSES.includes(status) ? status : '入荷予定',
                 productionStartDate: date(raw.productionStartDate),
                 expectedCompletionDate: date(raw.expectedCompletionDate),
@@ -2210,6 +2258,9 @@
 
             document.getElementById('form-workOrderNo').value = '';
             document.getElementById('form-productionStartDate').value = '';
+            ['form-inspectedQty','form-gradeOkQty','form-gradeMinorQty','form-gradeNgQty']
+                .forEach(id => { document.getElementById(id).value = ''; });
+            updateGradeCheck();
             renderLotFormAllocations(null);
             document.getElementById('form-lotId').value = `${prefix}-${String(seq).padStart(2, '0')}`;
             document.getElementById('form-arrivalMonth').value = currentMonthISO();
@@ -2236,6 +2287,12 @@
             document.getElementById('form-productionStartDate').value = lot.productionStartDate || '';
             document.getElementById('form-expectedCompletionDate').value = lot.expectedCompletionDate || '';
             document.getElementById('form-project').value = lot.project || '';
+            document.getElementById('form-inspectedQty').value = lot.inspectedQty || 0;
+            document.getElementById('form-gradeOkQty').value = lot.gradeOkQty || 0;
+            document.getElementById('form-gradeMinorQty').value = lot.gradeMinorQty || 0;
+            document.getElementById('form-gradeNgQty').value = lot.gradeNgQty || 0;
+            updateGradeCheck();
+
             renderLotFormAllocations(lot);
             document.getElementById('form-remarks').value = lot.remarks || '';
 
@@ -2305,6 +2362,38 @@
             showToast(`「${lot.id}」の内容をコピーしました。ロットID等を確認して保存してください`, "info");
         }
 
+        // 大学OK品 = RPC確定台数。片方を触ればもう片方が追従する。
+        function syncConfirmedFromGrade() {
+            const ok = Number(document.getElementById('form-gradeOkQty').value) || 0;
+            document.getElementById('form-rpcConfirmedQty').value = ok;
+            updateGradeCheck();
+            calculateYieldOnForm();
+        }
+
+        function updateGradeCheck() {
+            const total = Number(document.getElementById('form-inspectedQty').value) || 0;
+            const ok = Number(document.getElementById('form-gradeOkQty').value) || 0;
+            const minor = Number(document.getElementById('form-gradeMinorQty').value) || 0;
+            const ng = Number(document.getElementById('form-gradeNgQty').value) || 0;
+            const sum = ok + minor + ng;
+            const el = document.getElementById('form-gradeCheck');
+
+            if (total === 0 && sum === 0) {
+                el.innerText = '内訳の合計と検品総数が一致しているか自動で確認します';
+                el.className = 'text-[11px] mt-1.5 text-slate-500';
+                return;
+            }
+
+            const okRate = total > 0 ? ((ok / total) * 100).toFixed(1) : '--';
+            if (total > 0 && sum !== total) {
+                el.innerText = `内訳合計 ${sum.toLocaleString()} 台 ≠ 検品総数 ${total.toLocaleString()} 台（差 ${(sum - total > 0 ? '+' : '')}${(sum - total).toLocaleString()}）`;
+                el.className = 'text-[11px] mt-1.5 text-red-600 font-semibold';
+            } else {
+                el.innerText = `内訳合計 ${sum.toLocaleString()} 台 一致 ／ 大学OK品率 ${okRate}%`;
+                el.className = 'text-[11px] mt-1.5 text-emerald-700 font-medium';
+            }
+        }
+
         // Calculate Yield Realtime on Form
         function calculateYieldOnForm() {
             const recv = Number(document.getElementById('form-receivedQty').value) || 0;
@@ -2353,6 +2442,10 @@
                 receivedQty: document.getElementById('form-receivedQty').value,
                 rpcEstimateQty: document.getElementById('form-rpcEstimateQty').value,
                 rpcConfirmedQty: document.getElementById('form-rpcConfirmedQty').value,
+                inspectedQty: document.getElementById('form-inspectedQty').value,
+                gradeOkQty: document.getElementById('form-gradeOkQty').value,
+                gradeMinorQty: document.getElementById('form-gradeMinorQty').value,
+                gradeNgQty: document.getElementById('form-gradeNgQty').value,
                 status: document.getElementById('form-status').value,
                 workOrderNo: document.getElementById('form-workOrderNo').value,
                 productionStartDate: document.getElementById('form-productionStartDate').value,
@@ -2430,6 +2523,7 @@
             const headers = [
                 "指示書No", "ロットID", "入荷月", "ステータス", "機種名", "調達元",
                 "入荷台数", "RPC見込み台数", "RPC確定台数", "歩留まり率(%)",
+                "検品総数", "大学OK品", "軽症状品(C品)", "NG品",
                 "生産開始予定日", "生産完了予定日", "紐付けプロジェクト", "割当台数", "販売先内訳", "未割当台数", "備考"
             ];
 
@@ -2451,6 +2545,10 @@
                     lot.rpcEstimateQty || 0,
                     lot.rpcConfirmedQty || 0,
                     yieldRate,
+                    lot.inspectedQty || 0,
+                    lot.gradeOkQty || 0,
+                    lot.gradeMinorQty || 0,
+                    lot.gradeNgQty || 0,
                     escapeCSV(lot.productionStartDate),
                     escapeCSV(lot.expectedCompletionDate),
                     escapeCSV(lot.project),
@@ -2491,47 +2589,87 @@
         }
 
         // Apply an import in either 'merge' (add/update by ID) or 'replace' mode
+        // Only the keys actually present in the incoming record; everything the
+        // sender left out keeps the value the lot already has.
+        function presentKeys(raw) {
+            const out = {};
+            Object.keys(raw).forEach(k => {
+                if (raw[k] !== undefined && raw[k] !== null) out[k] = raw[k];
+            });
+            return out;
+        }
+
         function applyImport(payload, mode) {
-            const incoming = normalizeLots(payload.lots);
+            const rawLots = (payload.lots || []).filter(x => x && typeof x === 'object');
             const incomingMeta = normalizeWorkOrderMetaList(payload.workOrders);
 
-            if (incoming.length === 0) {
+            if (mode === 'replace') {
+                const incoming = normalizeLots(rawLots);
+                if (incoming.length === 0) {
+                    showToast("有効なロットデータが見つかりませんでした", "error");
+                    return false;
+                }
+                lotsData = incoming;
+                workOrderMeta = incomingMeta;
+                finishImport(incoming.length, 0, rawLots.length - incoming.length);
+                return true;
+            }
+
+            // Merge: an existing lot is PATCHED field by field, so a record that
+            // carries only an inspection result cannot wipe its model, dates or
+            // 販売先割当.
+            let added = 0;
+            let updated = 0;
+            let skipped = 0;
+
+            rawLots.forEach(raw => {
+                const id = String(raw.id === undefined || raw.id === null ? '' : raw.id).trim();
+                if (!id) { skipped++; return; }
+
+                const index = lotsData.findIndex(l => l.id === id);
+                if (index === -1) {
+                    const lot = normalizeLot(raw);
+                    if (!lot.id) { skipped++; return; }
+                    lotsData.push(lot);
+                    added++;
+                } else {
+                    lotsData[index] = normalizeLot({ ...lotsData[index], ...presentKeys(raw) });
+                    updated++;
+                }
+            });
+
+            // Work order metadata is patched the same way
+            Object.entries(incomingMeta).forEach(([no, meta]) => {
+                const current = workOrderMeta[no];
+                if (!current) { workOrderMeta[no] = meta; return; }
+                const rawMeta = (payload.workOrders || []).find(w => w && w.no === no) || {};
+                workOrderMeta[no] = normalizeWorkOrderMeta({
+                    ...current,
+                    ...presentKeys(rawMeta),
+                    // Log entries accumulate instead of being replaced
+                    log: [...current.log, ...meta.log.filter(e => !current.log.some(c => c.at === e.at && c.text === e.text))]
+                });
+            });
+
+            if (added + updated === 0) {
                 showToast("有効なロットデータが見つかりませんでした", "error");
                 return false;
             }
 
-            let added = 0;
-            let updated = 0;
+            finishImport(added, updated, skipped);
+            return true;
+        }
 
-            if (mode === 'replace') {
-                added = incoming.length;
-                lotsData = incoming;
-                workOrderMeta = incomingMeta;
-            } else {
-                const byId = new Map(lotsData.map(l => [l.id, l]));
-                incoming.forEach(lot => {
-                    if (byId.has(lot.id)) {
-                        lotsData[lotsData.findIndex(l => l.id === lot.id)] = lot;
-                        updated++;
-                    } else {
-                        lotsData.push(lot);
-                        added++;
-                    }
-                });
-                workOrderMeta = { ...workOrderMeta, ...incomingMeta };
-            }
-
+        function finishImport(added, updated, skipped) {
             saveToLocalStorage();
             renderDashboard();
             closeModal('importExportModal');
 
-            const skipped = payload.lots.length - incoming.length;
             const parts = [];
             if (added) parts.push(`${added} 件追加`);
             if (updated) parts.push(`${updated} 件更新`);
             if (skipped > 0) parts.push(`${skipped} 件スキップ`);
             showToast(`取り込み完了: ${parts.join(' / ')}`, "success");
-            return true;
         }
 
         // Import from the paste box
@@ -3713,6 +3851,11 @@
                                 <span class="text-slate-500">確定 <strong class="text-emerald-700">${lot.rpcConfirmedQty.toLocaleString()}</strong></span>
                                 <span class="text-slate-500">割当 <strong class="text-purple-700">${lot.allocatedQty.toLocaleString()}</strong></span>
                                 <span class="${remaining < 0 ? 'text-red-600 font-bold' : 'text-slate-500'}">残 <strong class="${remaining > 0 ? 'text-indigo-700' : ''}">${remaining.toLocaleString()}</strong></span>
+                                ${lot.gradeMinorQty || lot.gradeNgQty ? `
+                                    <span class="text-[10px] text-slate-400" title="検品内訳">
+                                        <span class="text-amber-700">C品 ${lot.gradeMinorQty.toLocaleString()}</span>
+                                        ・<span class="text-red-600">NG ${lot.gradeNgQty.toLocaleString()}</span>
+                                    </span>` : ''}
                                 <span class="flex-1"></span>
                                 ${quickAllocateForm('lot', lot.id, remaining)}
                             </div>
