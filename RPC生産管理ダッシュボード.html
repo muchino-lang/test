@@ -203,6 +203,9 @@
                     <button id="tab-btn-workorder" onclick="switchBreakdownTab('workorder')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
                         <i class="fa-solid fa-clipboard-list mr-1"></i> 指示書別
                     </button>
+                    <button id="tab-btn-stock" onclick="switchBreakdownTab('stock')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-warehouse mr-1"></i> 在庫・販売先
+                    </button>
                     <button id="tab-btn-lot" onclick="switchBreakdownTab('lot')" class="px-3 py-1.5 rounded-md transition text-slate-600 hover:text-slate-900">
                         <i class="fa-solid fa-boxes-stacked mr-1"></i> ロット別カード
                     </button>
@@ -249,6 +252,26 @@
                     <span id="workorder-count" class="text-slate-500 font-medium">全 0 件</span>
                 </div>
                 <div id="workorder-summary-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <!-- Dynamically populated via JS -->
+                </div>
+            </div>
+
+            <!-- TAB: 在庫・販売先割当 -->
+            <div id="tab-content-stock" class="hidden space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <span class="flex items-center gap-1.5 font-semibold text-slate-700">
+                            <i class="fa-solid fa-warehouse text-indigo-500"></i>生産完了した実在庫と販売先の引き当て
+                        </span>
+                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-700">
+                            <input type="checkbox" id="stock-only-available" onchange="renderStockSummary()" class="accent-indigo-600">
+                            未割当が残っている機種のみ
+                        </label>
+                    </div>
+                    <span id="stock-summary-count" class="text-slate-500 font-medium">-</span>
+                </div>
+
+                <div id="stock-summary-container" class="space-y-3">
                     <!-- Dynamically populated via JS -->
                 </div>
             </div>
@@ -615,10 +638,15 @@
                         <input type="text" id="form-project" placeholder="例: 朝日大学 / 法政HU" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
 
-                    <!-- Allocated Quantity -->
+                    <!-- Allocations (read-only here; managed in the 在庫・販売先 tab) -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">プロジェクト割当台数</label>
-                        <input type="number" id="form-allocatedQty" min="0" placeholder="例: 450" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">販売先割当</label>
+                        <div class="px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-700 flex items-center justify-between gap-2">
+                            <span id="form-allocationSummary" class="truncate">未割当</span>
+                            <button type="button" id="form-allocationBtn" onclick="openAllocationFromLotForm()" class="shrink-0 text-indigo-600 hover:text-indigo-500 font-semibold whitespace-nowrap">
+                                <i class="fa-solid fa-plus"></i> 追加
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -730,6 +758,74 @@
                     削除を実行する
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL: 販売先の割当登録 -->
+    <div id="allocationModal" role="dialog" aria-modal="true" class="modal-root fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-100 transform scale-95 transition-transform duration-200">
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-handshake text-indigo-400"></i>
+                    <span id="allocModalTitle">販売先の登録</span>
+                </h3>
+                <button onclick="closeModal('allocationModal')" class="text-slate-400 hover:text-white transition text-lg" aria-label="閉じる">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="allocationForm" onsubmit="saveAllocation(event)" class="p-6 space-y-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1">
+                    <p class="font-bold text-slate-800" id="allocLotLabel">-</p>
+                    <p class="text-slate-500">
+                        確定(実績) <span id="allocLotConfirmed" class="font-semibold text-emerald-700">0</span> 台 ／
+                        割当済 <span id="allocLotAllocated" class="font-semibold text-purple-700">0</span> 台 ／
+                        残り <span id="allocLotRemaining" class="font-bold text-indigo-700">0</span> 台
+                    </p>
+                </div>
+
+                <div>
+                    <label for="allocCustomer" class="block text-xs font-semibold text-slate-700 mb-1">販売先 <span class="text-red-500">*</span></label>
+                    <input type="text" id="allocCustomer" list="allocation-customers" required placeholder="例: 朝日大学 / ○○商事" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <datalist id="allocation-customers"></datalist>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="allocQty" class="block text-xs font-semibold text-slate-700 mb-1">台数 <span class="text-red-500">*</span></label>
+                        <div class="flex gap-1.5">
+                            <input type="number" id="allocQty" min="1" required oninput="updateAllocationRemainder()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <button type="button" onclick="fillRemainingQty()" title="残り全部" class="shrink-0 px-2 text-[11px] bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 transition">残り</button>
+                        </div>
+                        <p id="allocQtyWarning" class="hidden text-[11px] text-amber-700 font-medium mt-1"></p>
+                    </div>
+                    <div>
+                        <label for="allocDecidedDate" class="block text-xs font-semibold text-slate-700 mb-1">決定日</label>
+                        <input type="date" id="allocDecidedDate" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="allocStatus" class="block text-xs font-semibold text-slate-700 mb-1">ステータス</label>
+                    <select id="allocStatus" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="商談中">商談中（仮押さえ）</option>
+                        <option value="確定" selected>確定</option>
+                        <option value="出荷済">出荷済</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="allocRemarks" class="block text-xs font-semibold text-slate-700 mb-1">備考</label>
+                    <input type="text" id="allocRemarks" placeholder="納期・担当など" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2 border-t border-slate-200">
+                    <button type="button" onclick="closeModal('allocationModal')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">キャンセル</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> 登録する
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1014,6 +1110,12 @@
         };
         const UNASSIGNED_PROJECT = '未割り当て';
         const NO_WORK_ORDER = '指示書 未設定';
+        const ALLOCATION_STATUSES = ['商談中', '確定', '出荷済'];
+        const ALLOCATION_BADGE_CLASS = {
+            '商談中': 'bg-slate-100 text-slate-700',
+            '確定': 'bg-indigo-100 text-indigo-800 font-semibold',
+            '出荷済': 'bg-emerald-100 text-emerald-800 font-semibold'
+        };
         // Gantt zoom levels (pixels per day)
         const GANTT_ZOOM = { day: 26, week: 9, month: 3.5 };
         const STATUS_BAR_CLASS = {
@@ -1062,6 +1164,10 @@
                     case 'sheet': openWorkOrderSheet(id); break;
                     case 'wo-schedule': openWorkOrderEditor(id); break;
                     case 'wo-toggle': toggleWorkOrderRow(id); break;
+                    case 'stock-toggle': toggleStockModel(id); break;
+                    case 'alloc-add': openAllocationModal(id); break;
+                    case 'alloc-edit': openAllocationModal(id, trigger.dataset.alloc); break;
+                    case 'alloc-delete': deleteAllocation(id, trigger.dataset.alloc); break;
                 }
             });
 
@@ -1094,6 +1200,7 @@
             const status = text(raw.status);
 
             const date = (v) => /^\d{4}-\d{2}-\d{2}$/.test(text(v)) ? text(v) : '';
+            const allocations = normalizeAllocations(raw);
 
             return {
                 id: text(raw.id),
@@ -1108,9 +1215,55 @@
                 productionStartDate: date(raw.productionStartDate),
                 expectedCompletionDate: date(raw.expectedCompletionDate),
                 project: text(raw.project),
-                allocatedQty: num(raw.allocatedQty),
+                allocations,
+                // Derived: every existing reader of allocatedQty keeps working,
+                // and it can never drift from the allocation list.
+                allocatedQty: allocations.reduce((sum, a) => sum + a.qty, 0),
                 remarks: text(raw.remarks)
             };
+        }
+
+        let allocationSeq = 0;
+        function newAllocationId() {
+            allocationSeq++;
+            return `AL-${Date.now().toString(36)}-${allocationSeq}`;
+        }
+
+        // 販売先割当。1ロットを複数の販売先へ、決まった分ずつ積み増せる。
+        function normalizeAllocations(raw) {
+            const text = (v) => (v === null || v === undefined) ? '' : String(v).trim();
+            const date = (v) => /^\d{4}-\d{2}-\d{2}$/.test(text(v)) ? text(v) : '';
+            const num = (v) => {
+                const n = Number(v);
+                return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+            };
+
+            const list = (Array.isArray(raw.allocations) ? raw.allocations : [])
+                .filter(a => a && typeof a === 'object')
+                .map(a => ({
+                    id: text(a.id) || newAllocationId(),
+                    customer: text(a.customer),
+                    qty: num(a.qty),
+                    decidedDate: date(a.decidedDate),
+                    status: ALLOCATION_STATUSES.includes(text(a.status)) ? text(a.status) : '確定',
+                    remarks: text(a.remarks)
+                }))
+                .filter(a => a.customer && a.qty > 0);
+
+            // Legacy records carried a single project + allocatedQty pair.
+            // Fold it into one allocation so nothing is lost on upgrade.
+            if (list.length === 0 && num(raw.allocatedQty) > 0) {
+                list.push({
+                    id: newAllocationId(),
+                    customer: text(raw.project) || '販売先未定',
+                    qty: num(raw.allocatedQty),
+                    decidedDate: '',
+                    status: '確定',
+                    remarks: ''
+                });
+            }
+
+            return list;
         }
 
         // Normalize one 指示書 metadata record
@@ -1272,7 +1425,7 @@
         function switchBreakdownTab(tabName) {
             activeBreakdownTab = tabName;
             
-            ['model', 'project', 'workorder', 'lot'].forEach(t => {
+            ['model', 'project', 'workorder', 'stock', 'lot'].forEach(t => {
                 const btn = document.getElementById(`tab-btn-${t}`);
                 const content = document.getElementById(`tab-content-${t}`);
                 if (t === tabName) {
@@ -1292,6 +1445,8 @@
             } else if (tabName === 'workorder') {
                 populateWorkOrderDropdown();
                 renderWorkOrderSummary();
+            } else if (tabName === 'stock') {
+                renderStockSummary();
             } else if (tabName === 'lot') {
                 renderLotCardSummary();
             } else {
@@ -1308,6 +1463,7 @@
             populateWorkOrderDropdown();
             populateWorkOrderSuggestions();
             renderWorkOrderSummary();
+            renderStockSummary();
             renderLotCardSummary();
             renderGantt();
             updateCharts();
@@ -2044,6 +2200,7 @@
 
             document.getElementById('form-workOrderNo').value = '';
             document.getElementById('form-productionStartDate').value = '';
+            renderLotFormAllocations(null);
             document.getElementById('form-lotId').value = `${prefix}-${String(seq).padStart(2, '0')}`;
             document.getElementById('form-arrivalMonth').value = currentMonthISO();
 
@@ -2069,11 +2226,35 @@
             document.getElementById('form-productionStartDate').value = lot.productionStartDate || '';
             document.getElementById('form-expectedCompletionDate').value = lot.expectedCompletionDate || '';
             document.getElementById('form-project').value = lot.project || '';
-            document.getElementById('form-allocatedQty').value = lot.allocatedQty || 0;
+            renderLotFormAllocations(lot);
             document.getElementById('form-remarks').value = lot.remarks || '';
 
             calculateYieldOnForm();
             openModal('lotModal');
+        }
+
+        // Allocations are not editable as a plain number any more: show what the
+        // lot carries and hand off to the 販売先 dialog.
+        function renderLotFormAllocations(lot) {
+            const summary = document.getElementById('form-allocationSummary');
+            const button = document.getElementById('form-allocationBtn');
+            const saved = lot && lotsData.some(l => l.id === lot.id);
+
+            summary.innerText = lot && lot.allocations && lot.allocations.length
+                ? `${lot.allocations.map(a => `${a.customer} ${a.qty}台`).join(' / ')}（計 ${lot.allocatedQty}台）`
+                : '未割当';
+            // A lot that has not been saved yet has nothing to attach an allocation to
+            button.classList.toggle('hidden', !saved);
+        }
+
+        function openAllocationFromLotForm() {
+            const lotId = document.getElementById('form-id').value || document.getElementById('form-lotId').value.trim();
+            if (!lotsData.some(l => l.id === lotId)) {
+                showToast("先にロットを保存してください", "info");
+                return;
+            }
+            closeModal('lotModal');
+            setTimeout(() => openAllocationModal(lotId), 220);
         }
 
         // Duplicate Lot (Copy data for fast entry)
@@ -2106,7 +2287,7 @@
             document.getElementById('form-productionStartDate').value = lot.productionStartDate || '';
             document.getElementById('form-expectedCompletionDate').value = lot.expectedCompletionDate || '';
             document.getElementById('form-project').value = lot.project || '';
-            document.getElementById('form-allocatedQty').value = lot.allocatedQty || 0;
+            renderLotFormAllocations(null);
             document.getElementById('form-remarks').value = lot.remarks || '';
 
             calculateYieldOnForm();
@@ -2167,7 +2348,7 @@
                 productionStartDate: document.getElementById('form-productionStartDate').value,
                 expectedCompletionDate: document.getElementById('form-expectedCompletionDate').value,
                 project: document.getElementById('form-project').value,
-                allocatedQty: document.getElementById('form-allocatedQty').value,
+                allocations: lotsData.find(l => l.id === existingId)?.allocations || [],
                 remarks: document.getElementById('form-remarks').value
             });
 
@@ -2239,7 +2420,7 @@
             const headers = [
                 "指示書No", "ロットID", "入荷月", "ステータス", "機種名", "調達元",
                 "入荷台数", "RPC見込み台数", "RPC確定台数", "歩留まり率(%)",
-                "生産開始予定日", "生産完了予定日", "紐付けプロジェクト", "割当台数", "備考"
+                "生産開始予定日", "生産完了予定日", "紐付けプロジェクト", "割当台数", "販売先内訳", "未割当台数", "備考"
             ];
 
             const csvRows = [headers.join(',')];
@@ -2264,6 +2445,8 @@
                     escapeCSV(lot.expectedCompletionDate),
                     escapeCSV(lot.project),
                     lot.allocatedQty || 0,
+                    escapeCSV(lot.allocations.map(a => `${a.customer}:${a.qty}(${a.status})`).join(' / ')),
+                    lotRemaining(lot),
                     escapeCSV(lot.remarks)
                 ];
                 csvRows.push(row.join(','));
@@ -3295,6 +3478,296 @@
                         </div>
                     `;
                 }).join('');
+        }
+
+
+        /* ---------------------------------------------------------------
+         * 在庫（歩留まり後の確定台数）と販売先の引き当て
+         * ------------------------------------------------------------- */
+
+        let expandedStockModels = new Set();
+
+        function lotRemaining(lot) {
+            return lot.rpcConfirmedQty - lot.allocatedQty;
+        }
+
+        // 機種ごとに実在庫を束ねる。確定 = 生産完了した実績台数。
+        function buildStockByModel() {
+            const map = new Map();
+
+            lotsData.forEach(lot => {
+                const model = lot.modelName || '未設定・その他';
+                if (!map.has(model)) {
+                    map.set(model, {
+                        model,
+                        lots: [],
+                        estimateQty: 0,
+                        confirmedQty: 0,
+                        allocatedQty: 0,
+                        customers: new Set()
+                    });
+                }
+                const entry = map.get(model);
+                entry.lots.push(lot);
+                entry.estimateQty += lot.rpcEstimateQty;
+                entry.confirmedQty += lot.rpcConfirmedQty;
+                entry.allocatedQty += lot.allocatedQty;
+                lot.allocations.forEach(a => entry.customers.add(a.customer));
+            });
+
+            return Array.from(map.values())
+                .map(entry => {
+                    entry.remaining = entry.confirmedQty - entry.allocatedQty;
+                    // Lots that actually have stock to sell come first
+                    entry.lots.sort((a, b) => lotRemaining(b) - lotRemaining(a));
+                    return entry;
+                })
+                .sort((a, b) => b.remaining - a.remaining || b.confirmedQty - a.confirmedQty);
+        }
+
+        function allAllocationCustomers() {
+            const set = new Set();
+            lotsData.forEach(lot => lot.allocations.forEach(a => set.add(a.customer)));
+            return Array.from(set).sort();
+        }
+
+        function toggleStockModel(model) {
+            if (expandedStockModels.has(model)) expandedStockModels.delete(model);
+            else expandedStockModels.add(model);
+            renderStockSummary();
+        }
+
+        function renderStockSummary() {
+            const container = document.getElementById('stock-summary-container');
+            const countBadge = document.getElementById('stock-summary-count');
+            if (!container) return;
+
+            const onlyAvailable = document.getElementById('stock-only-available')?.checked;
+            let models = buildStockByModel();
+            if (onlyAvailable) models = models.filter(m => m.remaining > 0);
+
+            const totalConfirmed = models.reduce((sum, m) => sum + m.confirmedQty, 0);
+            // Sellable stock only counts models that still have units left; a model
+            // allocated beyond production must not cancel out another's surplus.
+            const available = models.reduce((sum, m) => sum + Math.max(m.remaining, 0), 0);
+            const overCommitted = models.reduce((sum, m) => sum + Math.max(-m.remaining, 0), 0);
+            countBadge.innerHTML = `${models.length} 機種 ／ 確定 ${totalConfirmed.toLocaleString()} 台・引当可能 <strong class="text-indigo-700">${available.toLocaleString()}</strong> 台`
+                + (overCommitted > 0 ? ` ／ <span class="text-red-600 font-semibold">未生産の先行割当 ${overCommitted.toLocaleString()} 台</span>` : '');
+
+            if (models.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">
+                    <i class="fa-solid fa-box-open text-2xl mb-2 block text-slate-300"></i>
+                    ${onlyAvailable ? '未割当の在庫はありません' : '機種データがありません'}
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = models.map(entry => {
+                const expanded = expandedStockModels.has(entry.model);
+                const over = entry.remaining < 0;
+                const ratio = entry.confirmedQty > 0
+                    ? Math.min(100, Math.round((entry.allocatedQty / entry.confirmedQty) * 100))
+                    : 0;
+
+                const lotRows = expanded ? entry.lots.map(lot => {
+                    const remaining = lotRemaining(lot);
+                    const allocRows = lot.allocations.length
+                        ? lot.allocations.map(a => `
+                            <div class="flex items-center gap-2 text-[11px] py-1 pl-6 border-t border-slate-100 group">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] ${ALLOCATION_BADGE_CLASS[a.status] || ALLOCATION_BADGE_CLASS['確定']}">${escapeHTML(a.status)}</span>
+                                <span class="font-semibold text-slate-800 truncate">${escapeHTML(a.customer)}</span>
+                                <span class="font-bold text-purple-700 shrink-0">${a.qty.toLocaleString()}台</span>
+                                ${a.decidedDate ? `<span class="text-slate-400 shrink-0">${escapeHTML(a.decidedDate)}</span>` : ''}
+                                ${a.remarks ? `<span class="text-slate-400 truncate">${escapeHTML(a.remarks)}</span>` : ''}
+                                <span class="flex-1"></span>
+                                <button type="button" data-action="alloc-edit" data-id="${escapeHTML(lot.id)}" data-alloc="${escapeHTML(a.id)}"
+                                        class="shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition" title="編集">
+                                    <i class="fa-solid fa-pen text-[10px]"></i>
+                                </button>
+                                <button type="button" data-action="alloc-delete" data-id="${escapeHTML(lot.id)}" data-alloc="${escapeHTML(a.id)}"
+                                        class="shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-500 transition" title="削除">
+                                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                                </button>
+                            </div>
+                        `).join('') : '';
+
+                    return `
+                        <div class="border-t border-slate-200 bg-white">
+                            <div class="flex items-center gap-2 px-3 py-2 text-[11px] flex-wrap">
+                                <span class="font-bold text-slate-800">${escapeHTML(lot.id)}</span>
+                                ${lot.workOrderNo ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${escapeHTML(lot.workOrderNo)}</span>` : ''}
+                                <span class="px-1.5 py-0.5 rounded text-[10px] ${STATUS_BADGE_CLASS[lot.status] || STATUS_BADGE_CLASS.default}">${escapeHTML(lot.status)}</span>
+                                <span class="text-slate-500">確定 <strong class="text-emerald-700">${lot.rpcConfirmedQty.toLocaleString()}</strong></span>
+                                <span class="text-slate-500">割当 <strong class="text-purple-700">${lot.allocatedQty.toLocaleString()}</strong></span>
+                                <span class="${remaining < 0 ? 'text-red-600 font-bold' : 'text-slate-500'}">残 <strong class="${remaining > 0 ? 'text-indigo-700' : ''}">${remaining.toLocaleString()}</strong></span>
+                                <span class="flex-1"></span>
+                                <button type="button" data-action="alloc-add" data-id="${escapeHTML(lot.id)}"
+                                        class="shrink-0 px-2 py-1 text-[11px] font-semibold rounded-lg transition flex items-center gap-1 ${remaining > 0 ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-100'}">
+                                    <i class="fa-solid fa-plus"></i> 販売先を登録
+                                </button>
+                            </div>
+                            ${allocRows}
+                        </div>
+                    `;
+                }).join('') : '';
+
+                return `
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                        <div class="flex items-center gap-3 p-3.5 cursor-pointer hover:bg-slate-50 transition" data-action="stock-toggle" data-id="${escapeHTML(entry.model)}">
+                            <i class="fa-solid ${expanded ? 'fa-chevron-down' : 'fa-chevron-right'} text-[10px] text-slate-400 w-3"></i>
+                            <div class="min-w-0 flex-1">
+                                <h4 class="font-bold text-sm text-slate-900 truncate">
+                                    <i class="fa-solid fa-computer text-indigo-500 mr-1.5"></i>${escapeHTML(entry.model)}
+                                </h4>
+                                <p class="text-[11px] text-slate-400 truncate">
+                                    ${entry.lots.length} ロット
+                                    ${entry.customers.size ? `・販売先 ${escapeHTML(Array.from(entry.customers).join(', '))}` : '・販売先未定'}
+                                </p>
+                            </div>
+
+                            <div class="hidden sm:grid grid-cols-3 gap-3 text-center shrink-0">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block">確定(実績)</span>
+                                    <span class="font-bold text-sm text-emerald-600">${entry.confirmedQty.toLocaleString()}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block">割当済</span>
+                                    <span class="font-bold text-sm text-purple-700">${entry.allocatedQty.toLocaleString()}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block">未割当</span>
+                                    <span class="font-bold text-base ${over ? 'text-red-600' : entry.remaining > 0 ? 'text-indigo-700' : 'text-slate-400'}">${entry.remaining.toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            <div class="w-24 shrink-0">
+                                <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                    <div class="${over ? 'bg-red-500' : 'bg-purple-500'} h-1.5 rounded-full transition-all duration-300" style="width: ${ratio}%"></div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 text-center mt-0.5">引当 ${ratio}%</p>
+                            </div>
+                        </div>
+                        ${over ? `<p class="px-3.5 pb-2 text-[11px] text-red-600 font-medium"><i class="fa-solid fa-triangle-exclamation mr-1"></i>生産確定した台数より ${Math.abs(entry.remaining).toLocaleString()} 台多く割り当てています（生産待ちの先行受注）</p>` : ''}
+                        ${lotRows}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* --- 割当モーダル --- */
+
+        let allocationTarget = { lotId: null, allocId: null };
+
+        function openAllocationModal(lotId, allocId = null) {
+            const lot = lotsData.find(l => l.id === lotId);
+            if (!lot) return;
+
+            allocationTarget = { lotId, allocId };
+            const existing = allocId ? lot.allocations.find(a => a.id === allocId) : null;
+
+            document.getElementById('allocModalTitle').innerText = existing ? '販売先の編集' : '販売先の登録';
+            document.getElementById('allocLotLabel').innerText = `${lot.id}　${lot.modelName || '機種未設定'}`;
+            document.getElementById('allocLotConfirmed').innerText = lot.rpcConfirmedQty.toLocaleString();
+            document.getElementById('allocLotAllocated').innerText = lot.allocatedQty.toLocaleString();
+            document.getElementById('allocLotRemaining').innerText = lotRemaining(lot).toLocaleString();
+
+            document.getElementById('allocCustomer').value = existing ? existing.customer : '';
+            document.getElementById('allocQty').value = existing ? existing.qty : '';
+            document.getElementById('allocDecidedDate').value = existing ? existing.decidedDate : todayISO();
+            document.getElementById('allocStatus').value = existing ? existing.status : '確定';
+            document.getElementById('allocRemarks').value = existing ? existing.remarks : '';
+
+            document.getElementById('allocation-customers').innerHTML =
+                allAllocationCustomers().map(c => `<option value="${escapeHTML(c)}"></option>`).join('');
+
+            updateAllocationRemainder();
+            openModal('allocationModal');
+        }
+
+        // Remaining excludes the entry being edited, so editing it is not
+        // counted against itself.
+        function allocationHeadroom() {
+            const lot = lotsData.find(l => l.id === allocationTarget.lotId);
+            if (!lot) return 0;
+            const others = lot.allocations
+                .filter(a => a.id !== allocationTarget.allocId)
+                .reduce((sum, a) => sum + a.qty, 0);
+            return lot.rpcConfirmedQty - others;
+        }
+
+        function fillRemainingQty() {
+            document.getElementById('allocQty').value = Math.max(allocationHeadroom(), 0);
+            updateAllocationRemainder();
+        }
+
+        function updateAllocationRemainder() {
+            const qty = Number(document.getElementById('allocQty').value) || 0;
+            const headroom = allocationHeadroom();
+            const warning = document.getElementById('allocQtyWarning');
+
+            if (qty > headroom) {
+                warning.innerText = `確定在庫を ${(qty - headroom).toLocaleString()} 台超過します`;
+                warning.classList.remove('hidden');
+            } else {
+                warning.classList.add('hidden');
+            }
+        }
+
+        function saveAllocation(event) {
+            event.preventDefault();
+            const lot = lotsData.find(l => l.id === allocationTarget.lotId);
+            if (!lot) return;
+
+            const customer = document.getElementById('allocCustomer').value.trim();
+            const qty = Number(document.getElementById('allocQty').value) || 0;
+            if (!customer || qty <= 0) {
+                showToast("販売先と台数を入力してください", "error");
+                return;
+            }
+
+            const payload = {
+                customer,
+                qty: Math.round(qty),
+                decidedDate: document.getElementById('allocDecidedDate').value,
+                status: document.getElementById('allocStatus').value,
+                remarks: document.getElementById('allocRemarks').value.trim()
+            };
+
+            if (allocationTarget.allocId) {
+                const existing = lot.allocations.find(a => a.id === allocationTarget.allocId);
+                Object.assign(existing, payload);
+                showToast(`${customer} の割当を更新しました`, "success");
+            } else {
+                lot.allocations.push({ id: newAllocationId(), ...payload });
+                showToast(`${lot.id} → ${customer} ${payload.qty.toLocaleString()}台 を登録しました`, "success");
+            }
+
+            lot.allocatedQty = lot.allocations.reduce((sum, a) => sum + a.qty, 0);
+            expandedStockModels.add(lot.modelName || '未設定・その他');
+
+            // Allocation is a 販売先 decision: record it on the 指示書 log too
+            if (lot.workOrderNo) {
+                appendWorkOrderLog(lot.workOrderNo,
+                    `${lot.id} の販売先割当: ${customer} ${payload.qty.toLocaleString()}台（${payload.status}）`, 'status');
+            }
+
+            saveToLocalStorage();
+            renderDashboard();
+            closeModal('allocationModal');
+        }
+
+        function deleteAllocation(lotId, allocId) {
+            const lot = lotsData.find(l => l.id === lotId);
+            if (!lot) return;
+            const target = lot.allocations.find(a => a.id === allocId);
+            if (!target) return;
+
+            lot.allocations = lot.allocations.filter(a => a.id !== allocId);
+            lot.allocatedQty = lot.allocations.reduce((sum, a) => sum + a.qty, 0);
+
+            saveToLocalStorage();
+            renderDashboard();
+            showToast(`${target.customer} ${target.qty.toLocaleString()}台 の割当を取り消しました`, "info");
         }
 
         // Custom Toast Notification System
