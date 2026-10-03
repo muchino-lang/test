@@ -787,7 +787,6 @@
                 <div>
                     <label for="allocCustomer" class="block text-xs font-semibold text-slate-700 mb-1">販売先 <span class="text-red-500">*</span></label>
                     <input type="text" id="allocCustomer" list="allocation-customers" required placeholder="例: 朝日大学 / ○○商事" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    <datalist id="allocation-customers"></datalist>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -960,6 +959,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Shared buyer autocomplete, used by every 販売先 input -->
+    <datalist id="allocation-customers"></datalist>
 
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
@@ -1174,6 +1176,14 @@
             document.addEventListener('change', (event) => {
                 const select = event.target.closest('select[data-action="status"]');
                 if (select) changeLotStatusDirectly(select.dataset.id, select.value);
+            });
+
+            // Quick 販売先 entry: Enter in either field is enough to book it
+            document.addEventListener('submit', (event) => {
+                const form = event.target.closest('form[data-quick-alloc]');
+                if (!form) return;
+                event.preventDefault();
+                quickAllocate(form);
             });
 
             // Close the topmost open modal with Escape / backdrop click
@@ -3537,18 +3547,122 @@
             renderStockSummary();
         }
 
+        // 在庫のあるロットを古い順に並べる（先入先出で引き当てる）
+        function fifoLots(lots) {
+            return lots.slice().sort((a, b) =>
+                (a.expectedCompletionDate || '9999').localeCompare(b.expectedCompletionDate || '9999')
+                || (a.arrivalMonth || '9999').localeCompare(b.arrivalMonth || '9999')
+                || a.id.localeCompare(b.id));
+        }
+
+        // 販売先と台数だけで引き当てる。残のあるロットから順に自動で割り振り、
+        // 在庫を超えた分は最後のロットに先行割当として積む（黙って捨てない）。
+        function quickAllocate(form) {
+            const customer = form.querySelector('.quick-customer').value.trim();
+            const qty = Math.round(Number(form.querySelector('.quick-qty').value) || 0);
+
+            if (!customer || qty <= 0) {
+                showToast("販売先と台数を入力してください", "error");
+                return;
+            }
+
+            const scope = form.dataset.scope;
+            const key = form.dataset.key;
+            const pool = scope === 'lot'
+                ? lotsData.filter(l => l.id === key)
+                : fifoLots(lotsData.filter(l => (l.modelName || '未設定・その他') === key));
+
+            if (pool.length === 0) return;
+
+            const parts = [];
+            let left = qty;
+
+            pool.forEach(lot => {
+                if (left <= 0) return;
+                const take = Math.min(Math.max(lotRemaining(lot), 0), left);
+                if (take <= 0) return;
+                addAllocationToLot(lot, customer, take);
+                parts.push(`${lot.id} ${take.toLocaleString()}台`);
+                left -= take;
+            });
+
+            // Nothing in stock, or more sold than produced: book the rest ahead
+            let advance = 0;
+            if (left > 0) {
+                const target = pool[pool.length - 1];
+                addAllocationToLot(target, customer, left);
+                parts.push(`${target.id} ${left.toLocaleString()}台`);
+                advance = left;
+                left = 0;
+            }
+
+            expandedStockModels.add(scope === 'lot' ? (pool[0].modelName || '未設定・その他') : key);
+            saveToLocalStorage();
+            renderDashboard();
+
+            showToast(
+                `${customer} へ ${qty.toLocaleString()}台 引き当て（${parts.join(' / ')}）`
+                + (advance > 0 ? ` ※うち${advance.toLocaleString()}台は生産待ちの先行割当` : ''),
+                advance > 0 ? "info" : "success"
+            );
+        }
+
+        // Merge into the same buyer's open line on that lot rather than piling up
+        // a new row every time a few more units are sold to them.
+        function addAllocationToLot(lot, customer, qty) {
+            const existing = lot.allocations.find(a => a.customer === customer && a.status === '確定');
+            if (existing) {
+                existing.qty += qty;
+                if (!existing.decidedDate) existing.decidedDate = todayISO();
+            } else {
+                lot.allocations.push({
+                    id: newAllocationId(),
+                    customer,
+                    qty,
+                    decidedDate: todayISO(),
+                    status: '確定',
+                    remarks: ''
+                });
+            }
+            lot.allocatedQty = lot.allocations.reduce((sum, a) => sum + a.qty, 0);
+
+            if (lot.workOrderNo) {
+                appendWorkOrderLog(lot.workOrderNo,
+                    `${lot.id} の販売先割当: ${customer} ${qty.toLocaleString()}台`, 'status');
+            }
+        }
+
+        function quickAllocateForm(scope, key, remaining) {
+            const label = scope === 'model' ? '一括引き当て' : 'このロットに登録';
+            return `
+                <form data-quick-alloc data-scope="${scope}" data-key="${escapeHTML(key)}"
+                      class="flex items-center gap-1.5 flex-wrap ${scope === 'model' ? 'px-3.5 py-2 bg-slate-50 border-t border-slate-200' : ''}">
+                    <input type="text" class="quick-customer w-40 px-2 py-1 text-[11px] bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                           list="allocation-customers" placeholder="販売先" aria-label="販売先">
+                    <input type="number" min="1" class="quick-qty w-20 px-2 py-1 text-[11px] bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                           placeholder="台数" aria-label="台数">
+                    <button type="submit" class="px-2.5 py-1 text-[11px] font-semibold rounded-lg transition flex items-center gap-1 ${remaining > 0 ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-100'}">
+                        <i class="fa-solid fa-plus"></i> ${label}
+                    </button>
+                    ${scope === 'model' ? `<span class="text-[10px] text-slate-400">残のあるロットから自動で引き当てます</span>` : ''}
+                </form>
+            `;
+        }
+
         function renderStockSummary() {
             const container = document.getElementById('stock-summary-container');
             const countBadge = document.getElementById('stock-summary-count');
             if (!container) return;
+
+            // Buyer autocomplete is shared by every quick-entry form on the page
+            const datalist = document.getElementById('allocation-customers');
+            if (datalist) datalist.innerHTML = allAllocationCustomers().map(c => `<option value="${escapeHTML(c)}"></option>`).join('');
 
             const onlyAvailable = document.getElementById('stock-only-available')?.checked;
             let models = buildStockByModel();
             if (onlyAvailable) models = models.filter(m => m.remaining > 0);
 
             const totalConfirmed = models.reduce((sum, m) => sum + m.confirmedQty, 0);
-            // Sellable stock only counts models that still have units left; a model
-            // allocated beyond production must not cancel out another's surplus.
             const available = models.reduce((sum, m) => sum + Math.max(m.remaining, 0), 0);
             const overCommitted = models.reduce((sum, m) => sum + Math.max(-m.remaining, 0), 0);
             countBadge.innerHTML = `${models.length} 機種 ／ 確定 ${totalConfirmed.toLocaleString()} 台・引当可能 <strong class="text-indigo-700">${available.toLocaleString()}</strong> 台`
@@ -3569,27 +3683,26 @@
                     ? Math.min(100, Math.round((entry.allocatedQty / entry.confirmedQty) * 100))
                     : 0;
 
-                const lotRows = expanded ? entry.lots.map(lot => {
+                const lotRows = expanded ? fifoLots(entry.lots).map(lot => {
                     const remaining = lotRemaining(lot);
-                    const allocRows = lot.allocations.length
-                        ? lot.allocations.map(a => `
-                            <div class="flex items-center gap-2 text-[11px] py-1 pl-6 border-t border-slate-100 group">
-                                <span class="px-1.5 py-0.5 rounded text-[10px] ${ALLOCATION_BADGE_CLASS[a.status] || ALLOCATION_BADGE_CLASS['確定']}">${escapeHTML(a.status)}</span>
-                                <span class="font-semibold text-slate-800 truncate">${escapeHTML(a.customer)}</span>
-                                <span class="font-bold text-purple-700 shrink-0">${a.qty.toLocaleString()}台</span>
-                                ${a.decidedDate ? `<span class="text-slate-400 shrink-0">${escapeHTML(a.decidedDate)}</span>` : ''}
-                                ${a.remarks ? `<span class="text-slate-400 truncate">${escapeHTML(a.remarks)}</span>` : ''}
-                                <span class="flex-1"></span>
-                                <button type="button" data-action="alloc-edit" data-id="${escapeHTML(lot.id)}" data-alloc="${escapeHTML(a.id)}"
-                                        class="shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition" title="編集">
-                                    <i class="fa-solid fa-pen text-[10px]"></i>
-                                </button>
-                                <button type="button" data-action="alloc-delete" data-id="${escapeHTML(lot.id)}" data-alloc="${escapeHTML(a.id)}"
-                                        class="shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-500 transition" title="削除">
-                                    <i class="fa-solid fa-xmark text-[10px]"></i>
-                                </button>
-                            </div>
-                        `).join('') : '';
+                    const allocRows = lot.allocations.map(a => `
+                        <div class="flex items-center gap-2 text-[11px] py-1 pl-6 pr-3 border-t border-slate-100">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] ${ALLOCATION_BADGE_CLASS[a.status] || ALLOCATION_BADGE_CLASS['確定']}">${escapeHTML(a.status)}</span>
+                            <span class="font-semibold text-slate-800 truncate">${escapeHTML(a.customer)}</span>
+                            <span class="font-bold text-purple-700 shrink-0">${a.qty.toLocaleString()}台</span>
+                            ${a.decidedDate ? `<span class="text-slate-400 shrink-0">${escapeHTML(a.decidedDate)}</span>` : ''}
+                            ${a.remarks ? `<span class="text-slate-400 truncate">${escapeHTML(a.remarks)}</span>` : ''}
+                            <span class="flex-1"></span>
+                            <button type="button" data-action="alloc-edit" data-id="${escapeHTML(lot.id)}" data-alloc="${escapeHTML(a.id)}"
+                                    class="shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition" title="詳細を編集">
+                                <i class="fa-solid fa-pen text-[10px]"></i>
+                            </button>
+                            <button type="button" data-action="alloc-delete" data-id="${escapeHTML(lot.id)}" data-alloc="${escapeHTML(a.id)}"
+                                    class="shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-500 transition" title="取り消し">
+                                <i class="fa-solid fa-xmark text-[10px]"></i>
+                            </button>
+                        </div>
+                    `).join('');
 
                     return `
                         <div class="border-t border-slate-200 bg-white">
@@ -3601,10 +3714,7 @@
                                 <span class="text-slate-500">割当 <strong class="text-purple-700">${lot.allocatedQty.toLocaleString()}</strong></span>
                                 <span class="${remaining < 0 ? 'text-red-600 font-bold' : 'text-slate-500'}">残 <strong class="${remaining > 0 ? 'text-indigo-700' : ''}">${remaining.toLocaleString()}</strong></span>
                                 <span class="flex-1"></span>
-                                <button type="button" data-action="alloc-add" data-id="${escapeHTML(lot.id)}"
-                                        class="shrink-0 px-2 py-1 text-[11px] font-semibold rounded-lg transition flex items-center gap-1 ${remaining > 0 ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-100'}">
-                                    <i class="fa-solid fa-plus"></i> 販売先を登録
-                                </button>
+                                ${quickAllocateForm('lot', lot.id, remaining)}
                             </div>
                             ${allocRows}
                         </div>
@@ -3648,6 +3758,7 @@
                             </div>
                         </div>
                         ${over ? `<p class="px-3.5 pb-2 text-[11px] text-red-600 font-medium"><i class="fa-solid fa-triangle-exclamation mr-1"></i>生産確定した台数より ${Math.abs(entry.remaining).toLocaleString()} 台多く割り当てています（生産待ちの先行受注）</p>` : ''}
+                        ${quickAllocateForm('model', entry.model, entry.remaining)}
                         ${lotRows}
                     </div>
                 `;
@@ -3676,9 +3787,6 @@
             document.getElementById('allocDecidedDate').value = existing ? existing.decidedDate : todayISO();
             document.getElementById('allocStatus').value = existing ? existing.status : '確定';
             document.getElementById('allocRemarks').value = existing ? existing.remarks : '';
-
-            document.getElementById('allocation-customers').innerHTML =
-                allAllocationCustomers().map(c => `<option value="${escapeHTML(c)}"></option>`).join('');
 
             updateAllocationRemainder();
             openModal('allocationModal');
