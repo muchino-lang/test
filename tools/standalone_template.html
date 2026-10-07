@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>営業資料ファインダー</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -534,13 +539,35 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
   @media (prefers-reduced-motion: reduce){#toast{transition:none}}
 
+
+  .sitefoot{margin:34px auto 12px;padding-top:16px;border-top:1px solid var(--line)}
+  .footrow{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .foothint{font-size:12.5px;color:var(--muted);max-width:62ch;line-height:1.7}
+  .foothint b{color:var(--ink);font-weight:700}
+  .footacts{display:flex;gap:6px;flex-wrap:wrap}
+  .footacts .btn{font-size:12.5px;padding:6px 11px}
+  .htmlstate{
+    display:flex;gap:10px;align-items:flex-start;
+    margin-bottom:12px;padding:10px 13px;border-radius:var(--radius);
+    background:color-mix(in srgb, var(--warn) 10%, transparent);
+    border:1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+    font-size:12.5px;line-height:1.7;color:var(--muted);
+  }
+  .htmlstate b{color:var(--ink);font-weight:700}
+  .htmlstate .lbl2{
+    flex:none;margin-top:2px;padding:1px 7px;border-radius:4px;
+    background:var(--warn);color:var(--bg);
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;
+  }
+
   @media (max-width:620px){
     .row{grid-template-columns:auto 1fr;row-gap:9px}
     .acts{grid-column:2;justify-content:flex-start;flex-wrap:wrap}
     .counts{width:100%}
   }
 </style>
-
+</head>
+<body>
 <header class="bar">
   <div class="wrap bar-inner">
     <div class="brandrow">
@@ -823,9 +850,39 @@
   </form>
 </dialog>
 
+<footer class="wrap sitefoot">
+  <div class="htmlstate" id="html-state" hidden>
+    <span class="lbl2">未反映</span>
+    <span>このPCのブラウザにだけ保存されている変更があります。<b>「HTMLに保存」</b>を押してファイルを差し替えるまで、HTMLファイルの中身は古いままです。</span>
+  </div>
+  <div class="footrow">
+    <span class="foothint">追加・編集した内容は、まずこのPCのブラウザに保存されます。<b>「HTMLに保存」</b>を押すと、いまの内容を入れたHTMLファイルが書き出されるので、古いファイルと差し替えれば他のPCでも同じ状態で開けます。</span>
+    <span class="footacts">
+      <button class="btn primary" type="button" id="io-html">HTMLに保存</button>
+      <button class="btn ghost" type="button" id="io-export">JSONで書き出し</button>
+      <button class="btn ghost" type="button" id="io-import">JSONを読み込み</button>
+      <button class="btn ghost" type="button" id="io-reset">HTMLの内容に戻す</button>
+      <input type="file" id="io-file" accept="application/json,.json" hidden>
+    </span>
+  </div>
+</footer>
 <script>
+
 (function(){
   "use strict";
+
+  /* このHTMLファイル自身に焼き込まれた内容。
+     「HTMLに保存」すると、いまの一覧・セット・定型文・メモを入れた
+     新しいHTMLが書き出され、それを配ればどのPCでも同じ状態で開ける。 */
+  var SEED = __SEED_OBJ__;
+  var TEMPLATE = "__TEMPLATE__";
+
+  var DATA = SEED.items || [];
+  var DEFAULT_BLURBS = SEED.blurbs || [];
+  var DEFAULT_SETS = SEED.sets || [];
+  var DEFAULT_MEMO = SEED.memo || "";
+
+  var STORAGE_KEY = "shiryo-finder:v1";
 
   var CAT_ORDER = [
     "チラシ・パンフレット",
@@ -838,7 +895,6 @@
     "新入生チラシ"
   ];
 
-  var db = null;
   var items = [];
   var loaded = false;
   var selected = new Set();
@@ -849,10 +905,125 @@
   var sets = [];
   var activeSet = null;
   var editingSetId = null;
+  var removed = [];
+  var mergedCount = 0;
+  var memoUpdatedAt = "";
+  var htmlDirty = false;
 
   var $ = function(id){ return document.getElementById(id); };
   var qEl = $("q"), listEl = $("list"), chipsEl = $("chips"), countsEl = $("counts");
   var selbar = $("selbar"), toastEl = $("toast"), dlg = $("dlg"), noticeEl = $("notice");
+
+  /* ---------- storage (this browser only) ---------- */
+  function load(){
+    var raw = null;
+    try { raw = window.localStorage.getItem(STORAGE_KEY); } catch (e) { raw = null; }
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.items) && parsed.items.length) {
+          sets = normaliseSets(parsed.sets);
+          blurbs = normaliseBlurbs(parsed.blurbs);
+          removed = Array.isArray(parsed.removed) ? parsed.removed.map(String) : [];
+          htmlDirty = parsed.htmlDirty === true;
+          memoText = String(parsed.memo || "");
+          memoUpdatedAt = String(parsed.memoUpdatedAt || "");
+          mergeShippedBlurbs();
+          mergeShippedSets();
+          return mergeShipped(parsed.items);
+        }
+      } catch (e) { /* fall through to the built-in list */ }
+    }
+    sets = DEFAULT_SETS.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+    removed = [];
+    blurbs = DEFAULT_BLURBS.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+    memoText = DEFAULT_MEMO;
+    return DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+  }
+
+  /* このHTMLに同梱された資料のうち、保存済みデータに無いものを足す。
+     利用者が自分で消したもの（removed）は足し直さない。 */
+  function isShipped(id){
+    return DATA.some(function(d){ return d.id === id; });
+  }
+  function mergeShipped(list){
+    var have = {};
+    list.forEach(function(it){ if (it && it.id) have[String(it.id)] = true; });
+    var added = [];
+    DATA.forEach(function(d){
+      if (!have[d.id] && removed.indexOf(d.id) === -1) {
+        added.push(JSON.parse(JSON.stringify(d)));
+      }
+    });
+    mergedCount = added.length;
+    return list.concat(added);
+  }
+  function mergeShippedSets(){
+    var have = {};
+    sets.forEach(function(x){ have[x.id] = true; });
+    DEFAULT_SETS.forEach(function(d){
+      if (!have[d.id] && removed.indexOf(d.id) === -1) {
+        sets.push(JSON.parse(JSON.stringify(d)));
+      }
+    });
+  }
+  function mergeShippedBlurbs(){
+    var have = {};
+    blurbs.forEach(function(b){ have[b.id] = true; });
+    DEFAULT_BLURBS.forEach(function(d){
+      if (!have[d.id] && removed.indexOf(d.id) === -1) {
+        blurbs.push(JSON.parse(JSON.stringify(d)));
+      }
+    });
+  }
+  function normaliseSets(raw){
+    if (!Array.isArray(raw)) return [];
+    return raw.map(function(v, i){
+      return {
+        id: v && v.id ? String(v.id) : ("s" + i + Date.now().toString(36)),
+        name: String((v && v.name) || "(名称未設定)"),
+        itemIds: (v && Array.isArray(v.itemIds)) ? v.itemIds.map(String) : [],
+        order: (v && typeof v.order === "number") ? v.order : (i + 1) * 10
+      };
+    });
+  }
+  function normaliseBlurbs(raw){
+    if (!Array.isArray(raw)) return [];
+    return raw.map(function(v, i){
+      return {
+        id: v && v.id ? String(v.id) : ("b" + i + Date.now().toString(36)),
+        name: String((v && v.name) || "(名称未設定)"),
+        category: (v && v.category) ? String(v.category) : "",
+        group: (v && v.group) ? String(v.group) : "",
+        text: String((v && v.text) || ""),
+        order: (v && typeof v.order === "number") ? v.order : (i + 1) * 10
+      };
+    }).filter(function(b){ return b.text; });
+  }
+  function save(markDirty){
+    if (markDirty !== false) htmlDirty = true;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed,
+        memo: memoText, memoUpdatedAt: new Date().toISOString(),
+        htmlDirty: htmlDirty
+      }));
+      renderHtmlState();
+      return true;
+    } catch (e) {
+      toast("このブラウザに保存できませんでした（プライベートモードの可能性があります）");
+      return false;
+    }
+  }
+  function strip(list){
+    return list.map(function(it){
+      return {
+        id: it.id, title: it.title, clientTitle: it.clientTitle || "", url: it.url, category: it.category,
+        format: it.format, note: it.note, tags: it.tags,
+        model: it.model, priceLabel: it.priceLabel, order: it.order
+      };
+    });
+  }
 
   /* ---------- text normalisation (kana / width tolerant) ---------- */
   function norm(s){
@@ -868,6 +1039,9 @@
   }
   function haystack(it){
     return norm([it.title, it.clientTitle, it.category, it.note, it.tags, it.format, it.url].join(" "));
+  }
+  function index(){
+    items.forEach(function(it){ it._hay = haystack(it); });
   }
 
   /* ---------- clipboard ---------- */
@@ -954,9 +1128,7 @@
     return true;
   }
   function terms(){
-    var raw = norm(qEl.value);
-    if (!raw) return [];
-    // split on original spaces, then normalise each piece
+    if (!qEl.value.trim()) return [];
     return qEl.value.trim().split(/[\s　]+/).map(norm).filter(Boolean);
   }
 
@@ -967,6 +1139,57 @@
     s.textContent = text;
     return s;
   }
+
+  function line(it){
+    return clientName(it) + "\n" + it.url;
+  }
+
+  /* ---------- 確認用メモ（貼り付け後に削除する前提） ---------- */
+  var CONFIRM_SEP = "\u2015\u2015\u2015 ここから下は送信前に削除 \u2015\u2015\u2015";
+  var withMemo = true;
+  try {
+    var mv = window.localStorage.getItem("shiryo-finder:memo");
+    withMemo = (mv === null) ? true : (mv === "1");
+  } catch (e) { withMemo = true; }
+
+  function memoOf(it){
+    return (clientName(it) !== it.title) ? it.title : "";
+  }
+  function noteSuffix(it){
+    var parts = [];
+    if (blurbsFor([it]).length) parts.push("定型文");
+    if (withMemo && memoOf(it)) parts.push("末尾に確認用メモ");
+    return parts.length ? "（＋" + parts.join("／") + "）" : "";
+  }
+  function block(list){
+    var out = list.map(line).join("\n\n");
+
+    var bl = blurbsFor(list);
+    if (bl.length) out += "\n\n" + bl.map(function(b){ return b.text; }).join("\n\n");
+
+    if (!withMemo) return out;
+    var memos = [];
+    list.forEach(function(it, i){
+      var m = memoOf(it);
+      if (m) memos.push(list.length > 1 ? (i + 1) + ". " + m : m);
+    });
+    if (!memos.length) return out;
+    return out + "\n\n" + CONFIRM_SEP + "\n" + memos.join("\n");
+  }
+  function setWithMemo(on){
+    withMemo = !!on;
+    try { window.localStorage.setItem("shiryo-finder:memo", withMemo ? "1" : "0"); } catch (e) { /* ignore */ }
+    var t = $("memo-toggle");
+    if (t) t.setAttribute("aria-pressed", withMemo ? "true" : "false");
+    render();
+  }
+  (function(){
+    var t = $("memo-toggle");
+    if (!t) return;
+    t.setAttribute("aria-pressed", withMemo ? "true" : "false");
+    t.addEventListener("click", function(){ setWithMemo(!withMemo); });
+  })();
+
 
   function rowEl(it){
     var row = document.createElement("div");
@@ -1066,57 +1289,6 @@
     return row;
   }
 
-  function line(it){
-    return clientName(it) + "\n" + it.url;
-  }
-
-  /* ---------- 確認用メモ（貼り付け後に削除する前提） ---------- */
-  var CONFIRM_SEP = "\u2015\u2015\u2015 ここから下は送信前に削除 \u2015\u2015\u2015";
-  var withMemo = true;
-  try {
-    var mv = window.localStorage.getItem("shiryo-finder:memo");
-    withMemo = (mv === null) ? true : (mv === "1");
-  } catch (e) { withMemo = true; }
-
-  function memoOf(it){
-    return (clientName(it) !== it.title) ? it.title : "";
-  }
-  function noteSuffix(it){
-    var parts = [];
-    if (blurbsFor([it]).length) parts.push("定型文");
-    if (withMemo && memoOf(it)) parts.push("末尾に確認用メモ");
-    return parts.length ? "（＋" + parts.join("／") + "）" : "";
-  }
-  function block(list){
-    var out = list.map(line).join("\n\n");
-
-    var bl = blurbsFor(list);
-    if (bl.length) out += "\n\n" + bl.map(function(b){ return b.text; }).join("\n\n");
-
-    if (!withMemo) return out;
-    var memos = [];
-    list.forEach(function(it, i){
-      var m = memoOf(it);
-      if (m) memos.push(list.length > 1 ? (i + 1) + ". " + m : m);
-    });
-    if (!memos.length) return out;
-    return out + "\n\n" + CONFIRM_SEP + "\n" + memos.join("\n");
-  }
-  function setWithMemo(on){
-    withMemo = !!on;
-    try { window.localStorage.setItem("shiryo-finder:memo", withMemo ? "1" : "0"); } catch (e) { /* ignore */ }
-    var t = $("memo-toggle");
-    if (t) t.setAttribute("aria-pressed", withMemo ? "true" : "false");
-    render();
-  }
-  (function(){
-    var t = $("memo-toggle");
-    if (!t) return;
-    t.setAttribute("aria-pressed", withMemo ? "true" : "false");
-    t.addEventListener("click", function(){ setWithMemo(!withMemo); });
-  })();
-
-
   function render(){
     var ts = terms();
     var hits = sorted().filter(function(it){ return matches(it, ts); });
@@ -1124,11 +1296,6 @@
     renderPptHint(hits.length - shown.length);
 
     listEl.textContent = "";
-
-    if (!loaded) {
-      countsEl.textContent = "読み込み中…";
-      return;
-    }
 
     countsEl.innerHTML = "";
     countsEl.appendChild(document.createTextNode("表示 "));
@@ -1138,7 +1305,10 @@
     if (!items.length) {
       var e0 = document.createElement("div");
       e0.className = "empty";
-      e0.innerHTML = "<strong>まだ資料が登録されていません</strong>右上の「＋ 資料を追加」から登録してください。";
+      var s0 = document.createElement("strong");
+      s0.textContent = "まだ資料が登録されていません";
+      e0.appendChild(s0);
+      e0.appendChild(document.createTextNode("右上の「＋ 資料を追加」から登録してください。"));
       listEl.appendChild(e0);
       return;
     }
@@ -1307,7 +1477,7 @@
       var edit = document.createElement("button");
       edit.type = "button";
       edit.className = "edit-set";
-      edit.textContent = "\u270E";
+      edit.textContent = "✎";
       edit.title = "セットを編集";
       edit.setAttribute("aria-label", st.name + " を編集");
       edit.addEventListener("click", function(){ openSetDialog(st); });
@@ -1324,8 +1494,7 @@
     $("setdlg-title").textContent = st ? "セットを編集" : "セットとして保存";
     $("s-name").value = st ? st.name : "";
     $("s-count-label").textContent = "このセットに入る資料（" + picked.length + " 件）";
-    if (st) $("s-name").dataset.ids = (st.itemIds || []).join(",");
-    else $("s-name").dataset.ids = picked.map(function(it){ return it.id; }).join(",");
+    $("s-name").dataset.ids = (st ? (st.itemIds || []) : picked.map(function(it){ return it.id; })).join(",");
 
     var ul = $("s-list");
     ul.textContent = "";
@@ -1374,36 +1543,34 @@
     var name = $("s-name").value.trim();
     var ids = ($("s-name").dataset.ids || "").split(",").filter(Boolean);
     if (!name || !ids.length) return;
-    if (!db) { toast("保存先に接続できていないため、登録できません。"); return; }
 
-    var id = editingSetId;
-    var body = { name: name, itemIds: ids, order: Date.now() };
-    if (id) {
-      var cur = sets.filter(function(x){ return x.id === id; })[0];
-      if (cur && typeof cur.order === "number") body.order = cur.order;
+    if (editingSetId) {
+      var cur = sets.filter(function(x){ return x.id === editingSetId; })[0];
+      if (cur) { cur.name = name; cur.itemIds = ids; }
     } else {
-      id = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      sets.push({
+        id: "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: name,
+        itemIds: ids,
+        order: Date.now()
+      });
     }
     var wasEdit = !!editingSetId;
     closeSetDialog();
-    db.doc("sets/" + id).set(body).then(function(){
-      toast(wasEdit ? "セットを更新しました" : "「" + name + "」を保存しました");
-    }).catch(function(e){
-      toast("保存できませんでした（" + (e && e.code ? e.code : "エラー") + "）");
-    });
+    if (save()) toast(wasEdit ? "セットを更新しました" : "「" + name + "」を保存しました");
+    renderSets();
   });
 
   $("setdlg-del").addEventListener("click", function(){
-    if (!editingSetId || !db) return;
+    if (!editingSetId) return;
     var cur = sets.filter(function(x){ return x.id === editingSetId; })[0];
     if (!cur) return;
     if (!window.confirm("セット「" + cur.name + "」を削除します。資料そのものは消えません。よろしいですか？")) return;
-    var id = editingSetId;
+    sets.splice(sets.indexOf(cur), 1);
+    if (activeSet === cur.id) activeSet = null;
     closeSetDialog();
-    db.doc("sets/" + id).delete().then(function(){
-      if (activeSet === id) activeSet = null;
-      toast("セットを削除しました");
-    }).catch(function(){ toast("削除できませんでした"); });
+    if (save()) toast("セットを削除しました");
+    renderSets();
   });
 
   /* ---------- 定型文（コピーに添える文面） ---------- */
@@ -1614,39 +1781,39 @@
     var name = $("b-name").value.trim();
     var text = $("b-text").value.replace(/\s+$/, "");
     if (!name || !text) return;
-    if (!db) { toast("保存先に接続できていないため、登録できません。"); return; }
 
     var cat = $("b-cat").value;
-    var id = editingBlurbId;
-    var body = {
-      name: name, category: (cat === "すべて" ? "" : cat), text: text,
-      group: $("b-group").value.trim(), order: Date.now()
-    };
-    if (id) {
-      var cur = blurbs.filter(function(x){ return x.id === id; })[0];
-      if (cur && typeof cur.order === "number") body.order = cur.order;
+    var stored = (cat === "すべて" ? "" : cat);
+    if (editingBlurbId) {
+      var cur = blurbs.filter(function(x){ return x.id === editingBlurbId; })[0];
+      if (cur) { cur.name = name; cur.category = stored; cur.text = text; cur.group = $("b-group").value.trim(); }
     } else {
-      id = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      blurbs.push({
+        id: "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: name, category: stored, text: text,
+        group: $("b-group").value.trim(), order: Date.now()
+      });
     }
     var wasEdit = !!editingBlurbId;
     closeBlurbDialog();
-    db.doc("blurbs/" + id).set(body).then(function(){
-      toast(wasEdit ? "定型文を更新しました" : "定型文を保存しました");
-    }).catch(function(e){
-      toast("保存できませんでした（" + (e && e.code ? e.code : "エラー") + "）");
-    });
+    if (save()) toast(wasEdit ? "定型文を更新しました" : "定型文を保存しました");
+    renderBlurbPick();
+    renderBlurbs();
+    render();
   });
 
   $("blurbdlg-del").addEventListener("click", function(){
-    if (!editingBlurbId || !db) return;
+    if (!editingBlurbId) return;
     var cur = blurbs.filter(function(x){ return x.id === editingBlurbId; })[0];
     if (!cur) return;
     if (!window.confirm("定型文「" + cur.name + "」を削除します。よろしいですか？")) return;
-    var id = editingBlurbId;
+    blurbs.splice(blurbs.indexOf(cur), 1);
+    if (removed.indexOf(cur.id) === -1) removed.push(cur.id);
     closeBlurbDialog();
-    db.doc("blurbs/" + id).delete().then(function(){
-      toast("定型文を削除しました");
-    }).catch(function(){ toast("削除できませんでした"); });
+    if (save()) toast("定型文を削除しました");
+    renderBlurbPick();
+    renderBlurbs();
+    render();
   });
 
   /* ---------- JSONの取り込み ---------- */
@@ -1793,33 +1960,23 @@
     ev.preventDefault();
     var plan = impPlan;
     if (!plan) { renderImpResult(planImport($("i-json").value.trim())); return; }
-    if (!db) { toast("保存先に接続できていないため、登録できません。"); return; }
 
-    var queue = plan.updates.concat(plan.adds).map(function(it){
-      var id = it.id || newItemId();
-      var body = {
-        title: it.title, clientTitle: it.clientTitle, url: it.url,
-        category: it.category, format: it.format, note: it.note,
-        tags: it.tags, model: it.model, priceLabel: it.priceLabel,
-        order: typeof it.order === "number" ? it.order : Date.now()
-      };
-      return { id: id, body: body };
+    plan.updates.forEach(function(it){
+      var cur = items.filter(function(x){ return x.id === it.id; })[0];
+      if (!cur) return;
+      it.order = typeof cur.order === "number" ? cur.order : Date.now();
+      items[items.indexOf(cur)] = it;
     });
-    var total = queue.length;
-    closeImpDialog();
-    toast(total + " 件を登録しています…");
+    plan.adds.forEach(function(it, i){
+      it.id = newItemId() + i;
+      it.order = Date.now() + i;
+      items.push(it);
+    });
 
-    (function step(i){
-      if (i >= queue.length) {
-        toast(total + " 件を取り込みました");
-        return;
-      }
-      db.doc("materials/" + queue[i].id).set(queue[i].body)
-        .then(function(){ step(i + 1); })
-        .catch(function(e){
-          toast("途中で失敗しました（" + (e && e.code ? e.code : "エラー") + "）：" + i + " 件まで登録済み");
-        });
-    })(0);
+    var total = plan.adds.length + plan.updates.length;
+    closeImpDialog();
+    if (save()) toast(total + " 件を取り込みました");
+    refresh();
   });
 
   /* ---------- メモ ---------- */
@@ -1856,19 +2013,9 @@
 
   function memoSave(){
     memoSaving = false;
-    if (!db) { memoStatus("dirty", "保存先に接続できていません"); return; }
-    var now = new Date().toISOString();
-    db.doc("notes/shared").set({ text: memoText, updatedAt: now }).then(function(){
-      memoStamp(now);
-    }).catch(function(e){
-      memoStatus("dirty", "保存できませんでした（" + (e && e.code ? e.code : "エラー") + "）");
-    });
-  }
-  function adoptMemo(snap){
-    if (!snap.exists) { memoStatus("", "まだ何も書かれていません"); return; }
-    var v = snap.data() || {};
-    memoSetText(v.text || "");
-    memoStamp(v.updatedAt);
+    memoUpdatedAt = new Date().toISOString();
+    if (save()) memoStamp(memoUpdatedAt);
+    else memoStatus("dirty", "このブラウザに保存できませんでした");
   }
 
   (function(){
@@ -1900,9 +2047,17 @@
   }
 
   function selectedItems(){
-    var byId = {};
-    items.forEach(function(it){ byId[it.id] = it; });
     return sorted().filter(function(it){ return selected.has(it.id); });
+  }
+
+  function refresh(){
+    index();
+    renderChips();
+    renderSets();
+    renderBlurbPick();
+    renderBlurbs();
+    render();
+    renderSelbar();
   }
 
   /* ---------- dialog ---------- */
@@ -1933,7 +2088,6 @@
     var title = $("f-title").value.trim();
     var url = $("f-url").value.trim();
     if (!title || !url) return;
-    if (!db) { toast("保存先に接続できていないため、登録できません。"); return; }
 
     var body = {
       title: title,
@@ -1948,38 +2102,37 @@
       order: Date.now()
     };
 
-    var id = editingId;
-    if (id) {
-      var cur = items.filter(function(x){ return x.id === id; })[0];
+    if (editingId) {
+      var cur = items.filter(function(x){ return x.id === editingId; })[0];
       if (cur) {
+        body.id = cur.id;
         body.order = typeof cur.order === "number" ? cur.order : body.order;
         body.model = cur.model || "";
         body.priceLabel = cur.priceLabel || "";
+        items[items.indexOf(cur)] = body;
       }
     } else {
-      id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      body.id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      items.push(body);
     }
 
+    var wasEdit = !!editingId;
     closeDialog();
-    db.doc("materials/" + id).set(body).then(function(){
-      toast(editingId ? "更新しました" : "追加しました");
-    }).catch(function(e){
-      toast("保存できませんでした（" + (e && e.code ? e.code : "エラー") + "）");
-    });
+    if (save()) toast(wasEdit ? "更新しました" : "追加しました");
+    refresh();
   });
 
   $("dlg-del").addEventListener("click", function(){
-    if (!editingId || !db) return;
+    if (!editingId) return;
     var cur = items.filter(function(x){ return x.id === editingId; })[0];
     if (!cur) return;
     if (!window.confirm("「" + cur.title + "」を一覧から削除します。よろしいですか？")) return;
-    var id = editingId;
+    items.splice(items.indexOf(cur), 1);
+    selected.delete(cur.id);
+    if (isShipped(cur.id) && removed.indexOf(cur.id) === -1) removed.push(cur.id);
     closeDialog();
-    db.doc("materials/" + id).delete().then(function(){
-      selected.delete(id);
-      renderSelbar();
-      toast("削除しました");
-    }).catch(function(){ toast("削除できませんでした"); });
+    if (save()) toast("削除しました");
+    refresh();
   });
 
   /* ---------- search + shortcuts ---------- */
@@ -2002,7 +2155,8 @@
     if (ev.key !== "Enter") return;
     var ts = terms();
     var hit = sorted().filter(function(it){ return matches(it, ts); })[0];
-    if (hit) doCopy(ev.shiftKey ? block([hit]) : hit.url, ev.shiftKey ? "先頭の資料を送信用テキストでコピーしました" : "先頭の資料のURLをコピーしました");
+    if (hit) doCopy(ev.shiftKey ? block([hit]) : hit.url,
+      ev.shiftKey ? "先頭の資料を送信用テキストでコピーしました" : "先頭の資料のURLをコピーしました");
   });
 
   /* ---------- bulk copy ---------- */
@@ -2027,97 +2181,132 @@
     render();
   });
 
-  /* ---------- data ---------- */
-  function showNotice(msg){
-    noticeEl.hidden = false;
-    noticeEl.innerHTML = msg;
-  }
-
-  function adopt(snap){
-    items = snap.docs.map(function(d){
-      var v = d.data() || {};
-      var it = {
-        id: d.id,
-        title: String(v.title || "(名称未設定)"),
-        clientTitle: v.clientTitle ? String(v.clientTitle) : "",
-        url: String(v.url || ""),
-        category: String(v.category || "未分類"),
-        format: v.format ? String(v.format) : "",
-        note: v.note ? String(v.note) : "",
-        tags: v.tags ? String(v.tags) : "",
-        model: v.model ? String(v.model) : "",
-        priceLabel: v.priceLabel ? String(v.priceLabel) : "",
-        order: typeof v.order === "number" ? v.order : undefined
-      };
-      it._hay = haystack(it);
-      return it;
-    });
-    loaded = true;
-    renderChips();
-    renderSets();
-    renderBlurbPick();
-    renderBlurbs();
-    render();
-  }
-
-  function adoptBlurbs(snap){
-    blurbs = snap.docs.map(function(d){
-      var v = d.data() || {};
-      return {
-        id: d.id,
-        name: String(v.name || "(名称未設定)"),
-        category: v.category ? String(v.category) : "",
-        group: v.group ? String(v.group) : "",
-        text: String(v.text || ""),
-        order: typeof v.order === "number" ? v.order : undefined
-      };
-    }).filter(function(b){ return b.text; });
-    renderBlurbPick();
-    renderBlurbs();
-    render();
-  }
-
-  function adoptSets(snap){
-    sets = snap.docs.map(function(d){
-      var v = d.data() || {};
-      return {
-        id: d.id,
-        name: String(v.name || "(名称未設定)"),
-        itemIds: Array.isArray(v.itemIds) ? v.itemIds.map(String) : [],
-        order: typeof v.order === "number" ? v.order : undefined
-      };
-    });
-    renderSets();
-  }
-
-  var useDb = (window.claude && typeof window.claude.use === "function")
-    ? window.claude.use("db")
-    : Promise.resolve(null);
-
-  useDb.then(function(handle){
-    if (!handle) {
-      loaded = true;
-      items = [];
-      showNotice("<b>資料データに接続できませんでした。</b>ページを再読み込みするか、共有元にアクセス権をご確認ください。");
-      renderChips();
-      renderSets();
-      renderBlurbs();
-      render();
-      return;
-    }
-    db = handle;
-    db.collection("sets").onSnapshot(adoptSets, function(){ /* セットが読めなくても一覧は使える */ });
-    db.collection("blurbs").onSnapshot(adoptBlurbs, function(){ /* 定型文が読めなくても一覧は使える */ });
-    db.doc("notes/shared").onSnapshot(adoptMemo, function(){ /* メモが読めなくても一覧は使える */ });
-    db.collection("materials").onSnapshot(adopt, function(err){
-      loaded = true;
-      showNotice("<b>データの同期が止まりました（" + (err && err.code ? err.code : "不明") + "）。</b>ページを再読み込みしてください。");
-      render();
-    });
-  }).catch(function(){
-    loaded = true;
-    showNotice("<b>資料データに接続できませんでした。</b>ページを再読み込みしてください。");
-    render();
+  /* ---------- export / import / reset ---------- */
+  $("io-export").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify({ version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed,
+                        memo: memoText, memoUpdatedAt: memoUpdatedAt }, null, 2)],
+                        { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "営業資料リスト.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+    toast("資料リストを書き出しました");
   });
+  function renderHtmlState(){
+    var el = $("html-state");
+    if (!el) return;
+    el.hidden = !htmlDirty;
+    var btn = $("io-html");
+    if (btn) btn.textContent = htmlDirty ? "HTMLに保存（未反映あり）" : "HTMLに保存";
+  }
+
+  $("io-html").addEventListener("click", function(){
+    var seed = {
+      items: strip(items),
+      sets: sets,
+      blurbs: blurbs,
+      memo: memoText,
+      exportedAt: new Date().toISOString()
+    };
+    // JSON文字列リテラルとして埋め込む。閉じタグの並びは "<\/" に逃がし、
+    // HTMLパーサがスクリプトの終わりと誤認しないようにする
+    //（JSONでは \/ は / に戻るため、読み込み時は元どおり）。
+    var esc = function(v){ return JSON.stringify(v).replace(/<\//g, "<\\/"); };
+    var tpl = esc(TEMPLATE), sd = esc(seed);
+    var markTpl = '"__TEMP' + 'LATE__"';
+    var markSeed = "__SEED" + "_OBJ__";
+    var out = TEMPLATE
+      .replace(markTpl, function(){ return tpl; })
+      .replace(markSeed, function(){ return sd; });
+
+    var blob = new Blob([out], { type: "text/html;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "営業資料ファインダー.html";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+    htmlDirty = false;
+    save(false);
+    renderHtmlState();
+    toast("いまの内容を入れたHTMLを書き出しました。古いファイルと差し替えてください");
+  });
+
+  $("io-import").addEventListener("click", function(){ $("io-file").click(); });
+  $("io-file").addEventListener("change", function(){
+    var file = this.files && this.files[0];
+    this.value = "";
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var parsed;
+      try { parsed = JSON.parse(String(reader.result)); }
+      catch (e) { toast("読み込めませんでした。書き出したJSONファイルを選んでください。"); return; }
+      if (!parsed || !Array.isArray(parsed.items) || !parsed.items.length) {
+        toast("資料が入っていないファイルです。");
+        return;
+      }
+      if (!window.confirm("いまの一覧を、読み込んだ " + parsed.items.length + " 件で置き換えます。よろしいですか？")) return;
+      items = parsed.items.map(function(d, i){
+        return {
+          id: d.id || ("i" + i + Date.now().toString(36)),
+          title: String(d.title || "(名称未設定)"),
+          clientTitle: d.clientTitle ? String(d.clientTitle) : "",
+          url: String(d.url || ""),
+          category: String(d.category || "未分類"),
+          format: d.format ? String(d.format) : "",
+          note: d.note ? String(d.note) : "",
+          tags: d.tags ? String(d.tags) : "",
+          model: d.model ? String(d.model) : "",
+          priceLabel: d.priceLabel ? String(d.priceLabel) : "",
+          order: typeof d.order === "number" ? d.order : (i + 1) * 10
+        };
+      });
+      sets = normaliseSets(parsed.sets);
+      blurbs = normaliseBlurbs(parsed.blurbs);
+      removed = Array.isArray(parsed.removed) ? parsed.removed.map(String) : [];
+      memoSetText(parsed.memo || "", true);
+      memoUpdatedAt = String(parsed.memoUpdatedAt || "");
+      selected.clear();
+      activeSet = null;
+      save();
+      refresh();
+      toast(items.length + " 件を読み込みました");
+    };
+    reader.readAsText(file);
+  });
+  $("io-reset").addEventListener("click", function(){
+    if (!window.confirm("追加・編集した内容をすべて破棄して、最初に配布された28件の状態に戻します。よろしいですか？")) return;
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+    items = DATA.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+    sets = DEFAULT_SETS.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+    removed = [];
+    blurbs = DEFAULT_BLURBS.map(function(d){ return JSON.parse(JSON.stringify(d)); });
+    memoSetText(DEFAULT_MEMO, true);
+    selected.clear();
+    activeSet = null;
+    refresh();
+    toast("このHTMLに保存されている内容に戻しました");
+  });
+
+  /* ---------- boot ---------- */
+  items = load();
+  loaded = true;
+  noticeEl.hidden = true;
+  memoSetText(memoText, true);
+  renderHtmlState();
+  if (memoUpdatedAt) memoStamp(memoUpdatedAt); else memoStatus("", "まだ何も書かれていません");
+  refresh();
+  if (mergedCount) {
+    save(false);
+    setTimeout(function(){ toast("新しい資料 " + mergedCount + " 件を取り込みました"); }, 400);
+  }
 })();
+
 </script>
+</body>
+</html>
