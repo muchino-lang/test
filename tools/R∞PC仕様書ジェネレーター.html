@@ -97,6 +97,9 @@ body { font-family: 'Noto Sans JP','Yu Gothic','Meiryo','Helvetica Neue',sans-se
 .seg-wholesale.on { border-color: #1a3a5c; background: #eef3f8; }
 .seg-wholesale.on .seg-t { color: #1a3a5c; }
 .seg-wholesale.on::before { border-color: #1a3a5c; background: #1a3a5c; box-shadow: inset 0 0 0 3px #fff; }
+.seg-range.on { border-color: #7a4bbd; background: #f2ecfb; }
+.seg-range.on .seg-t { color: #7a4bbd; }
+.seg-range.on::before { border-color: #7a4bbd; background: #7a4bbd; box-shadow: inset 0 0 0 3px #fff; }
 .seg-end.on { border-color: #0a6b5b; background: #e9f6f3; }
 .seg-end.on .seg-t { color: #0a6b5b; }
 .seg-end.on::before { border-color: #0a6b5b; background: #0a6b5b; box-shadow: inset 0 0 0 3px #fff; }
@@ -212,6 +215,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
 .spec-tbl th.sub-hdr { background: #f3f5f7; color: var(--txtM); padding-left: 32px; }
 .spec-tbl td { font-size: 13px; white-space: pre-wrap; word-break: break-word; }
 .spec-tbl td a { color: #1a5276; word-break: break-all; }
+.spec-tbl td .sub-note { display: block; font-size: 10.5px; color: var(--txtM); margin-top: 3px; line-height: 1.6; }
 .spec-tbl td.empty { color: #aaa; }
 .price-bar { display: flex; align-items: baseline; justify-content: flex-end; padding: 12px 24px; border-top: 2px solid var(--pri); background: var(--priL); }
 .price-bar .lbl { font-size: 12px; color: var(--txtM); margin-right: 8px; }
@@ -288,6 +292,22 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
   <!-- Header info -->
   <div class="sec">
     <div class="sec-title">ヘッダー情報</div>
+    <div class="fld" style="margin-bottom:14px">
+      <label>仕様書タイプ</label>
+      <div class="segbar" id="sheetKindSeg" role="radiogroup" aria-label="仕様書タイプ">
+        <label class="seg seg-wholesale">
+          <input type="radio" name="sheetKindRadio" value="fixed" checked />
+          <span class="seg-t">機種指定版</span>
+          <span class="seg-s">1機種を特定して記載</span>
+        </label>
+        <label class="seg seg-range">
+          <input type="radio" name="sheetKindRadio" value="range" />
+          <span class="seg-t">幅を持たせた版</span>
+          <span class="seg-s">メーカー・スペックに幅を持たせた目安</span>
+        </label>
+      </div>
+      <input type="hidden" id="sheetKind" value="fixed" />
+    </div>
     <div style="margin-bottom:12px">
       <label class="tgl" for="isDraft">
         <input type="checkbox" id="isDraft" />
@@ -312,6 +332,39 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
     </div>
   </div>
 
+  <!-- Range-version fields -->
+  <div class="sec" id="rangeSec" style="display:none">
+    <div class="sec-title">◆ 幅を持たせた記載（幅を持たせた版のみ）</div>
+    <p class="hint" style="margin-bottom:10px">
+      メーカー・品名は特定せず、取扱メーカーと調達条件の補足で幅を示します。
+      メモリ・記憶媒体・液晶サイズなどは「8〜16GB」のように自由に入力できます。
+    </p>
+    <div class="grid">
+      <div class="fld"><label for="rangeModelLabel">メーカー / 品名の表記</label>
+        <input id="rangeModelLabel" value="指定なし" />
+      </div>
+      <div class="fld"><label for="rangeMakers">主な取扱メーカー</label>
+        <input id="rangeMakers" value="Lenovo／HP／Fujitsu／Panasonic／NEC／dynabook" />
+      </div>
+    </div>
+    <div class="fld" style="margin-top:10px"><label for="noteModelYear">機種発売年の補足</label>
+      <input id="noteModelYear" value="※機種・CPU世代は部材調達状況により弊社指定" />
+    </div>
+    <div class="fld" style="margin-top:8px"><label for="noteMemory">メモリの補足</label>
+      <input id="noteMemory" value="※8GBは標準搭載。16GBは調達状況によりご提案できる場合があります" />
+    </div>
+    <div class="fld" style="margin-top:8px"><label for="noteStorage">記憶媒体の補足</label>
+      <input id="noteStorage" value="※全台新品に交換。容量は部材調達状況により弊社指定" />
+    </div>
+    <div style="margin-top:10px">
+      <label class="tgl" for="cpuAtLeast">
+        <input type="checkbox" id="cpuAtLeast" checked />
+        <span class="track"></span>
+        <span>CPUを「以上」（下限）として表記する</span>
+      </label>
+    </div>
+  </div>
+
   <!-- Image -->
   <div class="sec">
     <div class="sec-title">商品画像</div>
@@ -331,7 +384,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
     <div class="sec-title">◆ 基本情報</div>
     <div class="grid">
       <div class="fld"><label for="maker">メーカー</label>
-        <select id="maker"><option value="">選択</option></select>
+        <input id="maker" list="makerList" placeholder="選択または自由入力" /><datalist id="makerList"></datalist>
       </div>
       <div class="fld"><label for="productName">品名</label><input id="productName" placeholder="例: EliteBook 830 G7" /></div>
       <div class="fld"><label for="modelYear">機種発売年</label><input id="modelYear" placeholder="自動 or 手動入力" /></div>
@@ -361,27 +414,32 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
     <div class="sec-title">◆ 主なスペック</div>
     <div class="grid">
       <div class="fld"><label for="memory">メモリ(最大メモリ)</label>
-        <select id="memory"><option value="">選択</option></select>
+        <input id="memory" list="memList" placeholder="選択または自由入力" /><datalist id="memList"></datalist>
       </div>
       <div class="fld"><label for="storage">記憶媒体</label><input id="storage" placeholder="例: 500GB(SSD) ※新品crucial製" /></div>
       <div class="fld"><label for="opticalDrive">光学式ドライブ</label><input id="opticalDrive" value="指定なし" /></div>
       <div class="fld"><label for="displaySize">液晶サイズ</label>
-        <select id="displaySize"><option value="">選択</option></select>
+        <input id="displaySize" list="dispList" placeholder="選択または自由入力" /><datalist id="dispList"></datalist>
       </div>
       <div class="fld"><label for="wifi">無線LAN</label>
-        <select id="wifi"><option value="あり">あり</option><option value="なし">なし</option></select>
+        <input id="wifi" list="wifiList" value="あり" placeholder="選択または自由入力" />
+        <datalist id="wifiList">
+          <option value="あり"></option><option value="なし"></option>
+          <option value="Wi-Fi 5（IEEE 802.11ac）以上"></option>
+          <option value="Wi-Fi 6（IEEE 802.11ax）以上"></option>
+        </datalist>
       </div>
       <div class="fld"><label for="resolution">解像度</label>
-        <select id="resolution"><option value="">選択</option></select>
+        <input id="resolution" list="resList" placeholder="選択または自由入力" /><datalist id="resList"></datalist>
       </div>
       <div class="fld"><label for="numpad">テンキー</label>
-        <select id="numpad"><option value="無">無</option><option value="有">有</option></select>
+        <select id="numpad"><option value="無">無</option><option value="有">有</option><option value="">（記載しない）</option></select>
       </div>
       <div class="fld"><label for="camera">カメラ</label>
-        <select id="camera"><option value="あり">あり</option><option value="なし">なし</option></select>
+        <select id="camera"><option value="あり">あり</option><option value="なし">なし</option><option value="">（記載しない）</option></select>
       </div>
       <div class="fld"><label for="os">OS</label>
-        <select id="os"><option value="">選択</option></select>
+        <input id="os" list="osList" placeholder="選択または自由入力" /><datalist id="osList"></datalist>
       </div>
       <div class="fld"><label for="osNote">OS備考</label><input id="osNote" value="※Microsoft AUTHORISED Refurbisher　Program 認定OS" /></div>
       <div class="fld">
@@ -775,6 +833,12 @@ const NOTE_TEMPLATES = {
   refImage: () => "画像は参考画像です。",
 };
 
+/** The range sheet has one note: everything in it is an indication, not a spec. */
+const FOOTNOTE_RANGE = "（注）\n" +
+  "※1 ・記載の内容は、メーカー公開情報をもとに目安として記載したものです。\n" +
+  "　　　・CPUは「世代」単位で表記しています。同一世代内の型番末尾（例：i5-10210U / i5-10310U）による性能差は軽微なため、\n" +
+  "　　　　弊社では世代単位で品質基準を統一し、安定した調達・保証体制を確保しております。";
+
 const FOOTNOTE_BASE = "（注）\n※1 ・デスクトップサーチの参考値の記載。各製品で質量が異なる場合があります。\n※2 ・記載の内容はメーカー参考ページ、及びデスクトップサーチでの公開情報の内容をもとに参考として記載したものです。\n　　　・CPUは「世代」単位での表記としております。\n　　　　同一世代内の型番末尾（例：i5-10210U / i5-10310U）による性能差は軽微であるため、弊社では世代単位で品質基準を統一し、\n　　　　安定した調達・保証体制を確保しております。\n※3 ・メーカー参考ページについてはあくまでベースモデルの情報です。本製品の仕様と完全に一致するものではございませんのでご注意ください。";
 
 // Text fields persisted / restored / reset as a group
@@ -786,6 +850,7 @@ const FIELD_IDS = [
   "hdmi","usbTypeC","usbTypeA","lanPort","vgaPort","sdSlot","audioJack","bluetooth","otherPort",
   "accessories","warranty","warrantyUrl","warrantyDetail","priceType","price",
   "noticeTitle","noticeBody","noticeTitle2","noticeBody2","notes",
+  "sheetKind","rangeModelLabel","rangeMakers","noteModelYear","noteMemory","noteStorage",
 ];
 const STORAGE_KEY = "roopc-spec-generator-v1";
 const PRESET_KEY = "roopc-spec-presets-v1";
@@ -813,6 +878,16 @@ function fillSelect(id, opts) {
     const op = document.createElement("option");
     op.value = o; op.textContent = o;
     sel.appendChild(op);
+  });
+}
+
+/** Options for an input+datalist pair, so a range can be typed over the choices. */
+function fillDatalist(id, opts) {
+  const dl = $(id);
+  opts.forEach((o) => {
+    const op = document.createElement("option");
+    op.value = o;
+    dl.appendChild(op);
   });
 }
 
@@ -929,8 +1004,12 @@ function setImage(dataUrl) {
 // ═══════════════ Document model ═══════════════
 function getSummary() {
   const { label } = cpuInfo();
-  return [V("maker"), V("productName"), label, V("memory"), V("displaySize"), V("resolution")]
-    .filter(Boolean).join("/");
+  const cpu = label ? label + (isRange() && $("cpuAtLeast").checked ? "以上" : "") : "";
+  // The range sheet names no model, so its summary is the spec latitude itself.
+  const parts = isRange()
+    ? [cpu, V("memory"), V("storage"), V("displaySize"), V("wifi")]
+    : [V("maker"), V("productName"), cpu, V("memory"), V("displaySize"), V("resolution")];
+  return parts.filter(Boolean).join(" / ");
 }
 
 function priceShown() { return $("showPrice").checked && !!V("price"); }
@@ -947,8 +1026,11 @@ const isEndPrice = () => V("priceType") === "エンド価格";
 const priceClass = () => (isDraftPrice() ? " draft" : isEndPrice() ? " end" : "");
 /** 推奨価格: the figure is our recommendation, the customer sets the final one. */
 const isSuggested = () => $("isSuggested").checked;
+/** The range sheet states latitude rather than one machine. */
+const isRange = () => V("sheetKind") === "range";
 const priceLabel = () =>
-  (isSuggested() ? "推奨" : "") + (V("priceType") || "卸価格") + "（税抜）" +
+  (isSuggested() ? "推奨" : "") + (V("priceType") || "卸価格") +
+  (isRange() ? "（目安・税抜）" : "（税抜）") +
   (isDraftPrice() ? "　※暫定価格" : "");
 
 function formattedPrice() {
@@ -966,36 +1048,49 @@ function buildRows() {
   const { year, code, label } = cpuInfo();
   const os = V("os");
   const osNote = V("osNote");
+  const range = isRange();
+  const mark = range ? "※1" : "※2";          // the range sheet carries a single note
   const rows = [];
 
-  const push = (l, v) => { if (v) rows.push({ label: l, value: v, isSection: l.charAt(0) === "◆" }); };
+  // A row's value may carry a smaller second line: the procurement caveat that
+  // gives the range sheet its latitude ("※8GBは標準搭載" and so on).
+  const push = (l, v, sub) => {
+    if (!v) return;
+    rows.push({ label: l, value: v, sub: sub || "", isSection: l.charAt(0) === "◆" });
+  };
   const pushGroup = (prefix, items) => {
     let first = true;
-    items.forEach(([l, v]) => {
+    items.forEach(([l, v, sub]) => {
       if (!v) return;
-      push((first ? prefix : "　") + l, v);
+      push((first ? prefix : "　") + l, v, sub);
       first = false;
     });
   };
 
-  push("◆メーカー", V("maker"));
-  push("◆品名", V("productName"));
-  push("◆機種発売年※2", V("modelYear") || year);
-  push("◆CPU発売年※2", code && year ? code + " " + year + "年発売" : "");
+  if (range) {
+    push("◆メーカー / 品名", V("rangeModelLabel") || "指定なし");
+    push("◆主な取扱メーカー", V("rangeMakers"));
+  } else {
+    push("◆メーカー", V("maker"));
+    push("◆品名", V("productName"));
+  }
+  push("◆機種発売年" + mark, V("modelYear") || year, range ? V("noteModelYear") : "");
+  // The range sheet does not pin a CPU release year — the generation is a floor.
+  if (!range) push("◆CPU発売年※2", code && year ? code + " " + year + "年発売" : "");
 
   pushGroup("◆主なスペック：", [
-    ["CPU※2", label],
-    ["メモリ(最大メモリ)", V("memory")],
-    ["記憶媒体", V("storage")],
+    ["CPU" + mark, label ? label + (range && $("cpuAtLeast").checked ? "以上" : "") : ""],
+    [range ? "メモリ" : "メモリ(最大メモリ)", V("memory"), range ? V("noteMemory") : ""],
+    ["記憶媒体", V("storage"), range ? V("noteStorage") : ""],
     ["光学式ドライブ", V("opticalDrive")],
     ["液晶サイズ", V("displaySize")],
     ["無線LAN", V("wifi")],
-    ["解像度※2", V("resolution")],
+    ["解像度" + mark, V("resolution")],
     ["テンキー", V("numpad")],
     ["カメラ", V("camera")],
     ["OS", os ? os + "　" + osNote : ""],
-    ["重量※1", V("weight")],
-    ["参考ページ※3", V("refUrl")],
+    [range ? "重量" : "重量※1", V("weight")],
+    ["参考ページ" + (range ? "" : "※3"), V("refUrl")],
   ]);
 
   pushGroup("◆", [
@@ -1027,6 +1122,9 @@ const OS_DISPLAY = {
   "Windows11Pro": "Windows 11 Pro",
   "Windows11Home": "Windows 11 Home",
   "Windows10Pro": "Windows 10 Pro",
+  "Windows 11 Pro": "Windows 11 Pro",
+  "Windows 11 Home": "Windows 11 Home",
+  "Windows 10 Pro": "Windows 10 Pro",
 };
 
 /**
@@ -1034,9 +1132,10 @@ const OS_DISPLAY = {
  * edition that was actually selected, so it can never claim a different one.
  */
 function footnote() {
+  const base = isRange() ? FOOTNOTE_RANGE : FOOTNOTE_BASE;
   const os = OS_DISPLAY[V("os")];
-  if (!os) return FOOTNOTE_BASE;
-  return FOOTNOTE_BASE +
+  if (!os) return base;
+  return base +
     "\n\n※Microsoft Authorized Refurbisher (MAR) プログラムについて" +
     "\nMicrosoft社が、認定を受けた再生PC事業者に対してのみWindows OSの正規ライセンスを提供する制度です。" +
     "MARの正規ライセンスは、Windowsのセキュリティ更新や最新機能が通常どおり提供されます。" +
@@ -1147,7 +1246,8 @@ function renderPreview() {
   rows.forEach((r) => {
     const cell = "<td>" + (isUrl(r.value)
       ? '<a href="' + esc(r.value) + '" target="_blank" rel="noopener">' + esc(r.value) + "</a>"
-      : esc(r.value)) + "</td>";
+      : esc(r.value)) +
+      (r.sub ? '<span class="sub-note">' + esc(r.sub) + "</span>" : "") + "</td>";
     html += '<tr><th class="' + (r.isSection ? "sec-hdr" : "sub-hdr") + '">' + esc(r.label) + "</th>" + cell + "</tr>";
   });
   html += "</tbody></table></div>";
@@ -1196,7 +1296,8 @@ function downloadWord() {
   const trs = rows.map((r) => {
     const cell = "<td>" + (isUrl(r.value)
       ? '<a href="' + esc(r.value) + '">' + esc(r.value) + "</a>"
-      : esc(r.value).replace(/\n/g, "<br />")) + "</td>";
+      : esc(r.value).replace(/\n/g, "<br />")) +
+      (r.sub ? '<div class="subnote">' + esc(r.sub) + "</div>" : "") + "</td>";
     return '<tr class="' + (r.isSection ? "sec" : "sub") + '"><th class="' +
       (r.isSection ? "sec-hdr" : "sub-hdr") + '">' + esc(r.label) + "</th>" + cell + "</tr>";
   }).join("");
@@ -1220,6 +1321,7 @@ function downloadWord() {
     "th{width:180px;text-align:left;font-weight:600}" +
     "th.sec-hdr{background:#1a3a5c;color:#ffffff;font-weight:700}" +
     "th.sub-hdr{background:#f3f5f7;color:#555555;padding-left:28px}" +
+    ".subnote{font-size:8pt;color:#555555;margin-top:2pt}" +
     ".price-box{margin-top:12px;text-align:right;border-top:2px solid #1a3a5c;padding-top:8px}" +
     ".price-box .v{font-size:20pt;font-weight:800;color:#1a3a5c}" +
     ".price-box .vt{font-size:12pt;font-weight:700;color:#1a3a5c;margin-left:8px}" +
@@ -1284,7 +1386,7 @@ function save() {
     const data = {
       fields: {}, showPrice: $("showPrice").checked,
       isDraft: isDraft(), isDraftPrice: isDraftPrice(), isSuggested: isSuggested(),
-      showNotice: $("showNotice").checked,
+      showNotice: $("showNotice").checked, cpuAtLeast: $("cpuAtLeast").checked,
       image: imageData, logo: logoData,
     };
     FIELD_IDS.forEach((id) => { data.fields[id] = V(id); });
@@ -1312,6 +1414,7 @@ function restore() {
   $("isDraftPrice").checked = !!data.isDraftPrice;
   $("isSuggested").checked = !!data.isSuggested;
   $("showNotice").checked = !!data.showNotice;
+  if (data.cpuAtLeast != null) $("cpuAtLeast").checked = !!data.cpuAtLeast;
   if (data.image) setImage(data.image);
   if (data.logo) setLogo(data.logo);
   return true;
@@ -1388,7 +1491,8 @@ function snapshot() {
   return {
     fields, showPrice: $("showPrice").checked,
     isDraft: isDraft(), isDraftPrice: isDraftPrice(), isSuggested: isSuggested(),
-    showNotice: $("showNotice").checked, image: imageData,
+    showNotice: $("showNotice").checked, cpuAtLeast: $("cpuAtLeast").checked,
+    image: imageData,
   };
 }
 
@@ -1409,7 +1513,9 @@ function applySnapshot(snap) {
   $("isDraftPrice").checked = !!snap.isDraftPrice;
   $("isSuggested").checked = !!snap.isSuggested;
   $("showNotice").checked = !!snap.showNotice;
+  if (snap.cpuAtLeast != null) $("cpuAtLeast").checked = !!snap.cpuAtLeast;
   setImage(snap.image || null);
+  syncSheetKind();
   syncPriceRow();
   syncDraft();
   refreshCpuAuto();
@@ -1619,17 +1725,29 @@ function resetAll() {
   FIELD_IDS.forEach((id) => { if ($(id)) $(id).value = DEFAULTS[id] || ""; });
   $("cpuSeries").value = "";
   rebuildGenOptions(null);
+  syncSheetKind();
   $("showPrice").checked = true;
   $("isDraft").checked = false;
   $("isDraftPrice").checked = false;
   $("isSuggested").checked = false;
   $("showNotice").checked = false;
+  $("cpuAtLeast").checked = true;
   setImage(null);
   syncPriceRow();
   syncDraft();
   refreshCpuAuto();
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
   note("リセットしました");
+}
+
+/** Reflects the sheet kind onto the segments and shows the range-only fields. */
+function syncSheetKind() {
+  const kind = V("sheetKind") || "fixed";
+  document.querySelectorAll('#sheetKindSeg input[name="sheetKindRadio"]').forEach((r) => {
+    r.checked = r.value === kind;
+    r.closest(".seg").classList.toggle("on", r.checked);
+  });
+  $("rangeSec").style.display = kind === "range" ? "" : "none";
 }
 
 function syncDraft() {
@@ -2642,12 +2760,12 @@ function initQuote() {
 
 // ═══════════════ Boot ═══════════════
 function init() {
-  fillSelect("maker", MAKERS);
+  fillDatalist("makerList", MAKERS.concat(["指定なし"]));
   fillSelect("cpuSeries", Object.keys(CPU_MAP));
-  fillSelect("memory", MEM);
-  fillSelect("displaySize", DISPLAY);
-  fillSelect("resolution", RES);
-  fillSelect("os", OS_LIST);
+  fillDatalist("memList", MEM.concat(["8〜16GB", "8〜32GB"]));
+  fillDatalist("dispList", DISPLAY.concat(["12.1〜13.3インチ", "13.3〜14.0インチ"]));
+  fillDatalist("resList", RES.concat(["HD〜FHD"]));
+  fillDatalist("osList", OS_LIST);
   fillSelect("warranty", WARRANTY_LIST);
 
   $("warranty").value = "R∞PCAcademy(4年保証)";
@@ -2655,6 +2773,7 @@ function init() {
   FIELD_IDS.forEach((id) => { if ($(id)) DEFAULTS[id] = $(id).value; });
 
   restore();
+  syncSheetKind();
   syncPriceRow();
   syncDraft();
   refreshCpuAuto();
@@ -2726,6 +2845,19 @@ function init() {
   // price toggle
   $("showPrice").addEventListener("change", () => { syncPriceRow(); save(); if (inPreview()) renderPreview(); });
   $("isDraft").addEventListener("change", () => { syncDraft(); save(); if (inPreview()) renderPreview(); });
+  $("sheetKindSeg").addEventListener("change", (e) => {
+    if (e.target.name !== "sheetKindRadio") return;
+    $("sheetKind").value = e.target.value;
+    syncSheetKind();
+    syncPriceRow();
+    save();
+    if (inPreview()) renderPreview();
+  });
+  $("cpuAtLeast").addEventListener("change", () => {
+    save();
+    if (inPreview()) renderPreview();
+  });
+
   $("priceTypeSeg").addEventListener("change", (e) => {
     if (!e.target.name || e.target.name !== "priceTypeRadio") return;
     $("priceType").value = e.target.value;
