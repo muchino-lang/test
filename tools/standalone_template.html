@@ -897,6 +897,7 @@
   var DEFAULT_BLURBS = SEED.blurbs || [];
   var DEFAULT_SETS = SEED.sets || [];
   var DEFAULT_MEMO = SEED.memo || "";
+  var DATA_VERSION = String(SEED.dataVersion || "");
 
   var STORAGE_KEY = "shiryo-finder:v1";
 
@@ -928,6 +929,7 @@
   var mergedCount = 0;
   var memoUpdatedAt = "";
   var htmlDirty = false;
+  var updatedCount = 0;
 
   var $ = function(id){ return document.getElementById(id); };
   var qEl = $("q"), listEl = $("list"), chipsEl = $("chips"), countsEl = $("counts");
@@ -947,9 +949,15 @@
           htmlDirty = parsed.htmlDirty === true;
           memoText = String(parsed.memo || "");
           memoUpdatedAt = String(parsed.memoUpdatedAt || "");
-          mergeShippedBlurbs();
           mergeShippedSets();
-          return mergeShipped(parsed.items);
+          var fresh = String(parsed.dataVersion || "") === DATA_VERSION;
+          var snap = (parsed.shipped && typeof parsed.shipped === "object") ? parsed.shipped : null;
+          if (fresh) {
+            mergeShippedBlurbs();
+            return mergeShipped(parsed.items);
+          }
+          blurbs = resync(blurbs, DEFAULT_BLURBS, snap && snap.blurbs);
+          return resync(parsed.items, DATA, snap && snap.items);
         }
       } catch (e) { /* fall through to the built-in list */ }
     }
@@ -977,6 +985,46 @@
     mergedCount = added.length;
     return list.concat(added);
   }
+  /* 配布データが新しくなったとき、保存済みの内容を追従させる。
+     前回配布時の値（snap）を覚えているので、利用者が自分で書き換えた項目は
+     そのまま残し、手を付けていない項目だけ新しい値に入れ替える。
+     snapが無い（古い保存データ）ときは配布側の値で上書きする。 */
+  function resync(list, shippedList, snap){
+    var out = Array.isArray(list) ? list.slice() : [];
+    var byId = {};
+    out.forEach(function(x){ if (x && x.id) byId[String(x.id)] = x; });
+
+    shippedList.forEach(function(d){
+      if (removed.indexOf(d.id) !== -1) return;
+      var cur = byId[d.id];
+      if (!cur) {
+        out.push(JSON.parse(JSON.stringify(d)));
+        mergedCount++;
+        return;
+      }
+      var was = snap ? snap[d.id] : null;
+      var touched = false;
+      Object.keys(d).forEach(function(k){
+        if (k === "id") return;
+        var mine = cur[k], next = d[k];
+        if (mine === next) return;
+        // 利用者が書き換えた項目は残す（前回の配布値と違えば本人の編集）
+        if (was && Object.prototype.hasOwnProperty.call(was, k) && mine !== was[k]) return;
+        cur[k] = next;
+        touched = true;
+      });
+      if (touched) updatedCount++;
+    });
+    return out;
+  }
+
+  function shippedSnapshot(){
+    var snap = { items: {}, blurbs: {} };
+    DATA.forEach(function(d){ snap.items[d.id] = d; });
+    DEFAULT_BLURBS.forEach(function(d){ snap.blurbs[d.id] = d; });
+    return snap;
+  }
+
   function mergeShippedSets(){
     var have = {};
     sets.forEach(function(x){ have[x.id] = true; });
@@ -1025,7 +1073,8 @@
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
         version: 1, items: strip(items), sets: sets, blurbs: blurbs, removed: removed,
         memo: memoText, memoUpdatedAt: new Date().toISOString(),
-        htmlDirty: htmlDirty
+        htmlDirty: htmlDirty,
+        dataVersion: DATA_VERSION, shipped: shippedSnapshot()
       }));
       renderHtmlState();
       return true;
@@ -2261,6 +2310,7 @@
       sets: sets,
       blurbs: blurbs,
       memo: memoText,
+      dataVersion: new Date().toISOString(),
       exportedAt: new Date().toISOString()
     };
     // JSON文字列リテラルとして埋め込む。閉じタグの並びは "<\/" に逃がし、
@@ -2353,9 +2403,12 @@
   renderHtmlState();
   if (memoUpdatedAt) memoStamp(memoUpdatedAt); else memoStatus("", "まだ何も書かれていません");
   refresh();
-  if (mergedCount) {
+  if (mergedCount || updatedCount) {
     save(false);
-    setTimeout(function(){ toast("新しい資料 " + mergedCount + " 件を取り込みました"); }, 400);
+    var msg = [];
+    if (mergedCount) msg.push("新しい資料 " + mergedCount + " 件を追加");
+    if (updatedCount) msg.push("内容が変わった " + updatedCount + " 件を更新");
+    setTimeout(function(){ toast(msg.join("／") + "しました"); }, 400);
   }
 })();
 
