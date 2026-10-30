@@ -185,6 +185,15 @@
     color:var(--accent);font:inherit;text-decoration:underline;text-underline-offset:2px;
   }
   .badge.fmt-ppt::after{content:" 社内編集用";letter-spacing:0}
+  .badge.attach{
+    color:var(--warn);background:color-mix(in srgb, var(--warn) 12%, transparent);
+    border-color:color-mix(in srgb, var(--warn) 45%, var(--line));
+    font-weight:500;
+  }
+  .attach-note{
+    display:flex;gap:6px;align-items:baseline;margin-top:3px;
+    font-size:12.5px;color:var(--warn);line-height:1.5;
+  }
 
 
   /* ---------- セット ---------- */
@@ -260,6 +269,12 @@
     letter-spacing:0;
   }
   .guide-body{padding:2px 14px 14px;border-top:1px solid var(--line)}
+  .guide-lead{
+    margin:12px 0 0;padding:9px 12px;border-radius:8px;
+    background:color-mix(in srgb, var(--warn) 10%, transparent);
+    border:1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+    font-size:13px;line-height:1.7;color:var(--ink);
+  }
   .guide dl{margin:0;display:grid;gap:12px}
   .guide dt{
     font-weight:700;font-size:13.5px;margin-top:12px;
@@ -593,6 +608,7 @@
   <details class="guide">
     <summary>契約書の選び方 <span class="hint2">どの契約書を締結するかの判断条件（社内用）</span></summary>
     <div class="guide-body">
+      <p class="guide-lead">契約書のファイルは一覧のリンクからは開けません。所定の場所から取得して、メールに添付してください。</p>
       <dl>
         <dt>売買取引基本契約書（取引基本契約書）</dt>
         <dd>
@@ -866,6 +882,9 @@
       .replace(/[　\s,、，]/g, "")
       .toLowerCase();
   }
+  function needsAttach(it){
+    return !it.url;
+  }
   function clientName(it){
     return (it.clientTitle && it.clientTitle.trim()) ? it.clientTitle.trim() : it.title;
   }
@@ -999,6 +1018,7 @@
 
     var meta = document.createElement("div");
     meta.className = "meta";
+    if (needsAttach(it)) meta.appendChild(badge("要添付", "attach"));
     if (it.format) meta.appendChild(badge(it.format, it.format === "PDF" ? "fmt-pdf" : (it.format === "PPT" ? "fmt-ppt" : "")));
     if (it.model) meta.appendChild(badge(it.model));
     if (it.priceLabel) meta.appendChild(badge(it.priceLabel, "price"));
@@ -1009,6 +1029,13 @@
       meta.appendChild(n);
     }
     if (meta.childNodes.length) info.appendChild(meta);
+
+    if (needsAttach(it)) {
+      var an = document.createElement("div");
+      an.className = "attach-note";
+      an.textContent = "リンクからは開けません。ファイルを添付してください。";
+      info.appendChild(an);
+    }
 
     if (clientName(it) !== it.title || noteSuffix(it)) {
       var sn = document.createElement("div");
@@ -1038,7 +1065,9 @@
     bBoth.className = "iconbtn";
     bBoth.textContent = "送信用コピー";
     bBoth.addEventListener("click", function(){
-      doCopy(block([it]), (memoOf(it) && withMemo)
+      doCopy(block([it]), needsAttach(it)
+        ? "コピーしました。ファイルの添付を忘れずに"
+        : (memoOf(it) && withMemo)
         ? "コピーしました。貼り付けたら区切り線から下を削除してください"
         : "送信名とURLをコピーしました", bBoth);
     });
@@ -1058,9 +1087,14 @@
     bEdit.textContent = "✎";
     bEdit.addEventListener("click", function(){ openDialog(it); });
 
-    acts.appendChild(bUrl);
-    acts.appendChild(bBoth);
-    acts.appendChild(bOpen);
+    if (!needsAttach(it)) {
+      acts.appendChild(bUrl);
+      acts.appendChild(bBoth);
+      acts.appendChild(bOpen);
+    } else {
+      bBoth.textContent = "資料名をコピー";
+      acts.appendChild(bBoth);
+    }
     acts.appendChild(bEdit);
 
     row.appendChild(pick);
@@ -1070,7 +1104,7 @@
   }
 
   function line(it){
-    return clientName(it) + "\n" + it.url;
+    return it.url ? (clientName(it) + "\n" + it.url) : clientName(it);
   }
 
   /* ---------- 確認用メモ（貼り付け後に削除する前提） ---------- */
@@ -1082,7 +1116,11 @@
   } catch (e) { withMemo = true; }
 
   function memoOf(it){
-    return (clientName(it) !== it.title) ? it.title : "";
+    var base = (clientName(it) !== it.title) ? it.title : "";
+    if (needsAttach(it)) {
+      return "★ファイルを添付してください（" + (base || it.title) + "）";
+    }
+    return base;
   }
   function noteSuffix(it){
     var parts = [];
@@ -1667,7 +1705,8 @@
       note: String((v && v.note) || "").trim(),
       tags: String((v && v.tags) || "").trim(),
       model: String((v && v.model) || "").trim(),
-      priceLabel: String((v && v.priceLabel) || "").trim()
+      priceLabel: String((v && v.priceLabel) || "").trim(),
+      attach: !!(v && v.attach)
     };
   }
 
@@ -1693,9 +1732,14 @@
       var it = impNorm(v);
       var where = (i + 1) + "件目";
       if (!it.title) { errors.push(where + "：title（資料名）がありません"); return; }
-      if (!/^https?:\/\//.test(it.url)) { errors.push(where + "「" + it.title + "」：url が正しくありません"); return; }
+      if (it.attach && !it.url) {
+        it.url = "";
+      } else if (!/^https?:\/\//.test(it.url)) {
+        errors.push(where + "「" + it.title + "」：url が正しくありません");
+        return;
+      }
       if (!known[it.category] && newCats.indexOf(it.category) === -1) newCats.push(it.category);
-      var cur = byUrl[it.url];
+      var cur = it.url ? byUrl[it.url] : null;
       if (cur) { it.id = cur.id; it.order = cur.order; updates.push(it); }
       else { adds.push(it); }
     });
@@ -2018,6 +2062,11 @@
     var sel = selectedItems();
     if (!sel.length) return;
     var txt = block(sel);
+    var att = sel.filter(needsAttach).length;
+    if (att) {
+      doCopy(txt, sel.length + " 件をコピーしました。" + att + " 件はファイルの添付が必要です");
+      return;
+    }
     doCopy(txt, txt.indexOf(CONFIRM_SEP) === -1
       ? sel.length + " 件をコピーしました"
       : sel.length + " 件をコピーしました。区切り線から下は送信前に削除してください");
