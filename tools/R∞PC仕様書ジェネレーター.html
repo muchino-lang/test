@@ -627,6 +627,55 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
     <div id="presetList"></div>
   </div>
 
+  <!-- JSON backup / transfer -->
+  <div class="sec">
+    <div class="sec-title">◆ データの書き出し / 読み込み（JSON）</div>
+    <p class="hint" style="margin-bottom:10px">
+      登録済みの条件・見積セット・見積明細・現在の入力内容・ロゴ・既定値をまとめて 1 つの JSON にします。
+      別の端末やブラウザ、クラウド版との間でデータを移すときや、バックアップにお使いください。
+    </p>
+    <div class="qbtns">
+      <button class="mini-btn" type="button" id="btnJsonSave" style="border-color:var(--pri);color:var(--pri);font-weight:700">JSONを書き出す（ファイル）</button>
+      <button class="mini-btn" type="button" id="btnJsonCopy">クリップボードにコピー</button>
+      <span class="hint" id="jsonStat" style="align-self:center"></span>
+    </div>
+
+    <div class="fld" style="margin-top:14px">
+      <label>読み込み方法</label>
+      <div class="segbar" id="jsonModeSeg" role="radiogroup" aria-label="読み込み方法">
+        <label class="seg seg-wholesale">
+          <input type="radio" name="jsonModeRadio" value="merge" checked />
+          <span class="seg-t">追加して取り込む</span>
+          <span class="seg-s">今あるデータは残し、登録を足す</span>
+        </label>
+        <label class="seg seg-range">
+          <input type="radio" name="jsonModeRadio" value="replace" />
+          <span class="seg-t">すべて置き換える</span>
+          <span class="seg-s">今あるデータを消して入れ替える</span>
+        </label>
+      </div>
+      <input type="hidden" id="jsonMode" value="merge" />
+    </div>
+
+    <div class="grid" style="margin-top:10px;align-items:end">
+      <div class="fld"><label for="jsonFile">JSONファイルを選ぶ</label>
+        <input type="file" id="jsonFile" accept="application/json,.json" style="font-size:12px" />
+      </div>
+      <div class="fld">
+        <label for="jsonPaste">または JSON を貼り付け</label>
+        <textarea id="jsonPaste" style="min-height:56px;font:12px/1.5 ui-monospace,Menlo,monospace" placeholder='{"app":"roopc-spec-generator",...}'></textarea>
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <button class="mini-btn" type="button" id="btnJsonLoad">貼り付けた内容を読み込む</button>
+      <label class="tgl" for="jsonWithCurrent" style="margin-left:12px">
+        <input type="checkbox" id="jsonWithCurrent" />
+        <span class="track" style="width:34px;height:19px"></span>
+        <span>現在の入力内容も読み込む</span>
+      </label>
+    </div>
+  </div>
+
   <div class="sec">
     <button class="mini-btn" type="button" id="btnReset">入力内容をすべてリセット</button>
     <span class="hint" id="saveState" style="margin-left:10px"></span>
@@ -2758,6 +2807,165 @@ function initQuote() {
   syncQuoteHint();
 }
 
+// ═══════════════ JSON による書き出し / 読み込み ═══════════════
+// Everything the tool keeps lives in this browser's localStorage, so a second
+// machine, another browser or the cloud copy starts empty. One JSON file carries
+// the whole library between them, and doubles as the backup.
+const JSON_APP = "roopc-spec-generator";
+const JSON_FORMAT = 1;
+
+function exportObject() {
+  return {
+    app: JSON_APP,
+    format: JSON_FORMAT,
+    exportedAt: new Date().toISOString(),
+    settings: {
+      defaultCost: V("qDefaultCost"),
+      suggestRate: V("qSuggestRate"),
+      logo: logoData || null,
+    },
+    current: snapshot(),
+    presets: readPresets(),
+    quotePresets: readQuotePresets(),
+    quoteRows: qRows,
+  };
+}
+
+const exportJson = () => JSON.stringify(exportObject(), null, 2);
+
+function jsonFileName() {
+  return safeFileName("R∞PC仕様書データ_" + stampJa(new Date())) + ".json";
+}
+
+function jsonStat(msg) { $("jsonStat").textContent = msg; }
+
+function downloadJson() {
+  const blob = new Blob([exportJson()], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = jsonFileName();
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  jsonStat("書き出しました：" + jsonFileName());
+}
+
+async function copyJson() {
+  const text = exportJson();
+  try {
+    await navigator.clipboard.writeText(text);
+    jsonStat("クリップボードにコピーしました（" + text.length.toLocaleString("ja-JP") + " 文字）");
+  } catch (e) {
+    // Clipboard access is refused in some contexts; put the text where it can be copied by hand.
+    $("jsonPaste").value = text;
+    $("jsonPaste").select();
+    jsonStat("コピーできなかったため、下の欄に出力しました。手動でコピーしてください。");
+  }
+}
+
+/** Keeps ids unique and renumbers a version that would collide with an existing one. */
+function mergeEntries(existing, incoming, keyOf, nextOf) {
+  const ids = new Set(existing.map((e) => e.id));
+  const out = existing.slice();
+  incoming.forEach((raw) => {
+    if (!raw || typeof raw !== "object") return;
+    const e = { ...raw };
+    if (!e.id || ids.has(e.id)) e.id = "i" + Date.now() + Math.random().toString(36).slice(2, 7);
+    ids.add(e.id);
+    const key = keyOf(e);
+    if (out.some((x) => keyOf(x) === key && Number(x.version) === Number(e.version))) {
+      e.version = nextOf(out, e);
+    }
+    out.push(e);
+  });
+  return out;
+}
+
+function importJson(text, opts) {
+  let data;
+  try { data = JSON.parse(text); } catch (e) { alert("JSON として読み取れませんでした。内容をご確認ください。"); return; }
+  if (!data || data.app !== JSON_APP) {
+    alert("このツールの書き出したファイルではないようです（app が " + JSON_APP + " ではありません）。");
+    return;
+  }
+  const replace = (opts && opts.mode) === "replace";
+  const presets = Array.isArray(data.presets) ? data.presets : [];
+  const quotes = Array.isArray(data.quotePresets) ? data.quotePresets : [];
+  const rows = Array.isArray(data.quoteRows) ? data.quoteRows : [];
+
+  const summary = "仕様書の登録 " + presets.length + " 件 / 見積セット " + quotes.length +
+    " 件 / 見積明細 " + rows.length + " 行";
+  if (!confirm((replace ? "現在のデータをすべて消して置き換えます。\n" : "現在のデータに追加して取り込みます。\n") +
+      "読み込む内容：" + summary + "\nよろしいですか？")) return;
+
+  if (replace) {
+    writePresets(presets);
+    writeQuotePresets(quotes);
+    qRows = rows.length ? rows : [{ name: "", wholesale: "", retail: "" }];
+  } else {
+    writePresets(mergeEntries(readPresets(), presets, entryKey, (list, e) => nextVersion(list, entryKey(e))));
+    writeQuotePresets(mergeEntries(readQuotePresets(), quotes,
+      (e) => String(e.addressee || ""), (list, e) => qNextVersion(list, e.addressee)));
+    qRows = qRows.filter((r) => (r.name || "").trim() || String(r.wholesale).trim() || String(r.retail).trim())
+      .concat(rows);
+    if (!qRows.length) qRows = [{ name: "", wholesale: "", retail: "" }];
+  }
+  qSave();
+
+  const st = data.settings || {};
+  if (st.defaultCost) {
+    $("qDefaultCost").value = st.defaultCost;
+    try { localStorage.setItem(QCOST_KEY, st.defaultCost); } catch (e) { /* ignore */ }
+  }
+  if (st.suggestRate) {
+    $("qSuggestRate").value = st.suggestRate;
+    try { localStorage.setItem(QRATE_KEY, st.suggestRate); } catch (e) { /* ignore */ }
+  }
+  if (st.logo && (replace || !logoData)) setLogo(st.logo);
+
+  if (data.current && (replace || $("jsonWithCurrent").checked)) applySnapshot(data.current);
+
+  renderPresets();
+  renderQuotePresets();
+  qRender();
+  syncPresetHint();
+  syncQuoteHint();
+  save();
+  if (inPreview()) renderPreview();
+  jsonStat("読み込みました：" + summary);
+  note("JSON を読み込みました（" + summary + "）");
+}
+
+function initJsonIO() {
+  $("btnJsonSave").addEventListener("click", downloadJson);
+  $("btnJsonCopy").addEventListener("click", copyJson);
+  $("jsonModeSeg").addEventListener("change", (e) => {
+    if (e.target.name !== "jsonModeRadio") return;
+    $("jsonMode").value = e.target.value;
+    document.querySelectorAll('#jsonModeSeg input[name="jsonModeRadio"]').forEach((r) => {
+      r.closest(".seg").classList.toggle("on", r.checked);
+    });
+  });
+  document.querySelector('#jsonModeSeg .seg').classList.add("on");
+  $("btnJsonLoad").addEventListener("click", () => {
+    const text = V("jsonPaste");
+    if (!text) { alert("読み込む JSON を貼り付けてください。"); return; }
+    importJson(text, { mode: V("jsonMode") });
+  });
+  $("jsonFile").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = (ev) => {
+      importJson(String(ev.target.result), { mode: V("jsonMode") });
+      $("jsonFile").value = "";
+    };
+    r.readAsText(f);
+  });
+}
+
 // ═══════════════ Boot ═══════════════
 function init() {
   fillDatalist("makerList", MAKERS.concat(["指定なし"]));
@@ -2976,6 +3184,7 @@ function init() {
   window.addEventListener("beforeprint", () => { if (!inPreview()) showPreview(); });
 
   initQuote();
+  initJsonIO();
   showEdit();
 }
 
