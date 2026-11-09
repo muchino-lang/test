@@ -121,6 +121,9 @@ table.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ptbl .ver { font-weight: 700; color: var(--pri); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ptbl td.pr { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ptbl td.pr .pr-in { display: block; font-size: 10px; font-weight: 600; color: #888; }
+.ptbl td input.w-in { width: 100%; border: 1px solid transparent; border-radius: 5px; padding: 4px 6px;
+  background: transparent; color: inherit; font: inherit; }
+.ptbl td input.w-in:focus { border-color: var(--pri); background: #fff; outline: none; }
 .ptbl thead th { line-height: 1.35; }
 .ptbl .tm { color: #888; white-space: nowrap; font-size: 10.5px; }
 .ptbl .acts { white-space: nowrap; text-align: right; }
@@ -246,6 +249,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
 </style>
 </head>
 <body>
+<script id="embeddedConfig" type="application/json">null</script>
 
 <!-- ════ TOP BAR ════ -->
 <div class="bar no-print">
@@ -489,7 +493,7 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
       <div class="fld"><label for="warranty">保証期間</label>
         <select id="warranty"><option value="">選択</option></select>
       </div>
-      <div class="fld"><label for="warrantyUrl">保証規程URL</label><input id="warrantyUrl" value="https://x.gd/academy" /></div>
+      <div class="fld"><label for="warrantyUrl">保証規程URL</label><input id="warrantyUrl" value="https://x.gd/rpcacademy" /></div>
     </div>
     <div class="fld" style="margin-top:8px"><label for="warrantyDetail">保証内容詳細</label>
       <textarea id="warrantyDetail">【保証内容抜粋】
@@ -625,6 +629,39 @@ table.qtbl { border-collapse: collapse; width: 100%; min-width: 1180px; font-siz
       <span class="pcount" id="presetCount"></span>
     </div>
     <div id="presetList"></div>
+  </div>
+
+  <!-- Warranty master -->
+  <div class="sec">
+    <div class="sec-title">◆ 保証種別の管理</div>
+    <p class="hint" style="margin-bottom:10px">
+      保証期間の選択肢と、それぞれの規程URLをここで編集できます。保証を選ぶと、ここで設定したURLが自動で入ります。
+      変更はこのブラウザに保存されます。配布用に固定したい場合は、下の「HTMLに保存」で書き出してください。
+    </p>
+    <div class="ptbl-wrap" style="max-height:none">
+      <table class="ptbl">
+        <thead><tr><th style="width:44%">保証種別</th><th>規程URL</th><th style="width:60px"></th></tr></thead>
+        <tbody id="warrantyBody"></tbody>
+      </table>
+    </div>
+    <div class="qbtns" style="margin-top:10px">
+      <button class="mini-btn" type="button" id="btnWarrantyAdd">＋ 行を追加</button>
+      <button class="mini-btn" type="button" id="btnWarrantyReset">初期値に戻す</button>
+      <span class="hint" id="warrantyStat" style="align-self:center"></span>
+    </div>
+  </div>
+
+  <!-- Save the tool itself -->
+  <div class="sec">
+    <div class="sec-title">◆ HTMLに保存（配布用の最新版を書き出す）</div>
+    <p class="hint" style="margin-bottom:10px">
+      保証種別やロゴ、既定の原価・掛率を組み込んだ、このツール自体の HTML を書き出します。
+      入力中の内容や登録データは含まれません（配布しても取引先の情報は出ません）。
+    </p>
+    <div class="qbtns">
+      <button class="mini-btn" type="button" id="btnSaveHtml" style="border-color:var(--pri);color:var(--pri);font-weight:700">HTMLに保存</button>
+      <span class="hint" id="htmlStat" style="align-self:center"></span>
+    </div>
   </div>
 
   <!-- JSON backup / transfer -->
@@ -836,17 +873,57 @@ const MEM = ["4GB","8GB","16GB","32GB","64GB"];
 const DISPLAY = ['11.6"','12.5"','13.3"','14.0"','15.6"','17.3"'];
 const RES = ["HD","FHD","WUXGA","QHD","WQXGA","4K"];
 const OS_LIST = ["Windows11Pro","Windows11Home","Windows10Pro","Chrome OS Flex","OS なし"];
-const WARRANTY_LIST = [
-  "R∞PCAcademy(4年保証)", "R∞PCLight(2年保証)", "R∞PC(無期限保証)",
-  "R∞PC(1年保証)", "R∞PC(2年保証)", "メーカー保証なし",
+/**
+ * Warranties and their 規程 pages. Editable in the tool itself (◆保証種別の管理),
+ * kept per browser and baked into the file by「HTMLに保存」, so a new product or a
+ * changed URL does not need the source touched.
+ */
+const DEFAULT_WARRANTIES = [
+  { name: "R∞PCAcademy(4年保証)", url: "https://x.gd/rpcacademy" },
+  { name: "R∞PCLight(2年保証)", url: "https://x.gd/RPCLight" },
+  { name: "R∞PC(無期限保証)", url: "https://x.gd/Uy9Q0" },
+  { name: "R∞PC(1年保証)", url: "" },
+  { name: "R∞PC(2年保証)", url: "" },
+  { name: "メーカー保証なし", url: "" },
 ];
-/** Each warranty has its own 規程 page, so picking one fills the URL in. */
-const WARRANTY_URL = {
-  "R∞PCAcademy(4年保証)": "https://x.gd/academy",
-  "R∞PCLight(2年保証)": "https://x.gd/RPCLight",
-  "R∞PC(無期限保証)": "https://x.gd/Uy9Q0",
+const WARRANTY_KEY = "roopc-warranties-v1";
+/** URLs this tool filled in itself — replaceable; anything else was typed by hand. */
+const LEGACY_WARRANTY_URLS = ["https://x.gd/academy"];
+
+let warranties = DEFAULT_WARRANTIES.map((w) => ({ ...w }));
+
+/** Settings baked into the file by a previous「HTMLに保存」, if any. */
+function embeddedConfig() {
+  const el = document.getElementById("embeddedConfig");
+  if (!el) return null;
+  try {
+    const v = JSON.parse(el.textContent || "null");
+    return v && typeof v === "object" ? v : null;
+  } catch (e) { return null; }
+}
+
+function loadWarranties() {
+  const emb = embeddedConfig();
+  let list = null;
+  try { list = JSON.parse(localStorage.getItem(WARRANTY_KEY) || "null"); } catch (e) { list = null; }
+  if (!Array.isArray(list) || !list.length) list = (emb && Array.isArray(emb.warranties) && emb.warranties.length) ? emb.warranties : null;
+  warranties = (list || DEFAULT_WARRANTIES)
+    .filter((w) => w && typeof w === "object" && String(w.name || "").trim())
+    .map((w) => ({ name: String(w.name).trim(), url: String(w.url || "").trim() }));
+  if (!warranties.length) warranties = DEFAULT_WARRANTIES.map((w) => ({ ...w }));
+}
+
+function saveWarranties() {
+  try { localStorage.setItem(WARRANTY_KEY, JSON.stringify(warranties)); } catch (e) { /* ignore */ }
+}
+
+const warrantyUrlOf = (name) => {
+  const hit = warranties.find((w) => w.name === name);
+  return hit ? hit.url : "";
 };
-const WARRANTY_URLS = Object.keys(WARRANTY_URL).map((k) => WARRANTY_URL[k]);
+/** A URL the tool itself put there, so switching warranty may replace it. */
+const isManagedWarrantyUrl = (url) =>
+  !url || warranties.some((w) => w.url && w.url === url) || LEGACY_WARRANTY_URLS.indexOf(url) >= 0;
 
 /**
  * Boilerplate for the 備考 box. Written as functions so a template can name the
@@ -2773,10 +2850,11 @@ function initQuote() {
     document.querySelector(".qtbl").classList.toggle("nocost", !$("qShowCost").checked);
     qRender();
   });
-  try { $("qDefaultCost").value = localStorage.getItem(QCOST_KEY) || DEFAULT_COST; }
-  catch (e) { $("qDefaultCost").value = DEFAULT_COST; }
-  try { $("qSuggestRate").value = localStorage.getItem(QRATE_KEY) || DEFAULT_SUGGEST_RATE; }
-  catch (e) { $("qSuggestRate").value = DEFAULT_SUGGEST_RATE; }
+  const emb = embeddedConfig() || {};
+  try { $("qDefaultCost").value = localStorage.getItem(QCOST_KEY) || emb.defaultCost || DEFAULT_COST; }
+  catch (e) { $("qDefaultCost").value = emb.defaultCost || DEFAULT_COST; }
+  try { $("qSuggestRate").value = localStorage.getItem(QRATE_KEY) || emb.suggestRate || DEFAULT_SUGGEST_RATE; }
+  catch (e) { $("qSuggestRate").value = emb.suggestRate || DEFAULT_SUGGEST_RATE; }
   $("qSuggestRate").addEventListener("input", () => {
     try { localStorage.setItem(QRATE_KEY, V("qSuggestRate")); } catch (e) { /* ignore */ }
     qRender();
@@ -2815,6 +2893,145 @@ function initQuote() {
   });
   renderQuotePresets();
   syncQuoteHint();
+}
+
+// ═══════════════ 保証種別の管理 ═══════════════
+function refreshWarrantySelect() {
+  const sel = $("warranty");
+  const keep = sel.value;
+  sel.innerHTML = '<option value="">選択</option>';
+  warranties.forEach((w) => {
+    const op = document.createElement("option");
+    op.value = w.name; op.textContent = w.name;
+    sel.appendChild(op);
+  });
+  // A warranty that was removed stays selectable, so an old registration still reads right.
+  if (keep && !warranties.some((w) => w.name === keep)) {
+    const op = document.createElement("option");
+    op.value = keep; op.textContent = keep + "（一覧にありません）";
+    sel.appendChild(op);
+  }
+  sel.value = keep;
+}
+
+function renderWarranties() {
+  const body = $("warrantyBody");
+  body.innerHTML = warranties.map((w, i) =>
+    "<tr>" +
+    '<td><input class="w-in" data-wi="' + i + '" data-wk="name" value="" /></td>' +
+    '<td><input class="w-in" data-wi="' + i + '" data-wk="url" value="" placeholder="（規程ページがなければ空欄）" /></td>' +
+    '<td class="acts"><button class="mini-btn" type="button" data-wdel="' + i + '" title="この行を削除">✕</button></td>' +
+    "</tr>").join("");
+  [...body.querySelectorAll("input.w-in")].forEach((el) => {
+    el.value = warranties[+el.dataset.wi][el.dataset.wk] || "";
+  });
+}
+
+function commitWarranties(msg) {
+  saveWarranties();
+  refreshWarrantySelect();
+  $("warrantyStat").textContent = msg || "保存しました";
+  if (inPreview()) renderPreview();
+}
+
+function initWarrantyEditor() {
+  renderWarranties();
+  $("warrantyBody").addEventListener("input", (e) => {
+    const el = e.target;
+    if (!el.dataset.wk) return;
+    warranties[+el.dataset.wi][el.dataset.wk] = el.value.trim();
+    commitWarranties("保存しました");
+  });
+  $("warrantyBody").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-wdel]");
+    if (!btn) return;
+    const i = +btn.getAttribute("data-wdel");
+    if (!confirm("「" + (warranties[i].name || "（名称なし）") + "」を一覧から削除します。よろしいですか？\n" +
+      "（登録済みの仕様書に入っている保証名はそのまま残ります）")) return;
+    warranties.splice(i, 1);
+    renderWarranties();
+    commitWarranties("削除しました");
+  });
+  $("btnWarrantyAdd").addEventListener("click", () => {
+    warranties.push({ name: "", url: "" });
+    renderWarranties();
+    const last = $("warrantyBody").querySelector("tr:last-child input.w-in");
+    if (last) last.focus();
+  });
+  $("btnWarrantyReset").addEventListener("click", () => {
+    if (!confirm("保証種別の一覧を初期値に戻します。よろしいですか？")) return;
+    warranties = DEFAULT_WARRANTIES.map((w) => ({ ...w }));
+    renderWarranties();
+    commitWarranties("初期値に戻しました");
+  });
+}
+
+// ═══════════════ HTMLに保存（このツール自体の書き出し） ═══════════════
+/**
+ * Serialises the page back to a distributable file: the current warranty master,
+ * logo and defaults are baked into #embeddedConfig, while everything the runtime
+ * filled in (lists, tables, the preview) is reset, so the file opens clean and
+ * carries no customer data.
+ */
+function buildToolHtml() {
+  const root = document.documentElement.cloneNode(true);
+  const q = (sel) => root.querySelector(sel);
+
+  q("#embeddedConfig").textContent = JSON.stringify({
+    savedAt: new Date().toISOString(),
+    warranties: warranties,
+    logo: logoData || null,
+    defaultCost: V("qDefaultCost"),
+    suggestRate: V("qSuggestRate"),
+  }, null, 1);
+
+  // runtime-filled lists and views go back to their blank state
+  ["#makerList", "#memList", "#dispList", "#resList", "#osList", "#warrantyBody",
+   "#previewPanel", "#qBody", "#qFoot", "#presetList", "#quoteList"].forEach((sel) => {
+    const el = q(sel);
+    if (el) el.innerHTML = "";
+  });
+  ["#warranty", "#cpuSeries", "#cpuGen"].forEach((sel) => {
+    const el = q(sel);
+    if (el) el.innerHTML = '<option value="">選択</option>';
+  });
+  const bar = q("#barLogo");
+  if (bar) { bar.removeAttribute("src"); bar.style.display = "none"; }
+  const lp = q("#logoPreview");
+  if (lp) { lp.removeAttribute("src"); lp.style.display = "none"; }
+  const img = q("#imgPreview");
+  if (img) { img.removeAttribute("src"); img.style.display = "none"; }
+  [["#editPanel", ""], ["#previewPanel", "none"], ["#quotePanel", "none"],
+   ["#rangeSec", "none"], ["#imgActions", "none"], ["#logoActions", "none"],
+   ["#imgPlaceholder", ""], ["#logoPlaceholder", ""], ["#cpuAutoRow", "none"]].forEach(([sel, d]) => {
+    const el = q(sel);
+    if (el) el.style.display = d;
+  });
+  const flag = q("#draftFlag");
+  if (flag) flag.hidden = true;
+  const der = q("#priceDerived");
+  if (der) { der.hidden = true; der.innerHTML = ""; }
+  const paste = q("#jsonPaste");
+  if (paste) paste.textContent = "";
+  ["#jsonStat", "#htmlStat", "#warrantyStat", "#saveState", "#presetSaveAs", "#quoteSaveAs", "#presetCount", "#quoteCount"]
+    .forEach((sel) => { const el = q(sel); if (el) el.textContent = ""; });
+
+  return "<!DOCTYPE html>\n" + root.outerHTML;
+}
+
+function saveToolHtml() {
+  const html = buildToolHtml();
+  const name = safeFileName("R∞PC仕様書ジェネレーター_" + stampJa(new Date())) + ".html";
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("htmlStat").textContent = "書き出しました：" + name;
 }
 
 // ═══════════════ JSON による書き出し / 読み込み ═══════════════
@@ -2978,19 +3195,24 @@ function initJsonIO() {
 
 // ═══════════════ Boot ═══════════════
 function init() {
+  loadWarranties();
   fillDatalist("makerList", MAKERS.concat(["指定なし"]));
   fillSelect("cpuSeries", Object.keys(CPU_MAP));
   fillDatalist("memList", MEM.concat(["8〜16GB", "8〜32GB"]));
   fillDatalist("dispList", DISPLAY.concat(["12.1〜13.3インチ", "13.3〜14.0インチ"]));
   fillDatalist("resList", RES.concat(["HD〜FHD"]));
   fillDatalist("osList", OS_LIST);
-  fillSelect("warranty", WARRANTY_LIST);
+  refreshWarrantySelect();
 
   $("warranty").value = "R∞PCAcademy(4年保証)";
   $("targetYear").value = new Date().getFullYear() + 1;
   FIELD_IDS.forEach((id) => { if ($(id)) DEFAULTS[id] = $(id).value; });
 
-  restore();
+  const restored = restore();
+  if (!restored && !logoData) {
+    const cfg = embeddedConfig();
+    if (cfg && cfg.logo) setLogo(cfg.logo);
+  }
   syncSheetKind();
   syncPriceRow();
   syncDraft();
@@ -3011,8 +3233,8 @@ function init() {
   // Switching warranty swaps its 規程 URL, unless one was typed by hand.
   $("warranty").addEventListener("change", () => {
     const cur = V("warrantyUrl");
-    if (cur && WARRANTY_URLS.indexOf(cur) < 0) return;
-    $("warrantyUrl").value = WARRANTY_URL[V("warranty")] || "";
+    if (!isManagedWarrantyUrl(cur)) return;
+    $("warrantyUrl").value = warrantyUrlOf(V("warranty"));
     save();
     if (inPreview()) renderPreview();
   });
@@ -3203,6 +3425,8 @@ function init() {
   window.addEventListener("beforeprint", () => { if (!inPreview()) showPreview(); });
 
   initQuote();
+  initWarrantyEditor();
+  $("btnSaveHtml").addEventListener("click", saveToolHtml);
   initJsonIO();
   showEdit();
 }
