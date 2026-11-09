@@ -836,10 +836,14 @@ const MEM = ["4GB","8GB","16GB","32GB","64GB"];
 const DISPLAY = ['11.6"','12.5"','13.3"','14.0"','15.6"','17.3"'];
 const RES = ["HD","FHD","WUXGA","QHD","WQXGA","4K"];
 const OS_LIST = ["Windows11Pro","Windows11Home","Windows10Pro","Chrome OS Flex","OS なし"];
-const WARRANTY_LIST = ["R∞PCAcademy(4年保証)","R∞PC(無期限保証)","R∞PC(1年保証)","R∞PC(2年保証)","メーカー保証なし"];
+const WARRANTY_LIST = [
+  "R∞PCAcademy(4年保証)", "R∞PCLight(2年保証)", "R∞PC(無期限保証)",
+  "R∞PC(1年保証)", "R∞PC(2年保証)", "メーカー保証なし",
+];
 /** Each warranty has its own 規程 page, so picking one fills the URL in. */
 const WARRANTY_URL = {
   "R∞PCAcademy(4年保証)": "https://x.gd/academy",
+  "R∞PCLight(2年保証)": "https://x.gd/RPCLight",
   "R∞PC(無期限保証)": "https://x.gd/Uy9Q0",
 };
 const WARRANTY_URLS = Object.keys(WARRANTY_URL).map((k) => WARRANTY_URL[k]);
