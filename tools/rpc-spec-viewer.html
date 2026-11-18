@@ -155,8 +155,8 @@ footer{max-width:1240px;margin:0 auto;padding:26px 18px 40px;border-top:1px soli
 footer b{color:var(--ink-2)}
 
 /* ---- 表示設定ストリップ ---- */
-.opts-strip{display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);
-  border-radius:10px;padding:9px 12px;margin-bottom:12px;box-shadow:var(--shadow)}
+.opts-strip{position:sticky;top:51px;z-index:50;display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;padding:9px 12px;margin:14px 0 12px;box-shadow:var(--shadow)}
 .optgrp{display:flex;align-items:center;gap:7px}
 .optgrp>span{font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);white-space:nowrap}
 .toggles{display:flex;gap:5px;flex-wrap:wrap}
@@ -164,7 +164,9 @@ footer b{color:var(--ink-2)}
   font:inherit;font-size:11.5px;cursor:pointer}
 .tg[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 12%,var(--panel));border-color:color-mix(in srgb,var(--accent) 45%,var(--line));color:var(--ink);font-weight:700}
 .tg.warn[aria-pressed="true"]{background:color-mix(in srgb,var(--cost) 14%,var(--panel));border-color:color-mix(in srgb,var(--cost) 45%,var(--line))}
-.safe{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid;white-space:nowrap}
+#xlscope{border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font:inherit;font-size:12px;border-radius:7px;padding:5px 8px}
+.optgrp.xl{margin-left:auto;padding-left:14px;border-left:1px solid var(--line-soft)}
+.safe{font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid;white-space:nowrap}
 .safe.ok{color:var(--gp);border-color:color-mix(in srgb,var(--gp) 45%,var(--line));background:color-mix(in srgb,var(--gp) 10%,var(--panel))}
 .safe.no{color:var(--cost);border-color:color-mix(in srgb,var(--cost) 45%,var(--line));background:color-mix(in srgb,var(--cost) 10%,var(--panel))}
 
@@ -240,6 +242,24 @@ footer b{color:var(--ink-2)}
 </div>
 
 <div class="wrap">
+    <div class="opts-strip">
+      <div class="optgrp"><span>用途</span><div class="seg" id="presetseg">
+        <button type="button" data-p="internal" aria-pressed="true">社内</button>
+        <button type="button" data-p="dealer" aria-pressed="false">ベンダー向け</button>
+        <button type="button" data-p="customer" aria-pressed="false">エンド向け</button>
+      </div></div>
+      <div class="optgrp"><span>行</span><div class="toggles" id="rowtg"></div></div>
+      <div class="optgrp"><span>保証列</span><div class="toggles" id="coltg"></div></div>
+      <div class="optgrp xl"><span>Excel</span>
+        <select id="xlscope" aria-label="出力対象">
+          <option value="cat">表示中のカテゴリ</option>
+          <option value="all">全カテゴリ</option>
+          <option value="sel">選択中のモデル</option>
+        </select>
+        <button type="button" class="cpbtn main" id="xlbtn">価格表を出力</button>
+      </div>
+      <span class="safe ok" id="safebadge"></span>
+    </div>
   <section>
     <div class="sec">
       <h2>スペック一覧</h2><div class="rule"></div>
@@ -252,16 +272,6 @@ footer b{color:var(--ink-2)}
   <section id="detsec" hidden>
     <div class="sec"><h2>詳細・提案表</h2><div class="rule"></div><span class="hint">★を押すと次に開いた時も残ります</span>
       <button type="button" class="seg" id="clearsel" style="padding:0"><span style="padding:6px 10px;font-size:12px">選択をクリア</span></button>
-    </div>
-    <div class="opts-strip">
-      <div class="optgrp"><span>用途</span><div class="seg" id="presetseg">
-        <button type="button" data-p="internal" aria-pressed="true">社内</button>
-        <button type="button" data-p="dealer" aria-pressed="false">代理店へ</button>
-        <button type="button" data-p="customer" aria-pressed="false">顧客へ</button>
-      </div></div>
-      <div class="optgrp"><span>行</span><div class="toggles" id="rowtg"></div></div>
-      <div class="optgrp"><span>保証列</span><div class="toggles" id="coltg"></div></div>
-      <span class="safe ok" id="safebadge"></span>
     </div>
     <div class="grid" id="cards"></div>
   </section>
@@ -318,6 +328,11 @@ const ROWS = [
   { key: "whGp", label: "粗利 卸", pub: false, get: p => p.whGp, money: true, internal: true },
   { key: "rate", label: "代理店利益率", pub: false, get: p => p.rate, money: false, internal: true }
 ];
+const AUDIENCE = {
+  internal: { name: "社内用", rows: ["end", "wh", "cost", "endGp", "whGp"], endLabel: "エンド価格" },
+  dealer:   { name: "ベンダー向け", rows: ["end", "wh"], endLabel: "エンド参考価格" },
+  customer: { name: "エンド向け", rows: ["end"], endLabel: "価格" }
+};
 const PRESETS = {
   internal: { rows: ["end", "wh", "cost", "endGp", "whGp", "rate"], cols: ["w2", "w4", "wi"] },
   dealer:   { rows: ["end", "wh"], cols: ["w2", "w4", "wi"] },
@@ -493,7 +508,7 @@ function card(m) {
       <thead><tr><th>保証 <span class="sup">${state.tax === "in" ? "税込" : "税別"}表示</span></th>${ps.map(p => `<th class="${p.cls}">${p.label}<br><span class="sup">${p.sub}</span></th>`).join("")}</tr></thead>
       <tbody>
         ${rows.map((r, i) => `<tr class="${r.key === "end" ? "end" : r.key === "wh" ? "wh" : "sub"}${r.key === "cost" ? " cost" : ""}${r.key.includes("Gp") ? " gp" : ""}${(r.key === "cost" || r.key === "rate") ? " rule-top" : ""}">
-          <th scope="row">${r.label}${r.money ? ` <span>${r.internal ? "税別" : (state.tax === "in" ? "税込" : "税別")}</span>` : ""}</th>
+          <th scope="row">${rowLabel(r)}${r.money ? ` <span>${r.internal ? "税別" : (state.tax === "in" ? "税込" : "税別")}</span>` : ""}</th>
           ${ps.map(p => `<td class="${r.key === "end" ? p.cls : ""}">${cellText(m, r, p)}</td>`).join("")}</tr>`).join("")}
       </tbody>
     </table></div>
@@ -544,7 +559,7 @@ function tableData(m) {
   const ps = visCols(m), rows = visRows(), q = quoteOf(m);
   const head = ["保証", ...ps.map(p => p.label + (p.key === "w4" ? "（参考）" : `（${p.sub}）`))];
   const taxLab = state.tax === "in" ? "税込" : "税別";
-  const body = rows.map(r => [r.label + (r.money ? `（${r.internal ? "税別" : taxLab}）` : ""), ...ps.map(p => cellText(m, r, p))]);
+  const body = rows.map(r => [rowLabel(r) + (r.money ? `（${r.internal ? "税別" : taxLab}）` : ""), ...ps.map(p => cellText(m, r, p))]);
   const title = `${m.code}（${m.cat}）`;
   const sub = [m.cpu, m.ram, m.st, m.os].filter(Boolean).join(" ／ ");
   const taxNote = `※金額は${state.tax === "in" ? "税込" : "税別"}です。${state.rows.has("cost") || state.rows.has("endGp") || state.rows.has("whGp") ? "原価・粗利は税別。" : ""}`;
@@ -624,7 +639,7 @@ const cats = [...new Set(DATA.map(m => m.cat))];
 $("#catseg").innerHTML = cats.map(c => `<button type="button" data-cat="${c}" aria-pressed="${c === state.cat}">${c}</button>`).join("");
 function drawToggles() {
   $("#rowtg").innerHTML = ROWS.map(r =>
-    `<button type="button" class="tg${r.internal ? " warn" : ""}" data-row="${r.key}" aria-pressed="${state.rows.has(r.key)}">${r.label}</button>`).join("");
+    `<button type="button" class="tg${r.internal ? " warn" : ""}" data-row="${r.key}" aria-pressed="${state.rows.has(r.key)}">${rowLabel(r)}</button>`).join("");
   $("#coltg").innerHTML = DATA[0].plans.map(p =>
     `<button type="button" class="tg" data-col="${p.key}" aria-pressed="${state.cols.has(p.key)}">${p.label}</button>`).join("");
 }
@@ -700,6 +715,229 @@ document.addEventListener("input", e => {
   }
 });
 function cardFor(id) { return card(DATA.find(m => m.id === id)); }
+function rowLabel(r) { return r.key === "end" ? AUDIENCE[state.preset].endLabel : r.label; }
+
+/* ===================== Excel（.xlsx）出力 ===================== */
+/* 外部ライブラリなしで最小限のOOXMLを組み立てる（オフラインでも動く） */
+const CRC = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[i] = c >>> 0; }
+  return t;
+})();
+function crc32(buf) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) c = CRC[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+const enc = new TextEncoder();
+function zipStore(files) {
+  const chunks = [], central = [];
+  let offset = 0;
+  const u16 = n => [n & 255, (n >> 8) & 255];
+  const u32 = n => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255];
+  files.forEach(f => {
+    const name = enc.encode(f.name), data = f.data, crc = crc32(data);
+    const local = [].concat([80, 75, 3, 4], u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0));
+    chunks.push(new Uint8Array(local), name, data);
+    central.push([].concat([80, 75, 1, 2], u16(20), u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset)));
+    central[central.length - 1].name = name;
+    offset += local.length + name.length + data.length;
+  });
+  const cdir = [];
+  central.forEach(c => { cdir.push(new Uint8Array(c), c.name); });
+  const cdirLen = central.reduce((n, c) => n + c.length + c.name.length, 0);
+  const eocd = new Uint8Array([].concat([80, 75, 5, 6], u16(0), u16(0), u16(files.length), u16(files.length), u32(cdirLen), u32(offset), u16(0)));
+  const all = [...chunks, ...cdir, eocd];
+  const total = all.reduce((n, a) => n + a.length, 0);
+  const out = new Uint8Array(total);
+  let p = 0; all.forEach(a => { out.set(a, p); p += a.length; });
+  return out;
+}
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const colName = n => { let s = ""; n++; while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = (n - 1 - r) / 26; } return s; };
+
+/* スタイル: 0既定 1タイトル 2見出し(保証) 3見出し(項目) 4文字 5金額 6率 7注記 8型番 */
+const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;¥&quot;#,##0"/></numFmts>
+<fonts count="5">
+<font><sz val="11"/><name val="Yu Gothic"/></font>
+<font><b/><sz val="11"/><name val="Yu Gothic"/></font>
+<font><b/><sz val="14"/><name val="Yu Gothic"/></font>
+<font><i/><sz val="9"/><color rgb="FF666666"/><name val="Yu Gothic"/></font>
+<font><b/><sz val="11"/><color rgb="FF1B1F27"/><name val="Consolas"/></font>
+</fonts>
+<fills count="4">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFE8ECF3"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFD3DBE8"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FFB9C0CC"/></left><right style="thin"><color rgb="FFB9C0CC"/></right><top style="thin"><color rgb="FFB9C0CC"/></top><bottom style="thin"><color rgb="FFB9C0CC"/></bottom><diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="9">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0"/>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0"/>
+<xf numFmtId="10" fontId="0" fillId="0" borderId="1" xfId="0"/>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"/>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+
+function sheetXML(rows, cols, merges, freezeRow) {
+  const rowXML = rows.map((cells, r) => {
+    const cs = cells.map((c, i) => {
+      if (c == null || c.v === "" || c.v == null) return `<c r="${colName(i)}${r + 1}" s="${c ? c.s || 0 : 0}"/>`;
+      const ref = `${colName(i)}${r + 1}`;
+      return typeof c.v === "number"
+        ? `<c r="${ref}" s="${c.s || 0}"><v>${c.v}</v></c>`
+        : `<c r="${ref}" s="${c.s || 0}" t="inlineStr"><is><t xml:space="preserve">${esc(c.v)}</t></is></c>`;
+    }).join("");
+    return `<row r="${r + 1}">${cs}</row>`;
+  }).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetViews><sheetView workbookViewId="0" showGridLines="0">${freezeRow ? `<pane ySplit="${freezeRow}" topLeftCell="A${freezeRow + 1}" activePane="bottomLeft" state="frozen"/>` : ""}</sheetView></sheetViews>
+<sheetFormatPr defaultRowHeight="18"/>
+<cols>${cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols>
+<sheetData>${rowXML}</sheetData>
+${merges.length ? `<mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>` : ""}
+<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>
+</worksheet>`;
+}
+
+/* --- 出力内容の組み立て --- */
+
+function sheetForCategory(models, aud, cols) {
+  const taxLab = state.tax === "in" ? "税込" : "税別";
+  const rowDefs = ROWS.filter(r => aud.rows.includes(r.key));
+  const SPEC = ["型番", "年式", "CPU", "メモリ", "ストレージ", "OS"];
+  const rows = [], merges = [];
+  const n = SPEC.length;
+
+  rows.push([{ v: `R∞PC 価格表（${models[0].cat}）  ${aud.name}`, s: 1 }]);
+  rows.push([{ v: `2026年8月1日 改定版　／　金額は${taxLab}${aud.rows.some(k => k === "cost" || k.includes("Gp")) ? "（原価・粗利は税別）" : ""}`, s: 7 }]);
+  rows.push([]);
+
+  // 見出し2段
+  const h1 = SPEC.map(s => ({ v: s, s: 3 }));
+  const h2 = SPEC.map(() => ({ v: "", s: 3 }));
+  let c = n;
+  cols.forEach(p => {
+    const label = p.key === "w4" ? "4年保証（参考値）" : `${p.label}保証${p.sub ? "（" + p.sub + "）" : ""}`;
+    h1.push({ v: label, s: 2 });
+    for (let i = 1; i < rowDefs.length; i++) h1.push({ v: "", s: 2 });
+    rowDefs.forEach(r => h2.push({ v: r.key === "end" ? aud.endLabel : r.label, s: 3 }));
+    if (rowDefs.length > 1) merges.push(`${colName(c)}4:${colName(c + rowDefs.length - 1)}4`);
+    c += rowDefs.length;
+  });
+  SPEC.forEach((_, i) => merges.push(`${colName(i)}4:${colName(i)}5`));
+  rows.push(h1); rows.push(h2);
+
+  models.forEach(m => {
+    const line = [{ v: m.code, s: 8 }, { v: m.year, s: 4 }, { v: m.cpu, s: 4 }, { v: m.ram, s: 4 }, { v: m.st, s: 4 }, { v: m.os, s: 4 }];
+    const mcols = m.plans.filter(p => cols.some(c => c.key === p.key));
+    mcols.forEach(p => rowDefs.forEach(r => {
+      const raw = r.get(p);
+      line.push(r.money
+        ? { v: (r.key === "end" || r.key === "wh") ? taxed(raw) : raw, s: 5 }
+        : { v: raw, s: 6 });
+    }));
+    rows.push(line);
+  });
+
+  rows.push([]);
+  const notes = [`※ 金額は${taxLab}です。`];
+  if (cols.some(p => p.key === "w4")) notes.push("※ 4年保証は2年保証と無期限保証の中間値から算出した参考値です（正式価格は別途ご確認ください）。");
+  notes.push("※ オプション（税込）：ドライブ +2,200円／テンキー +1,100円／カメラ +1,100円／フルHD +1,100円。SSD 240→500GB +17,600円、500GB→1TB +16,500円。メモリ 8→16GB +13,200円。");
+  notes.forEach(t => rows.push([{ v: t, s: 7 }]));
+
+  const widths = [10, 9, 20, 10, 15, 13].concat(cols.flatMap(() => rowDefs.map(() => 15)));
+  return sheetXML(rows, widths, merges, 5);
+}
+
+function buildXlsx(scope) {
+  const aud = AUDIENCE[state.preset];
+  const cols = DATA[0].plans.filter(p => state.cols.has(p.key));
+  let groups;
+  if (scope === "sel") {
+    const sel = DATA.filter(m => state.sel.has(m.id));
+    groups = [...new Set(sel.map(m => m.cat))].map(cat => ({ cat, models: sel.filter(m => m.cat === cat) }));
+  } else if (scope === "all") {
+    groups = [...new Set(DATA.map(m => m.cat))].map(cat => ({ cat, models: DATA.filter(m => m.cat === cat) }));
+  } else {
+    groups = [{ cat: state.cat, models: DATA.filter(m => m.cat === state.cat) }];
+  }
+  groups = groups.filter(g => g.models.length);
+  if (!groups.length) return null;
+
+  const files = [
+    { name: "[Content_Types].xml", data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+${groups.map((g, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`) },
+    { name: "_rels/.rels", data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`) },
+    { name: "xl/workbook.xml", data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>${groups.map((g, i) => `<sheet name="${esc(g.cat)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets>
+</workbook>`) },
+    { name: "xl/_rels/workbook.xml.rels", data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${groups.map((g, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("")}
+<Relationship Id="rId${groups.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`) },
+    { name: "xl/styles.xml", data: enc.encode(STYLES) }
+  ];
+  groups.forEach((g, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: enc.encode(sheetForCategory(g.models, aud, cols)) }));
+  return zipStore(files);
+}
+
+async function exportXlsx() {
+  const scope = $("#xlscope").value;
+  const bytes = buildXlsx(scope);
+  if (!bytes) { toast("出力できるモデルがありません"); return; }
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  const name = `RPC価格表_20260801改定_${AUDIENCE[state.preset].name}_${stamp}.xlsx`;
+  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  // claude.ai のアーティファクト上では保存許可が要る。ローカルHTMLでは通常のダウンロード。
+  try {
+    const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
+    if (dl) {
+      await dl.save({ filename: name, data: blob });
+      toast(`${name} を保存しました`);
+      return;
+    }
+  } catch (e) {
+    toast(e && e.code === "declined" ? "保存をキャンセルしました" : "保存できませんでした");
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast(`${name} をダウンロードしました`);
+}
+
+$("#xlbtn").addEventListener("click", exportXlsx);
 
 render();
 
